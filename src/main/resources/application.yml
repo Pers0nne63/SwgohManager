@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: swgoh
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/swgoh
+    username: postgres
+    password: ${DB_PASSWORD}
+    hikari:
+     maximum-pool-size: 15
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  web:
+   locale: fr_FR
+   locale-resolver: fixed
+
+logging:
+  level:
+    swgohManager: DEBUG
+
+swgoh:
+  api:
+    base-url: http://localhost:3200
+  guild:
+    id: PzZXMmXISCG8tP9Blinblw
+  comlink:
+    image: ghcr.io/swgoh-utils/swgoh-comlink:latest
+    container-name: swgoh-comlink
+    app-name: my_swgoh
+    port: 3200

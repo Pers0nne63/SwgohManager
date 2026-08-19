@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${joueur != null ? joueur.playerName + ' - Omicrons TW' : 'Omicrons TW'}">Omicrons TW</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .cards-container { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+        .card { border: 1px solid #ccc; border-radius: 8px; padding: 15px; flex: 1; min-width: 260px; box-sizing: border-box; background: #fff; }
+        .card h3 { margin-top: 0; font-size: 1.05em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: center; }
+        th { background: #f0f0f0; }
+        a { color: #2a6cd6; text-decoration: none; }
+        .ok { color: #1a9850; font-weight: bold; }
+        .ko { color: #d73027; font-weight: bold; }
+    </style>
+</head>
+<body>
+<p><a th:href="@{/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}">&larr; Retour à la fiche joueur</a></p>
+<p><a href="/guilde">&larr; Retour à la guilde</a></p>
+
+<h1>Détails des omicrons TW</h1>
+<h1 th:text="${joueur != null ? joueur.playerName : 'Joueur introuvable'}"></h1>
+
+<div class="cards-container">
+    <div class="card" th:each="entry : ${progression.parPriorite()}" th:if="${entry.value.total() > 0}">
+        <h3 th:text="'Priorité ' + ${entry.key} + ' : ' + ${entry.value.atteint()} + ' / ' + ${entry.value.total()} + ' (' + ${#numbers.formatDecimal(entry.value.pourcentage(), 1, 1)} + ' %)'"></h3>
+        <table>
+            <thead><tr><th>Unité - Compétence</th><th>Statut</th></tr></thead>
+            <tbody>
+            <tr th:each="d : ${entry.value.details()}">
+                <td th:text="${d.label()}"></td>
+                <td>
+                    <span th:if="${d.atteint()}" class="ok">✅</span>
+                    <span th:unless="${d.atteint()}" class="ko">❌</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

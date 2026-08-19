@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sélection joueur</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .card { border: 1px solid #ccc; border-radius: 8px; padding: 20px; max-width: 400px; }
+        select { width: 100%; padding: 8px; margin-top: 10px; }
+        a { color: #2a6cd6; text-decoration: none; }
+    </style>
+</head>
+<body>
+<p><a href="/guilde">&larr; Retour à la guilde</a></p>
+
+<h1>Fiche joueur</h1>
+
+<div class="card">
+    <label for="selectJoueur">Choisir un joueur</label>
+    <select id="selectJoueur" onchange="if(this.value) window.location.href='/joueur/' + this.value;">
+        <option value="" disabled selected>-- Sélectionner --</option>
+        <option th:each="j : ${joueurs}" th:value="${j.playerId}" th:text="${j.playerName}"></option>
+    </select>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Omicrons TW</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: center; }
+        th { background: #f0f0f0; }
+        .card { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        input[type=text], select { padding: 4px 6px; }
+        .btn { padding: 5px 12px; cursor: pointer; }
+        .btn-danger { background: #d73027; color: white; border: none; border-radius: 4px; }
+        .btn-primary { background: #2a6cd6; color: white; border: none; border-radius: 4px; }
+        a { color: #2a6cd6; text-decoration: none; }
+    </style>
+</head>
+<body>
+<p><a href="/guilde">&larr; Retour à la guilde</a></p>
+
+<h1>Omicrons TW</h1>
+
+<div class="card">
+    <h3>Ajouter un omicron</h3>
+    <form th:action="@{/omicron-tw/ajouter}" method="post" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+        <div>
+            <label>Unité - Compétence</label><br>
+            <input type="text" name="selection" list="optionsOmicron" required placeholder="Rechercher..." style="width:280px;" />
+            <datalist id="optionsOmicron">
+                <option th:each="o : ${options}" th:value="${o.label}"></option>
+            </datalist>
+        </div>
+        <div>
+            <label>Priorité</label><br>
+            <select name="priorite">
+                <option th:each="p : ${prioriteOptions}" th:value="${p}" th:text="'P' + ${p}"></option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">Ajouter</button>
+        </div>
+    </form>
+</div>
+
+<h2>Omicrons du plan (<span th:text="${#lists.size(plans)}"></span>)</h2>
+<table>
+    <thead>
+    <tr><th>Unité</th><th>Compétence</th><th>Priorité</th><th></th><th></th></tr>
+    </thead>
+    <tbody>
+    <tr th:each="p : ${plans}">
+        <form th:action="@{/omicron-tw/modifier/{id}(id=${p.id})}" method="post">
+            <td th:text="${p.baseId}"></td>
+            <td th:text="${p.idSkill}"></td>
+            <td>
+                <select name="priorite">
+                    <option th:each="opt : ${prioriteOptions}" th:value="${opt}" th:text="'P' + ${opt}" th:selected="${opt == p.priorite}"></option>
+                </select>
+            </td>
+            <td><button type="submit" class="btn btn-primary">Actualiser</button></td>
+        </form>
+        <td>
+            <form th:action="@{/omicron-tw/supprimer/{id}(id=${p.id})}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-danger" title="Supprimer" onclick="return confirm('Supprimer cette entrée ?');">🗑</button>
+            </form>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

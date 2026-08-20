@@ -5,4 +5,5 @@ public interface OmicronOptionProjection {
     String getIdSkill();
     String getType();
     Integer getNumero();
+    String getLibelle();
 }

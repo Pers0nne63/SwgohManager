@@ -18,8 +18,8 @@ public class FarmPlanWebController {
 
     @GetMapping
     public String page(Model model) {
-        model.addAttribute("plans", farmPlanService.getAll());
-        model.addAttribute("baseIds", farmPlanService.getBaseIdsDisponibles());
+        model.addAttribute("plans", farmPlanService.getAllEnrichis());
+        model.addAttribute("unites", farmPlanService.getUnitesDisponibles());
         model.addAttribute("etoilesOptions",
                 IntStream.rangeClosed(1, 7).boxed().sorted(Comparator.reverseOrder()).toList());
         model.addAttribute("relicOptions",
@@ -28,11 +28,11 @@ public class FarmPlanWebController {
     }
 
     @PostMapping("/ajouter")
-    public String ajouter(@RequestParam String baseId,
+    public String ajouter(@RequestParam String selection,
                            @RequestParam(defaultValue = "7") Integer etoiles,
                            @RequestParam(defaultValue = "6") Integer relic,
                            @RequestParam(required = false) String tag) {
-        farmPlanService.ajouter(baseId, etoiles, relic, tag);
+        farmPlanService.ajouter(selection, etoiles, relic, tag);
         return "redirect:/plan-farm";
     }
 

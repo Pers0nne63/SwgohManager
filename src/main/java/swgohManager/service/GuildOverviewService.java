@@ -5,16 +5,20 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
+
 import lombok.RequiredArgsConstructor;
 import swgohManager.model.Joueur;
 import swgohManager.model.PlayerModQActuel;
+import swgohManager.model.PlayerStatqActuel;
 import swgohManager.model.RaidHistorique;
 import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.PlayerModQActuelRepository;
+import swgohManager.repository.PlayerRatingHistoriqueRepository;
+import swgohManager.repository.PlayerStatqActuelRepository;
 import swgohManager.repository.RaidHistoriqueRepository;
 import swgohManager.repository.TerritoryBattleRepository;
-import swgohManager.repository.PlayerRatingHistoriqueRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -25,40 +29,48 @@ public class GuildOverviewService {
     private final RaidHistoriqueRepository raidHistoriqueRepository;
     private final TerritoryBattleRepository territoryBattleRepository;
     private final FarmPlanProgressService farmPlanProgressService;
+    private final OmicronPlanProgressService omicronPlanProgressService;
     private final PlayerRatingHistoriqueRepository playerRatingHistoriqueRepository;
-
-    // 1. Ajout de ratingActuel dans le record PlayerRow
+    private final PlayerStatqActuelRepository playerStatqActuelRepository;
+    
     public record PlayerRow(
-            String playerId, 
-            String playerName, 
-            Long galacticPower, 
-            String leagueId, 
-            Double modQ, 
+            String playerId,
+            String playerName,
+            Long galacticPower,
+            String leagueId,
+            Double modQ,
             Double farmPlanPourcentage,
-            Integer ratingActuel
+            Integer ratingActuel,
+            Double omicronP1Pourcentage,
+            Double statQ
     ) {}
 
     public record RaidSummary(Instant endTime, long totalScore, int nbParticipants) {}
     public record TbSummary(String definitionId, Instant endTime, Integer totalStars) {}
-    
+
     public List<PlayerRow> getJoueurs() {
         List<Joueur> joueurs = joueurRepository.findAllByPresentInGuildTrue();
-
         List<String> playerIds = joueurs.stream().map(Joueur::getPlayerId).toList();
 
-        Map<String, FarmPlanProgressService.PlayerFarmProgress> progressions = farmPlanProgressService
-                .getProgressionPourJoueurs(playerIds);
-        
-        // 2. Récupération des derniers ratings sous forme de Map<playerId, Double>
+        // Requêtes "Batch" (1 seule requête SQL par sujet)
+        Map<String, Double> farmPlanPourcentages = farmPlanProgressService.getPourcentagesPourJoueurs(playerIds);
+        Map<String, Double> omicronP1Pourcentages = omicronPlanProgressService.getPourcentagesOmiPourJoueurs(playerIds);
+
+        Map<String, Double> modQMap = playerModQActuelRepository.findByPlayerIdIn(playerIds).stream()
+                .collect(Collectors.toMap(PlayerModQActuel::getPlayerId, PlayerModQActuel::getModQ, (m1, m2) -> m1));
+
         Map<String, Integer> ratingsMap = playerRatingHistoriqueRepository
                 .findDernierRatingPourJoueurs(playerIds)
                 .stream()
                 .collect(Collectors.toMap(
                         PlayerRatingHistoriqueRepository.DernierRatingProjection::getPlayerId,
                         PlayerRatingHistoriqueRepository.DernierRatingProjection::getRating,
-                        (r1, r2) -> r1 // En cas de doublon sur la même date
+                        (r1, r2) -> r1
                 ));
-
+        
+        Map<String, Double> statQMap = playerStatqActuelRepository.findByPlayerIdIn(playerIds).stream()
+                .collect(Collectors.toMap(PlayerStatqActuel::getPlayerId, PlayerStatqActuel::getStatq, (a, b) -> a));
+        
         return joueurs.stream()
                 .sorted(Comparator.comparing(Joueur::getGalacticPower, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(j -> new PlayerRow(
@@ -66,11 +78,12 @@ public class GuildOverviewService {
                         j.getPlayerName(),
                         j.getGalacticPower(),
                         j.getLeagueId(),
-                        playerModQActuelRepository.findByPlayerId(j.getPlayerId())
-                                .map(PlayerModQActuel::getModQ).orElse(null),
-                        progressions.get(j.getPlayerId()).pourcentage(),
-                        ratingsMap.get(j.getPlayerId()) // 3. Transmission du rating
-                ))
+                        modQMap.get(j.getPlayerId()),
+                        farmPlanPourcentages.get(j.getPlayerId()),
+                        ratingsMap.get(j.getPlayerId()),
+                        omicronP1Pourcentages.get(j.getPlayerId()),
+                        statQMap.get(j.getPlayerId())
+                		))
                 .toList();
     }
 

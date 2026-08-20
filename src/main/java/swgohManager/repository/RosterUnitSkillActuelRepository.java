@@ -13,7 +13,7 @@ public interface RosterUnitSkillActuelRepository extends JpaRepository<RosterUni
     void deleteByPlayerId(String playerId);
     
     @Query(value = """
-    	    SELECT DISTINCT ud.base_id AS baseId, rus.id_skill AS idSkill, rus.type AS type, rus.numero AS numero
+    	    SELECT DISTINCT ud.base_id AS baseId, rus.id_skill AS idSkill, rus.type AS type, rus.numero AS numero, ud.libelle AS libelle
     	    FROM roster_unit_skill_actuel rus
     	    JOIN roster_unit_actuel ru ON ru.id_unit = rus.id_unit AND ru.player_id = rus.player_id
     	    JOIN unit_definition ud ON ud.id_unit = ru.definition_id

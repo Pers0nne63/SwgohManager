@@ -183,4 +183,83 @@ public class SwgohDataClient {
         log.info("{} unité(s) et {} relicTierDefinition extraite(s) en streaming", units.size(), relics.size());
         return new UnitSegmentData(units, relics);
     }
+    
+    public String getLatestLocalizationVersion() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/metadata"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .timeout(Duration.ofSeconds(15))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            var node = objectMapper.readTree(response.body());
+            String version = node.get("latestLocalizationBundleVersion").asText();
+            log.info("Version de localisation récupérée : {}", version);
+            return version;
+
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            throw new SwgohDataException("Impossible de récupérer la version de localisation (/metadata)", e);
+        }
+    }
+    
+    public java.util.Map<String, String> getLocalizationFrancaise(String version) {
+        String id = version + ":FRE_FR";
+        String body = """
+                {"payload":{"id":"%s"},"unzip":true}
+                """.formatted(id);
+
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/localization"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .timeout(Duration.ofMinutes(2))
+                    .build();
+
+            HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+            try (InputStream in = response.body()) {
+                return extraireTraductionsFrancaises(in);
+            }
+
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            throw new SwgohDataException("Erreur lors du streaming de la localisation française", e);
+        }
+    }
+
+    private java.util.Map<String, String> extraireTraductionsFrancaises(InputStream in) throws IOException {
+        java.util.Map<String, String> traductions = new java.util.HashMap<>();
+
+        try (JsonParser parser = objectMapper.getFactory().createParser(in)) {
+            if (parser.nextToken() != JsonToken.START_OBJECT) {
+                throw new IOException("Réponse inattendue : pas un objet JSON");
+            }
+
+            while (parser.nextToken() != JsonToken.END_OBJECT) {
+                String champ = parser.currentName();
+                parser.nextToken();
+
+                if ("Loc_FRE_FR.txt".equals(champ)) {
+                    String contenu = parser.getValueAsString();
+                    for (String ligne : contenu.split("\n")) {
+                        int idx = ligne.indexOf('|');
+                        if (idx > 0) {
+                            String cle = ligne.substring(0, idx).trim();
+                            String valeur = ligne.substring(idx + 1).trim();
+                            traductions.put(cle, valeur);
+                        }
+                    }
+                } else {
+                    parser.skipChildren();
+                }
+            }
+        }
+
+        log.info("{} traduction(s) française(s) extraite(s)", traductions.size());
+        return traductions;
+    }
 }

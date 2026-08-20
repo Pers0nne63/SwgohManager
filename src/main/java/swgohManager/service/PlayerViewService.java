@@ -10,10 +10,12 @@ import lombok.RequiredArgsConstructor;
 import swgohManager.model.Joueur;
 import swgohManager.model.PlayerModQActuel;
 import swgohManager.model.PlayerRatingHistorique;
+import swgohManager.model.PlayerStatqActuel;
 import swgohManager.model.RosterUnitModActuel;
 import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.PlayerModQActuelRepository;
 import swgohManager.repository.PlayerRatingHistoriqueRepository;
+import swgohManager.repository.PlayerStatqActuelRepository;
 import swgohManager.repository.RosterUnitModActuelRepository;
 
 @Service
@@ -28,6 +30,7 @@ public class PlayerViewService {
     private final PlayerRatingHistoriqueRepository playerRatingHistoriqueRepository;
     private final RosterUnitModActuelRepository rosterUnitModActuelRepository;
     private final FarmPlanProgressService farmPlanProgressService;
+    private final PlayerStatqActuelRepository playerStatqActuelRepository;
 
     // DTO pour Chart.js (série de données pour une rareté donnée)
     public record ModSpeedDataset(
@@ -45,7 +48,8 @@ public class PlayerViewService {
             List<ModSpeedDataset> vitesseDatasets,
             FarmPlanProgressService.PlayerFarmProgress farmPlan,
             List<String> farmPlanHistoLabels,
-            List<Double> farmPlanHistoValues
+            List<Double> farmPlanHistoValues,
+            Double statQ
     ) {}
 
     public PlayerViewModel construire(String playerId) {
@@ -111,9 +115,9 @@ public class PlayerViewService {
             }
         }
 
-        FarmPlanProgressService.PlayerFarmProgress farmPlan = farmPlanProgressService.getProgression(playerId);
+        FarmPlanProgressService.PlayerFarmProgress farmPlan = farmPlanProgressService.getProgressionPersistee(playerId);
 
-        List<FarmPlanProgressService.PointProgression> historiqueFarm = farmPlanProgressService.getProgressionDansLeTemps(playerId);
+        List<FarmPlanProgressService.PointProgression> historiqueFarm = farmPlanProgressService.getProgressionDansLeTempsPersistee(playerId);
         List<String> farmPlanHistoLabels = historiqueFarm.stream()
                 .map(p -> p.date() != null
                         ? java.time.format.DateTimeFormatter.ofPattern("dd/MM").withZone(java.time.ZoneId.systemDefault()).format(p.date())
@@ -121,7 +125,10 @@ public class PlayerViewService {
                 .toList();
         List<Double> farmPlanHistoValues = historiqueFarm.stream().map(FarmPlanProgressService.PointProgression::pourcentage).toList();
         
-        return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanHistoLabels, farmPlanHistoValues);
+        Double statQ = playerStatqActuelRepository.findByPlayerId(playerId)
+                .map(PlayerStatqActuel::getStatq).orElse(null);
+        
+        return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanHistoLabels, farmPlanHistoValues, statQ);
     }
 
     private Integer parseRarity(String rarityStr) {

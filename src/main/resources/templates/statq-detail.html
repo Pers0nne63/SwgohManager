@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${joueur != null ? joueur.playerName + ' - StatQ' : 'StatQ'}">StatQ</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .cards-container { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+		.card { border: 1px solid #ccc; border-radius: 8px; padding: 15px; min-width: 500px; box-sizing: border-box; }        .card h3 { margin-top: 0; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        table { border-collapse: collapse; margin-top: 10px; width: max-content; }
+		th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; font-size: 0.9em; white-space: nowrap; }
+        th { background: #f0f0f0; }
+        a { color: #2a6cd6; text-decoration: none; }
+        .note-4 { color: #1a9850; font-weight: bold; }
+        .note-3 { color: #66bd63; font-weight: bold; }
+        .note-2 { color: #f0b400; font-weight: bold; }
+        .note-1 { color: #e67e22; font-weight: bold; }
+        .note-0 { color: #d73027; font-weight: bold; }
+        .legend-box {
+   			 background-color: #eef5ff;
+   			 border-left: 4px solid #2a6cd6;
+    		 border-radius: 6px;
+   			 padding: 12px 18px;
+    		margin-top: 10px;
+    		margin-bottom: 25px;
+		}
+
+		.legend-header {
+    		font-size: 0.95rem;
+    		color: #1a365d;
+    		margin-bottom: 8px;
+    		display: flex;
+    		align-items: center;
+    		gap: 8px;
+		}
+
+		.legend-list {
+    		margin: 0;
+    		padding-left: 20px;
+    		font-size: 0.88rem;
+    		color: #4a5568;
+    		line-height: 1.5;
+		}
+
+		.legend-list li {
+    		margin-bottom: 4px;
+		}
+
+		.legend-list li:last-child {
+    		margin-bottom: 0;
+		}
+		.legend-body p {
+    	margin-top: 0;
+    	margin-bottom: 6px; /* Ajuste cette valeur selon le rendu souhaité (ex: 4px, 6px, 8px) */
+}
+    </style>
+</head>
+<body>
+<p><a th:href="@{/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}">&larr; Retour à la fiche joueur</a></p>
+<p><a href="/guilde">&larr; Retour à la guilde</a></p>
+
+
+<div class="player-header" style="margin-bottom: 20px;">
+    <!-- Nom du joueur + StatQ actuel -->
+    <h1 style="margin-bottom: 4px;">
+        <span th:text="${joueur != null ? joueur.playerName : 'Joueur'}">Nom du joueur</span>
+        <span th:if="${statqJoueur != null}" style="font-size: 0.8em; font-weight: normal; color: #2a6cd6;">
+            — StatQ : <strong th:text="${#numbers.formatDecimal(statqJoueur, 1, 2)}">0.00</strong>
+        </span>
+    </h1>
+
+    <!-- Récapitulatif de guilde (gris et plus petit) -->
+    <div th:if="${statsGuilde != null}" style="font-size: 0.85em; color: #666666;">
+        Guilde : 
+        Min : <strong th:text="${#numbers.formatDecimal(statsGuilde.min(), 1, 2)}">0.00</strong> / 
+        Moy : <strong th:text="${#numbers.formatDecimal(statsGuilde.moyenne(), 1, 2)}">0.00</strong> / 
+        Médiane : <strong th:text="${#numbers.formatDecimal(statsGuilde.mediane(), 1, 2)}">0.00</strong> / 
+        Max : <strong th:text="${#numbers.formatDecimal(statsGuilde.max(), 1, 2)}">0.00</strong>
+    </div>
+</div>
+
+<!-- Bloc Légende / Explication -->
+<div class="legend-box">
+    <!-- En-tête : Titre seul avec l'icône -->
+    <div class="legend-header">
+        <span class="legend-icon">ℹ️</span>
+        <strong>Méthode de calcul du StatQ :</strong>
+    </div>
+
+    <!-- Corps : Explication texte -->
+    <div class="legend-body">
+        <p>Le StatQ est un indicateur qui évalue la qualité du modding d'un toon en prenant en compte différentes stats et pas seulement la vitesse.</p>
+        <p>On calcule la moyenne des mods par statistique sur le top 100 GAC.</p>
+        <p>Ces mods moyens sont appliqués aux unités du joueur, cela permet d'écarter le niveau de relic du calcul et de calculer des stats "Objectifs".</p>
+        <p>Une liste d'unités et de stats sont choisies puis le calcul entre les valeurs objectifs et les valeurs réelles est effectué. Une note est attribuée en fonction du % d'écart à l'objectif selon la notation suivante :</p>
+    </div>
+
+    <!-- Liste avec notes colorées -->
+    <ul class="legend-list">
+        <li><strong>Variation &gt; 0 :</strong> <span class="note-4">4</span></li>
+        <li><strong>Variation &gt; -2.5% :</strong> <span class="note-3">3</span></li>
+        <li><strong>Variation &gt; -5% :</strong> <span class="note-2">2</span></li>
+        <li><strong>Variation &gt; -7.5% :</strong> <span class="note-1">1</span></li>
+        <li><strong>Variation &lt; -7.5% :</strong> <span class="note-0">0</span></li>
+    </ul>
+        <p>Les Teams sont présentées par StatQ croissant</p>
+</div>
+
+<div class="cards-container">
+    <div class="card" th:each="teamSummary : ${detailParTeam}">
+        <h3>
+            <span th:text="${teamSummary.team}">Nom Team</span>
+            <span style="font-size: 0.85em; font-weight: normal; color: #555; margin-left: 8px;">
+                — Score : <strong th:text="${teamSummary.scoreTotal}">0</strong> 
+                | Moy. : <strong th:text="${#numbers.formatDecimal(teamSummary.noteMoyenne, 1, 2)}">0.00</strong>
+            </span>
+        </h3>
+        <table>
+            <thead>
+            <tr><th>Unité</th><th>Stat</th><th>Actuel</th><th>Objectif</th><th>Variation</th><th>Note</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="d : ${teamSummary.details}">
+                <td th:text="${d.nomUnite}"></td>
+                <td th:text="${d.nomStat}"></td>
+                <td th:text="${d.valeurActuelle != null ? #numbers.formatInteger(d.valeurActuelle, 1, 'WHITESPACE') : '-'}"></td>
+                <td th:text="${d.valeurObjectif != null ? #numbers.formatInteger(d.valeurObjectif, 1, 'WHITESPACE') : '-'}"></td>
+                <td th:text="${d.variation != null ? #numbers.formatDecimal(d.variation * 100, 1, 1) + ' %' : '-'}"></td>
+                <td th:class="'note-' + ${d.note}" th:text="${d.note}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

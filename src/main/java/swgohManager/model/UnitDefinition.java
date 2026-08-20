@@ -18,6 +18,7 @@ public class UnitDefinition {
     private String idUnit;
 
     private String baseId;
+    private String libelle;
     private Integer forceAlignment; // 1=LS, 2=DS, 3=Neutre
     private Integer unitClass;
     private Integer combatType;

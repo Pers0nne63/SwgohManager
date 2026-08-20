@@ -27,6 +27,8 @@ public class RosterUnitService {
     private final SkillDefinitionRepository skillDefinitionRepository;
     private final PlayerModQService playerModQService;
     private final RosterUnitStatCalculService rosterUnitStatCalculService;
+    private final FarmPlanProgressService farmPlanProgressService;
+    private final OmicronPlanProgressService omicronPlanProgressService;
 
     @Transactional
     public String enregistrerRoster(PlayerResponse response, Long idSync) {
@@ -155,6 +157,9 @@ public class RosterUnitService {
                 idSync, unitesActuelles.size(), skillsActuels.size(), skillsSansDefinition, modsActuels.size());
         
         playerModQService.calculerEtEnregistrer(playerId, modsActuels, idSync);
+        
+        farmPlanProgressService.calculerEtEnregistrer(playerId, idSync);
+        omicronPlanProgressService.calculerEtEnregistrer(playerId, idSync);
         
         String resultatStats = rosterUnitStatCalculService.calculerEtEnregistrer(playerId, unitesActuelles, modsActuels);
         

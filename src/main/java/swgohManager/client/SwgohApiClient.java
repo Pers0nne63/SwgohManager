@@ -1,18 +1,19 @@
 package swgohManager.client;
 
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import swgohManager.client.dto.GuildRequest;
-import swgohManager.client.dto.GuildResponse;
-import swgohManager.client.dto.PlayerRequest;
-import swgohManager.client.dto.PlayerResponse;
-import swgohManager.service.PlayerIdentifier;
 import swgohManager.client.dto.EventsResponse;
 import swgohManager.client.dto.GetEventsRequest;
 import swgohManager.client.dto.GetLeaderboardRequest;
+import swgohManager.client.dto.GuildRequest;
+import swgohManager.client.dto.GuildResponse;
 import swgohManager.client.dto.LeaderboardResponse;
-import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
+import swgohManager.client.dto.PlayerRequest;
+import swgohManager.client.dto.PlayerResponse;
+import swgohManager.service.PlayerIdentifier;
 
 @Component
 @RequiredArgsConstructor
@@ -73,6 +74,7 @@ public class SwgohApiClient {
                 .bodyToMono(LeaderboardResponse.class)
                 .block();
     }
+    
 
 }
 

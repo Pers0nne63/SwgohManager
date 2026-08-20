@@ -17,7 +17,7 @@ public class OmicronPlanWebController {
 
     @GetMapping
     public String page(Model model) {
-        model.addAttribute("plans", omicronPlanService.getAll());
+        model.addAttribute("plans", omicronPlanService.getAllEnrichis());
         model.addAttribute("options", omicronPlanService.getOptionsDisponibles().stream()
                 .sorted(Comparator.comparing(OmicronPlanService.Option::label))
                 .toList());

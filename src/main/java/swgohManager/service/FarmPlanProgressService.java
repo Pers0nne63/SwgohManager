@@ -2,16 +2,16 @@ package swgohManager.service;
 
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
 import swgohManager.model.FarmPlan;
-import swgohManager.repository.FarmPlanRepository;
-import swgohManager.repository.RosterUnitActuelRepository;
+import swgohManager.model.PlayerPdfActuel;
+import swgohManager.model.PlayerPdfHistorique;
+import swgohManager.model.SyncExecution;
+import swgohManager.model.UnitDefinition;
+import swgohManager.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import swgohManager.controller.dto.RosterHistoryProgressProjection;
-import swgohManager.model.SyncExecution;
-import swgohManager.repository.RosterUnitHistoriqueRepository;
-import swgohManager.repository.SyncExecutionRepository;
-import java.time.Instant;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,27 +23,94 @@ public class FarmPlanProgressService {
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
     private final RosterUnitHistoriqueRepository rosterUnitHistoriqueRepository;
     private final SyncExecutionRepository syncExecutionRepository;
+    private final PlayerPdfActuelRepository playerPdfActuelRepository;
+    private final PlayerPdfHistoriqueRepository playerPdfHistoriqueRepository;
+    private final UnitDefinitionRepository unitDefinitionRepository; // 👈 Ajout
 
-    public record DetailRow(String baseId, Integer etoilesCible, Integer relicCible, Integer relicActuel, boolean atteint) {}    public record PlayerFarmProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
-    
-    
+    public record DetailRow(String baseId, String nomUnite, Integer etoilesCible, Integer relicCible, Integer relicActuel, boolean atteint) {}
+    public record PlayerFarmProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
+    public record PointProgression(Instant date, Double pourcentage) {}
+
     public PlayerFarmProgress getProgression(String playerId) {
         return calculer(playerId, farmPlanRepository.findAll());
     }
 
-    public Map<String, PlayerFarmProgress> getProgressionPourJoueurs(List<String> playerIds) {
-        List<FarmPlan> plans = farmPlanRepository.findAll();
-        Map<String, PlayerFarmProgress> resultat = new LinkedHashMap<>();
-        for (String playerId : playerIds) {
-            resultat.put(playerId, calculer(playerId, plans));
+    @Transactional
+    public void calculerEtEnregistrer(String playerId, Long idSync) {
+        PlayerFarmProgress progress = calculer(playerId, farmPlanRepository.findAll());
+
+        PlayerPdfActuel existant = playerPdfActuelRepository.findByPlayerId(playerId).orElse(null);
+
+        if (existant != null) {
+            playerPdfHistoriqueRepository.save(PlayerPdfHistorique.builder()
+                    .playerId(existant.getPlayerId())
+                    .atteint(existant.getAtteint())
+                    .total(existant.getTotal())
+                    .pourcentage(existant.getPourcentage())
+                    .idSync(existant.getIdSync())
+                    .build());
+        } else {
+            existant = new PlayerPdfActuel();
+            existant.setPlayerId(playerId);
         }
-        return resultat;
+
+        existant.setAtteint(progress.atteint());
+        existant.setTotal(progress.total());
+        existant.setPourcentage(progress.pourcentage());
+        existant.setIdSync(idSync);
+
+        playerPdfActuelRepository.save(existant);
+    }
+
+    public Map<String, Double> getPourcentagesPourJoueurs(List<String> playerIds) {
+        return playerPdfActuelRepository.findByPlayerIdIn(playerIds).stream()
+                .collect(Collectors.toMap(PlayerPdfActuel::getPlayerId, PlayerPdfActuel::getPourcentage));
+    }
+
+    public PlayerFarmProgress getProgressionPersistee(String playerId) {
+        return playerPdfActuelRepository.findByPlayerId(playerId)
+                .map(p -> new PlayerFarmProgress(
+                        p.getAtteint() != null ? p.getAtteint() : 0,
+                        p.getTotal() != null ? p.getTotal() : 0,
+                        p.getPourcentage(),
+                        List.of()))
+                .orElse(new PlayerFarmProgress(0, 0, null, List.of()));
+    }
+
+    public List<PointProgression> getProgressionDansLeTempsPersistee(String playerId) {
+        List<PlayerPdfHistorique> histo = playerPdfHistoriqueRepository.findByPlayerIdOrderByIdSyncAsc(playerId);
+        Optional<PlayerPdfActuel> actuelOpt = playerPdfActuelRepository.findByPlayerId(playerId);
+
+        Map<Long, Double> pourcentageParSync = new LinkedHashMap<>();
+        for (PlayerPdfHistorique h : histo) {
+            pourcentageParSync.put(h.getIdSync(), h.getPourcentage());
+        }
+        actuelOpt.ifPresent(a -> pourcentageParSync.put(a.getIdSync(), a.getPourcentage()));
+
+        if (pourcentageParSync.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Instant> dateParSync = new HashMap<>();
+        for (SyncExecution se : syncExecutionRepository.findAllById(pourcentageParSync.keySet())) {
+            dateParSync.put(se.getIdSync(), se.getDateSync());
+        }
+
+        return pourcentageParSync.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> new PointProgression(dateParSync.get(e.getKey()), e.getValue()))
+                .toList();
     }
 
     private PlayerFarmProgress calculer(String playerId, List<FarmPlan> plans) {
         if (plans.isEmpty()) {
             return new PlayerFarmProgress(0, 0, null, List.of());
         }
+
+        // Map baseId -> Libellé lisible du personnage (dédupliqué)
+        Map<String, String> unitMap = unitDefinitionRepository.findAll().stream()
+                .filter(u -> u.getBaseId() != null && u.getLibelle() != null)
+                .collect(Collectors.toMap(UnitDefinition::getBaseId, UnitDefinition::getLibelle, (v1, v2) -> v1));
 
         Map<String, RosterBaseIdProgressProjection> parBaseId = rosterUnitActuelRepository
                 .findMaxEtoilesRelicByBaseId(playerId).stream()
@@ -61,56 +128,11 @@ public class FarmPlanProgressService {
             boolean ok = etoilesActuelles >= plan.getEtoilesCible() && relicPourComparaison >= plan.getRelicCible();
             if (ok) atteint++;
 
-            details.add(new DetailRow(plan.getBaseId(), plan.getEtoilesCible(), plan.getRelicCible(), relicActuel, ok));
+            String nomUnite = unitMap.getOrDefault(plan.getBaseId(), plan.getBaseId());
+            details.add(new DetailRow(plan.getBaseId(), nomUnite, plan.getEtoilesCible(), plan.getRelicCible(), relicActuel, ok));
         }
 
         double pourcentage = 100.0 * atteint / plans.size();
         return new PlayerFarmProgress(atteint, plans.size(), pourcentage, details);
-    }
-    
-    public record PointProgression(Instant date, Double pourcentage) {}
-
-    public List<PointProgression> getProgressionDansLeTemps(String playerId) {
-        List<FarmPlan> plans = farmPlanRepository.findAll();
-        if (plans.isEmpty()) {
-            return List.of();
-        }
-
-        List<RosterHistoryProgressProjection> lignes = rosterUnitHistoriqueRepository.findProgressionParSync(playerId);
-
-        Map<Long, Map<String, RosterHistoryProgressProjection>> parSync = new TreeMap<>();
-        for (RosterHistoryProgressProjection l : lignes) {
-            parSync.computeIfAbsent(l.getIdSync(), k -> new HashMap<>()).put(l.getBaseId(), l);
-        }
-
-        if (parSync.isEmpty()) {
-            return List.of();
-        }
-
-        Map<Long, Instant> dateParSync = new HashMap<>();
-        for (SyncExecution se : syncExecutionRepository.findAllById(parSync.keySet())) {
-            dateParSync.put(se.getIdSync(), se.getDateSync());
-        }
-
-        List<PointProgression> resultat = new ArrayList<>();
-        for (Map.Entry<Long, Map<String, RosterHistoryProgressProjection>> entry : parSync.entrySet()) {
-            Map<String, RosterHistoryProgressProjection> baseIdMap = entry.getValue();
-            int atteint = 0;
-
-            for (FarmPlan plan : plans) {
-                RosterHistoryProgressProjection p = baseIdMap.get(plan.getBaseId());
-                int etoiles = (p != null && p.getMaxEtoiles() != null) ? p.getMaxEtoiles() : 0;
-                int relic = (p != null && p.getMaxRelic() != null) ? p.getMaxRelic() : 0;
-                if (etoiles >= plan.getEtoilesCible() && relic >= plan.getRelicCible()) {
-                    atteint++;
-                }
-            }
-
-            Instant date = dateParSync.get(entry.getKey());
-            double pourcentage = 100.0 * atteint / plans.size();
-            resultat.add(new PointProgression(date, pourcentage));
-        }
-
-        return resultat;
     }
 }

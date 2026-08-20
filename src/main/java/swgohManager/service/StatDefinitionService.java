@@ -1,16 +1,17 @@
 package swgohManager.service;
 
-import swgohManager.model.StatDefinition;
-import swgohManager.repository.StatDefinitionRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import swgohManager.model.StatDefinition;
+import swgohManager.repository.StatDefinitionRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
 public class StatDefinitionService {
 
     private final StatDefinitionRepository statDefinitionRepository;
-
+    private final LocalizationService localizationService;
     private record Entree(int statId, String nameKey, String descKey, boolean isDecimal, String name, String detailedName, String libellé, boolean isStatq) {}
 
     // Référentiel figé du jeu — ne devrait jamais évoluer.
@@ -105,8 +106,7 @@ public class StatDefinitionService {
             d.setIsDecimal(e.isDecimal());
             d.setName(e.name());
             d.setDetailedName(e.detailedName());
-            d.setLibellé(e.libellé());
-            d.setIsStatq(e.isStatq());
+            d.setLibellé(localizationService.traduire(e.nameKey()));            d.setIsStatq(e.isStatq());
             aSauvegarder.add(d);
         }
 

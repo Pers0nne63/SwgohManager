@@ -25,12 +25,15 @@
     <h3>Ajouter / Modifier un toon</h3>
     <form th:action="@{/statq/ajouter}" method="post" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
         <div>
-        	<label>Team</label><br>
-       		<input type="text" name="team" placeholder="Équipe (ex: CLS, Troopers...)"  style="width:200px;"/>
+            <label>Team</label><br>
+            <input type="text" name="team" placeholder="Équipe (ex: CLS, Troopers...)" style="width:180px;"/>
         </div>
         <div>
-            <label>Base ID</label><br>
-            <input type="text" name="baseId" required placeholder="Base ID..." style="width:200px;" />
+            <label>Unité</label><br>
+            <input type="text" name="selection" list="optionsUnites" required placeholder="Rechercher une unité..." style="width:220px;" autocomplete="off" />
+            <datalist id="optionsUnites">
+                <option th:each="u : ${unites}" th:value="${u.libelle}"></option>
+            </datalist>
         </div>
         <div>
             <label>Stat 1</label><br>
@@ -71,7 +74,7 @@
     <thead>
     <tr>
         <th>Team</th>
-        <th>Base ID</th>
+        <th>Unité</th>
         <th>Stat 1</th>
         <th>Stat 2</th>
         <th>Stat 3</th>
@@ -84,9 +87,10 @@
     <tr th:each="c : ${configs}">
         <form th:action="@{/statq/modifier/{id}(id=${c.id})}" method="post">
             <td>
-    		<input type="text" name="team" th:value="${c.team}" placeholder="Team" style="text-align: center;"/>
-			</td>
-            <td th:text="${c.baseId}" style="font-weight:bold;"></td>
+                <input type="text" name="team" th:value="${c.team}" placeholder="Team" style="text-align: center;"/>
+            </td>
+            <!-- Affichage du vrai nom de l'unité -->
+            <td th:text="${c.nomUnite}" style="font-weight:bold;"></td>
             <td>
                 <select name="statId1">
                     <option value="">-- Aucune --</option>

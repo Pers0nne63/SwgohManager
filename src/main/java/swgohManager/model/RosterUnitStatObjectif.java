@@ -6,7 +6,7 @@ import lombok.*;
 @Entity
 @Table(name = "roster_unit_stat_objectif", uniqueConstraints = @UniqueConstraint(columnNames = {"playerId", "idUnit"}))
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class RosterUnitStatObjectif {
+public class RosterUnitStatObjectif implements UnitStatValues{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

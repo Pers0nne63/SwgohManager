@@ -51,7 +51,12 @@
 
     <div class="card" th:if="${vm.modQ != null}">
         <h3>ModQ</h3>
-        <p>Score : <b th:text="${#numbers.formatDecimal(vm.modQ.modQ, 1, 2)}"></b></p>
+        <p>ModQ : <b th:text="${#numbers.formatDecimal(vm.modQ.modQ, 1, 2)}"></b></p>
+        <p>StatQ : 
+   		 <a th:if="${vm.statQ != null}" th:href="@{/joueur/{id}/statq-detail(id=${vm.joueur.playerId})}"
+      		 th:text="${#numbers.formatDecimal(vm.statQ, 1, 2)}"></a>
+    		<span th:unless="${vm.statQ != null}">-</span>
+		</p>
         <p>Mods 25+ : <span th:text="${vm.modQ.mod25Plus}"></span></p>
         <p>Mods 20-24 : <span th:text="${vm.modQ.mod20_24}"></span></p>
         <p>Mods 15-19 : <span th:text="${vm.modQ.mod15_19}"></span></p>

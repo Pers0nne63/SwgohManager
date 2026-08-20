@@ -25,7 +25,8 @@ public class UnitDefinitionService {
     private final UnitBaseStatDefinitionRepository unitBaseStatDefinitionRepository;
     private final UnitRelicDefinitionRepository unitRelicDefinitionRepository;
     private final RelicTierDefinitionRepository relicTierDefinitionRepository;
-
+    private final LocalizationService localizationService;
+    
     @Transactional
     public String synchroniserUnites() {
         String version = swgohDataClient.getLatestGameVersion();
@@ -67,6 +68,17 @@ public class UnitDefinitionService {
             unite.setCombatType(u.combatType());
             unite.setLegend(u.legend());
             unite.setStatProgressionId(u.statProgressionId());
+            String libelle = localizationService.traduire("UNIT_" + u.baseId() + "_NAME");
+            if ("AHSOKATANO".equalsIgnoreCase(u.baseId())) {
+                libelle = "Ahsoka Tano (Chipie)";
+            }
+            if ("R2D2_LEGENDARY".equalsIgnoreCase(u.baseId())) {
+                libelle = "R2-D2";
+            }
+            if ("REY".equalsIgnoreCase(u.baseId())) {
+                libelle = "Rey (Pilleuse)";
+            }
+            unite.setLibelle(libelle);
 
             String role = extraireRole(u.categoryId());
             String primaryStat = convertirPrimaryStat(u.primaryUnitStat());

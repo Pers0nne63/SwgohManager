@@ -214,6 +214,7 @@
         <th onclick="trierTableau(5, 'nombre')" style="cursor:pointer;">Plan farm ⇅</th>
         <!-- NOUVELLE COLONNE OMICRON TW P1 -->
         <th onclick="trierTableau(6, 'nombre')" style="cursor:pointer;">Omicron TW (P1) ⇅</th>
+        <th onclick="trierTableau(7, 'nombre')" style="cursor:pointer;">StatQ ⇅</th>
     </tr>
     </thead>
     <tbody>
@@ -234,13 +235,21 @@
             <span th:unless="${j.farmPlanPourcentage != null}">-</span>
         </td>
         
-        <!-- NOUVELLE CELLULE OMICRON TW P1 -->
-        <td th:data-value="${omicronP1ParJoueur != null and omicronP1ParJoueur.get(j.playerId) != null ? omicronP1ParJoueur.get(j.playerId) : -1}">
-            <a th:if="${omicronP1ParJoueur != null and omicronP1ParJoueur.get(j.playerId) != null and omicronP1ParJoueur.get(j.playerId) >= 0}" 
-               th:href="@{/joueur/{id}#omicron-tw(id=${j.playerId})}"
-               th:text="${#numbers.formatDecimal(omicronP1ParJoueur.get(j.playerId), 1, 1)} + ' %'"></a>
-            <span th:unless="${omicronP1ParJoueur != null and omicronP1ParJoueur.get(j.playerId) != null and omicronP1ParJoueur.get(j.playerId) >= 0}">-</span>
-        </td>
+        <!-- CELLULE OMICRON TW P1 -->
+		<td th:data-value="${j.omicronP1Pourcentage != null ? j.omicronP1Pourcentage : -1}">
+			<a th:if="${j.omicronP1Pourcentage != null and j.omicronP1Pourcentage >= 0}" 
+				th:href="@{/joueur/{id}/omicron-tw(id=${j.playerId})}"
+		       	th:text="${#numbers.formatDecimal(j.omicronP1Pourcentage, 1, 1)} + ' %'"></a>
+    		<span th:unless="${j.omicronP1Pourcentage != null and j.omicronP1Pourcentage >= 0}">-</span>
+		</td>
+		
+		<!-- CELLULE STATQ -->
+		
+		<td th:data-value="${j.statQ != null ? j.statQ : -1}">
+    <a th:if="${j.statQ != null}" th:href="@{/joueur/{id}/statq-detail(id=${j.playerId})}"
+       th:text="${#numbers.formatDecimal(j.statQ, 1, 2)}"></a>
+    <span th:unless="${j.statQ != null}">-</span>
+</td>
     </tr>
     </tbody>
 </table>

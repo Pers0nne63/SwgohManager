@@ -25,12 +25,12 @@
     <h3>Ajouter une unité</h3>
     <form th:action="@{/plan-farm/ajouter}" method="post" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
         <div>
-            <label>Unité</label><br>
-            <input type="text" name="baseId" list="baseIdOptions" required placeholder="Rechercher..." />
-            <datalist id="baseIdOptions">
-                <option th:each="b : ${baseIds}" th:value="${b}"></option>
-            </datalist>
-        </div>
+    		<label>Unité</label><br>
+			<input type="text" name="selection" list="baseIdOptions" required placeholder="Rechercher..." autocomplete="off" />
+    		<datalist id="baseIdOptions">
+      			  <option th:each="u : ${unites}" th:value="${u.libelle}"></option>
+    		</datalist>
+		</div>
         <div>
             <label>Étoiles</label><br>
             <select name="etoiles">
@@ -60,27 +60,27 @@
     </thead>
     <tbody>
     <tr th:each="p : ${plans}">
-        <form th:action="@{/plan-farm/modifier/{id}(id=${p.id})}" method="post">
-            <td th:text="${p.baseId}"></td>
-            <td>
-                <select name="etoiles">
-                    <option th:each="e : ${etoilesOptions}" th:value="${e}" th:text="${e}" th:selected="${e == p.etoilesCible}"></option>
-                </select>
-            </td>
-            <td>
-                <select name="relic">
-                    <option th:each="r : ${relicOptions}" th:value="${r}" th:text="${r}" th:selected="${r == p.relicCible}"></option>
-                </select>
-            </td>
-            <td><input type="text" name="tag" th:value="${p.tag}" /></td>
-            <td><button type="submit" class="btn btn-primary">Actualiser</button></td>
-        </form>
+    <form th:action="@{/plan-farm/modifier/{id}(id=${p.id})}" method="post">
+        <td th:text="${p.nomUnite}"></td>
         <td>
-            <form th:action="@{/plan-farm/supprimer/{id}(id=${p.id})}" method="post" style="display:inline;">
-                <button type="submit" class="btn btn-danger" title="Supprimer" onclick="return confirm('Supprimer cette unité du plan ?');">🗑</button>
-            </form>
+            <select name="etoiles">
+                <option th:each="e : ${etoilesOptions}" th:value="${e}" th:text="${e}" th:selected="${e == p.etoilesCible}"></option>
+            </select>
         </td>
-    </tr>
+        <td>
+            <select name="relic">
+                <option th:each="r : ${relicOptions}" th:value="${r}" th:text="${r}" th:selected="${r == p.relicCible}"></option>
+            </select>
+        </td>
+        <td><input type="text" name="tag" th:value="${p.tag}" /></td>
+        <td><button type="submit" class="btn btn-primary">Actualiser</button></td>
+    </form>
+    <td>
+        <form th:action="@{/plan-farm/supprimer/{id}(id=${p.id})}" method="post" style="display:inline;">
+            <button type="submit" class="btn btn-danger" title="Supprimer" onclick="return confirm('Supprimer cette unité du plan ?');">🗑</button>
+        </form>
+    </td>
+</tr>
     </tbody>
 </table>
 

@@ -26,7 +26,7 @@
     <form th:action="@{/omicron-tw/ajouter}" method="post" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
         <div>
             <label>Unité - Compétence</label><br>
-            <input type="text" name="selection" list="optionsOmicron" required placeholder="Rechercher..." style="width:280px;" />
+            <input type="text" name="selection" list="optionsOmicron" required placeholder="Rechercher..." style="width:280px; " autocomplete="off" />
             <datalist id="optionsOmicron">
                 <option th:each="o : ${options}" th:value="${o.label}"></option>
             </datalist>
@@ -51,8 +51,8 @@
     <tbody>
     <tr th:each="p : ${plans}">
         <form th:action="@{/omicron-tw/modifier/{id}(id=${p.id})}" method="post">
-            <td th:text="${p.baseId}"></td>
-            <td th:text="${p.idSkill}"></td>
+            <td th:text="${p.nomUnite}"></td>
+            <td th:text="${p.nomSkill}"></td>
             <td>
                 <select name="priorite">
                     <option th:each="opt : ${prioriteOptions}" th:value="${opt}" th:text="'P' + ${opt}" th:selected="${opt == p.priorite}"></option>

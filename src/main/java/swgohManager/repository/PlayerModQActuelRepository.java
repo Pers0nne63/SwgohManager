@@ -1,9 +1,14 @@
 package swgohManager.repository;
 
-import swgohManager.model.PlayerModQActuel;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import swgohManager.model.PlayerModQActuel;
 
 public interface PlayerModQActuelRepository extends JpaRepository<PlayerModQActuel, Long> {
     Optional<PlayerModQActuel> findByPlayerId(String playerId);
+    
+    List<PlayerModQActuel> findByPlayerIdIn(List<String> playerIds);
 }

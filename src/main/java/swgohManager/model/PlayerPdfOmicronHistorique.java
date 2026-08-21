@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "player_pdfomicron_historique")
+@Table(name = "player_pdfomicron_historique",
+		indexes = {
+        @Index(name = "pdfomihidx_playerId", columnList = "playerId")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlayerPdfOmicronHistorique {
 

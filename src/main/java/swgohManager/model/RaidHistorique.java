@@ -8,7 +8,11 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "raid_historique",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"guildId", "playerId", "endTime"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"guildId", "playerId", "endTime"}),
+		indexes = {
+		        @Index(name = "raidhidx_playerId", columnList = "playerId")
+				}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RaidHistorique {
 

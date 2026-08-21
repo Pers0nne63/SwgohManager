@@ -4,7 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "omicron_plan")
+@Table(name = "omicron_plan",
+		indexes = {
+        // 1. Index simple sur une colonne
+        @Index(name = "omiidx_baseId", columnList = "baseId"),
+        @Index(name = "omiidx_idSkill", columnList = "idSkill")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class OmicronPlan {
 

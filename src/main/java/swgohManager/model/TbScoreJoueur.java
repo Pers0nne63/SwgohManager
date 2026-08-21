@@ -5,7 +5,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "tb_score_joueur",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"tb_activite_id", "playerId"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"tb_activite_id", "playerId"}),
+       indexes = {
+      	        @Index(name = "tbsjidx_playerId", columnList = "playerId")
+      			}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class TbScoreJoueur {
 

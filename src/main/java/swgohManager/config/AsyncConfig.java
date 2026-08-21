@@ -11,6 +11,6 @@ public class AsyncConfig {
 
     @Bean(name = "playerSyncExecutor")
     public ExecutorService playerSyncExecutor() {
-        return Executors.newFixedThreadPool(10);
+        return Executors.newFixedThreadPool(5);
     }
 }

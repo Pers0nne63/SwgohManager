@@ -5,7 +5,10 @@ import lombok.*;
 
 @Entity
 @Table(name = "relic_tier_definition",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"idRelicTier", "stat"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"idRelicTier", "stat"}),
+		indexes = {
+		        @Index(name = "relicdefidx_idRelicTier", columnList = "idRelicTier")
+				})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RelicTierDefinition {
 

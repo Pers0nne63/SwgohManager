@@ -5,7 +5,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "unit_relic_definition",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"idUnit", "relicTierDefinitionId"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"idUnit", "relicTierDefinitionId"}),
+       indexes = {
+   	        @Index(name = "urdefidx_idUnit", columnList = "idUnit")
+   			}
+   )
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UnitRelicDefinition {
 

@@ -5,7 +5,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "unit_stat_priority")
+@Table(name = "unit_stat_priority",
+indexes = {
+	        @Index(name = "ustatqdefidx_idUnit", columnList = "base_id")
+			})
 @Data
 @NoArgsConstructor
 public class UnitStatPriority {

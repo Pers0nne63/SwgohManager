@@ -4,7 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "farm_plan")
+@Table(name = "farm_plan",
+		indexes = {
+        // 1. Index simple sur une colonne
+        @Index(name = "pdfidx_baseId", columnList = "baseId")
+		}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class FarmPlan {
 

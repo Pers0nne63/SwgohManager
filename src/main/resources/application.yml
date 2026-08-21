@@ -5,9 +5,9 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/swgoh
     username: postgres
-    password: ${DB_PASSWORD}
+    password: ${DB_PASSWORD:root}
     hikari:
-     maximum-pool-size: 15
+      maximum-pool-size: 15
 
   jpa:
     hibernate:
@@ -17,8 +17,8 @@ spring:
       hibernate:
         format_sql: true
   web:
-   locale: fr_FR
-   locale-resolver: fixed
+    locale: fr_FR
+    locale-resolver: fixed
 
 logging:
   level:
@@ -34,3 +34,6 @@ swgoh:
     container-name: swgoh-comlink
     app-name: my_swgoh
     port: 3200
+
+admin:
+  password: ${ADMIN_PASSWORD:BaguettesEnflamées!}

@@ -7,7 +7,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "joueurs")
+@Table(name = "joueurs",
+		indexes = {
+        // 1. Index simple sur une colonne
+        @Index(name = "idx_playerId", columnList = "playerId")
+		}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Joueur {
 

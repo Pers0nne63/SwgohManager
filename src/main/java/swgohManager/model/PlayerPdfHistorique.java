@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "player_pdf_historique")
+@Table(name = "player_pdf_historique",
+		indexes = {
+        @Index(name = "pdfhidx_playerId", columnList = "playerId")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlayerPdfHistorique {
 

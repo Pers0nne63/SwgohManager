@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "player_modq_historique")
+@Table(name = "player_modq_historique",
+		indexes = {
+        @Index(name = "modqhidx_playerId", columnList = "playerId")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlayerModQHistorique {
 

@@ -8,7 +8,11 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "stat_progression",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"statProgressionId", "unitStatId"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"statProgressionId", "unitStatId"}),
+       indexes = {
+    	        @Index(name = "stprogidx_statProgressionId", columnList = "statProgressionId")
+    			}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class StatProgression {
 

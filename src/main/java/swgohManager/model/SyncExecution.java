@@ -7,7 +7,11 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "sync_execution")
+@Table(name = "sync_execution",
+indexes = {
+	        @Index(name = "idx_idSync", columnList = "idSync")
+			}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class SyncExecution {
 

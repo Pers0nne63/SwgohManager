@@ -6,7 +6,14 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "leaderboard_mods", uniqueConstraints = @UniqueConstraint(columnNames = {"idMod", "ordreSecondaire"}))
+@Table(name = "leaderboard_mods", uniqueConstraints = @UniqueConstraint(columnNames = {"idMod", "ordreSecondaire"}),
+		indexes = {
+        // 1. Index simple sur une colonne
+        @Index(name = "Lmodidx_playerId", columnList = "playerId"),
+        @Index(name = "Lmodidx_definitionId", columnList = "definitionId"),
+        @Index(name = "Lmodidx_idSecondaire", columnList = "idSecondaire"),
+		}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class LeaderboardMod implements ModLigne {
 	

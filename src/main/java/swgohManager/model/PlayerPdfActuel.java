@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "player_pdf_actuel", uniqueConstraints = @UniqueConstraint(columnNames = "playerId"))
+@Table(name = "player_pdf_actuel", uniqueConstraints = @UniqueConstraint(columnNames = "playerId"),
+		indexes = {
+        @Index(name = "pdfidx_playerId", columnList = "playerId")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlayerPdfActuel {
 

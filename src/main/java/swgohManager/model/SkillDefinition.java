@@ -7,7 +7,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "skill_definition", uniqueConstraints = @UniqueConstraint(columnNames = "idSkill"))
+@Table(name = "skill_definition", uniqueConstraints = @UniqueConstraint(columnNames = "idSkill"),
+indexes = {
+        @Index(name = "skdefidx_idSkill", columnList = "idSkill")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class SkillDefinition {
 

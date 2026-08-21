@@ -5,7 +5,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "unit_tier_definition",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"idUnit", "gear", "stat"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"idUnit", "gear", "stat"}),
+       indexes = {
+   	        @Index(name = "utdefidx_idUnit", columnList = "idUnit")
+   			}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UnitTierDefinition {
 

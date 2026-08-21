@@ -5,7 +5,13 @@ import lombok.*;
 
 @Entity
 @Table(name = "roster_unit_mod_actuel",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"idMod", "ordreSecondaire"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"idMod", "ordreSecondaire"}),
+       indexes = {
+    	        @Index(name = "rmaidx_playerId", columnList = "playerId"),
+    	        @Index(name = "rmaidx_definitionId", columnList = "definitionId"),
+    	        @Index(name = "rmaidx_idSecondaire", columnList = "idSecondaire")
+    			}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RosterUnitModActuel implements ModLigne {
 	

@@ -4,7 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "leaderboard_mod_moy", uniqueConstraints = @UniqueConstraint(columnNames = "baseId"))
+@Table(name = "leaderboard_mod_moy", uniqueConstraints = @UniqueConstraint(columnNames = "baseId"),
+		indexes = {
+        // 1. Index simple sur une colonne
+        @Index(name = "ModMoyidx_baseId", columnList = "baseId")
+		}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class LeaderboardModMoy {
 

@@ -6,7 +6,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "unit_definition", uniqueConstraints = @UniqueConstraint(columnNames = "idUnit"))
+@Table(name = "unit_definition", uniqueConstraints = @UniqueConstraint(columnNames = "idUnit"),
+indexes = {
+	        @Index(name = "udefidx_baseId", columnList = "baseId"),
+	        @Index(name = "udefidx_idUnit", columnList = "idUnit")
+			}
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UnitDefinition {
 

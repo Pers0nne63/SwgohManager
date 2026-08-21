@@ -5,7 +5,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "tb_activite",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"territory_battle_id", "mapStatId"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"territory_battle_id", "mapStatId"}),
+       indexes = {
+   	        @Index(name = "idx_territory_battle_id", columnList = "territory_battle_id"),
+   	        @Index(name = "idx_statType", columnList = "statType")
+   			})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class TbActivite {
 

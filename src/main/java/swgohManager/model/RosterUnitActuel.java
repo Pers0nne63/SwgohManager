@@ -4,7 +4,11 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "roster_unit_actuel", uniqueConstraints = @UniqueConstraint(columnNames = "idUnit"))
+@Table(name = "roster_unit_actuel", uniqueConstraints = @UniqueConstraint(columnNames = "idUnit"),
+indexes = {
+        @Index(name = "ruactidx_playerId", columnList = "playerId"),
+        @Index(name = "ruactidx_definitionId", columnList = "definitionId")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RosterUnitActuel {
 

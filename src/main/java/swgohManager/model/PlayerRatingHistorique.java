@@ -7,7 +7,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "player_rating_historique")
+@Table(name = "player_rating_historique",
+		indexes = {
+        @Index(name = "ratinghidx_playerId", columnList = "playerId")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlayerRatingHistorique {
 

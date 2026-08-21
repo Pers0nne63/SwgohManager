@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "stat_definition", uniqueConstraints = @UniqueConstraint(columnNames = "statId"))
+@Table(name = "stat_definition", uniqueConstraints = @UniqueConstraint(columnNames = "statId"),
+indexes = {
+        @Index(name = "stdefidx_statId", columnList = "statId")
+		})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class StatDefinition {
 

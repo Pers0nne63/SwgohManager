@@ -1,137 +1,114 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${joueur != null ? joueur.playerName + ' - StatQ' : 'StatQ'}">StatQ</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; }
-        .cards-container { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
-		.card { border: 1px solid #ccc; border-radius: 8px; padding: 15px; min-width: 500px; box-sizing: border-box; }        .card h3 { margin-top: 0; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        table { border-collapse: collapse; margin-top: 10px; width: max-content; }
-		th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; font-size: 0.9em; white-space: nowrap; }
-        th { background: #f0f0f0; }
-        a { color: #2a6cd6; text-decoration: none; }
-        .note-4 { color: #1a9850; font-weight: bold; }
-        .note-3 { color: #66bd63; font-weight: bold; }
-        .note-2 { color: #f0b400; font-weight: bold; }
-        .note-1 { color: #e67e22; font-weight: bold; }
-        .note-0 { color: #d73027; font-weight: bold; }
-        .legend-box {
-   			 background-color: #eef5ff;
-   			 border-left: 4px solid #2a6cd6;
-    		 border-radius: 6px;
-   			 padding: 12px 18px;
-    		margin-top: 10px;
-    		margin-bottom: 25px;
-		}
-
-		.legend-header {
-    		font-size: 0.95rem;
-    		color: #1a365d;
-    		margin-bottom: 8px;
-    		display: flex;
-    		align-items: center;
-    		gap: 8px;
-		}
-
-		.legend-list {
-    		margin: 0;
-    		padding-left: 20px;
-    		font-size: 0.88rem;
-    		color: #4a5568;
-    		line-height: 1.5;
-		}
-
-		.legend-list li {
-    		margin-bottom: 4px;
-		}
-
-		.legend-list li:last-child {
-    		margin-bottom: 0;
-		}
-		.legend-body p {
-    	margin-top: 0;
-    	margin-bottom: 6px; /* Ajuste cette valeur selon le rendu souhaité (ex: 4px, 6px, 8px) */
-}
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } }
+            }
+        }
+    </script>
 </head>
-<body>
-<p><a th:href="@{/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}">&larr; Retour à la fiche joueur</a></p>
-<p><a href="/guilde">&larr; Retour à la guilde</a></p>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
+    <div th:replace="~{fragments/fragments :: navbar}"></div>
 
-<div class="player-header" style="margin-bottom: 20px;">
-    <!-- Nom du joueur + StatQ actuel -->
-    <h1 style="margin-bottom: 4px;">
-        <span th:text="${joueur != null ? joueur.playerName : 'Joueur'}">Nom du joueur</span>
-        <span th:if="${statqJoueur != null}" style="font-size: 0.8em; font-weight: normal; color: #2a6cd6;">
-            — StatQ : <strong th:text="${#numbers.formatDecimal(statqJoueur, 1, 2)}">0.00</strong>
-        </span>
-    </h1>
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+        <div class="flex items-center space-x-4 mb-6">
+            <a th:href="@{/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}" class="text-slate-400 hover:text-amber-400 text-sm font-medium transition-colors">
+                <i class="bi bi-person-badge me-1"></i> Fiche Joueur
+            </a>
+            <span class="text-slate-600">/</span>
+            <a href="/guilde" class="text-slate-400 hover:text-amber-400 text-sm font-medium transition-colors">
+                <i class="bi bi-shield me-1"></i> Guilde
+            </a>
+        </div>
 
-    <!-- Récapitulatif de guilde (gris et plus petit) -->
-    <div th:if="${statsGuilde != null}" style="font-size: 0.85em; color: #666666;">
-        Guilde : 
-        Min : <strong th:text="${#numbers.formatDecimal(statsGuilde.min(), 1, 2)}">0.00</strong> / 
-        Moy : <strong th:text="${#numbers.formatDecimal(statsGuilde.moyenne(), 1, 2)}">0.00</strong> / 
-        Médiane : <strong th:text="${#numbers.formatDecimal(statsGuilde.mediane(), 1, 2)}">0.00</strong> / 
-        Max : <strong th:text="${#numbers.formatDecimal(statsGuilde.max(), 1, 2)}">0.00</strong>
-    </div>
-</div>
+        <!-- Top Header Joueur + Score StatQ + Benchmarks Guilde -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl flex flex-col gap-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h1 class="text-3xl font-extrabold text-white" th:text="${joueur != null ? joueur.playerName : 'Joueur'}">Nom du joueur</h1>
+                <div th:if="${statqJoueur != null}" class="bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 font-bold px-4 py-2 rounded-full text-lg shadow-inner">
+                    StatQ : <span class="text-indigo-400 font-black" th:text="${#numbers.formatDecimal(statqJoueur, 1, 2)}">0.00</span>
+                </div>
+            </div>
 
-<!-- Bloc Légende / Explication -->
-<div class="legend-box">
-    <!-- En-tête : Titre seul avec l'icône -->
-    <div class="legend-header">
-        <span class="legend-icon">ℹ️</span>
-        <strong>Méthode de calcul du StatQ :</strong>
-    </div>
+            <div th:if="${statsGuilde != null}" class="flex flex-wrap gap-4 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 text-xs text-slate-400">
+                <span class="font-bold text-slate-300 uppercase tracking-wider">Statistiques Guilde</span>
+                <span>• Min : <strong class="text-slate-200" th:text="${#numbers.formatDecimal(statsGuilde.min(), 1, 2)}">0.00</strong></span>
+                <span>• Moy : <strong class="text-slate-200" th:text="${#numbers.formatDecimal(statsGuilde.moyenne(), 1, 2)}">0.00</strong></span>
+                <span>• Médiane : <strong class="text-slate-200" th:text="${#numbers.formatDecimal(statsGuilde.mediane(), 1, 2)}">0.00</strong></span>
+                <span>• Max : <strong class="text-slate-200" th:text="${#numbers.formatDecimal(statsGuilde.max(), 1, 2)}">0.00</strong></span>
+            </div>
+        </div>
 
-    <!-- Corps : Explication texte -->
-    <div class="legend-body">
-        <p>Le StatQ est un indicateur qui évalue la qualité du modding d'un toon en prenant en compte différentes stats et pas seulement la vitesse.</p>
-        <p>On calcule la moyenne des mods par statistique sur le top 100 GAC.</p>
-        <p>Ces mods moyens sont appliqués aux unités du joueur, cela permet d'écarter le niveau de relic du calcul et de calculer des stats "Objectifs".</p>
-        <p>Une liste d'unités et de stats sont choisies puis le calcul entre les valeurs objectifs et les valeurs réelles est effectué. Une note est attribuée en fonction du % d'écart à l'objectif selon la notation suivante :</p>
-    </div>
+        <!-- Card Légende / Explications -->
+        <div class="bg-slate-800/80 border-l-4 border-indigo-500 border-y border-r border-slate-700 rounded-r-2xl p-6 mb-8 shadow-lg">
+            <div class="flex items-center gap-2 text-indigo-400 font-bold mb-2">
+                <i class="bi bi-info-circle text-lg"></i> Méthode de calcul du StatQ
+            </div>
+            <p class="text-sm text-slate-300 mb-2">
+                Le StatQ évalue la qualité du modding en comparant vos statistiques réelles aux objectifs moyens observés sur le Top 100 GAC.
+            </p>
 
-    <!-- Liste avec notes colorées -->
-    <ul class="legend-list">
-        <li><strong>Variation &gt; 0 :</strong> <span class="note-4">4</span></li>
-        <li><strong>Variation &gt; -2.5% :</strong> <span class="note-3">3</span></li>
-        <li><strong>Variation &gt; -5% :</strong> <span class="note-2">2</span></li>
-        <li><strong>Variation &gt; -7.5% :</strong> <span class="note-1">1</span></li>
-        <li><strong>Variation &lt; -7.5% :</strong> <span class="note-0">0</span></li>
-    </ul>
-        <p>Les Teams sont présentées par StatQ croissant</p>
-</div>
+            <div class="flex flex-wrap gap-2 my-3">
+                <span class="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 font-bold text-xs rounded-md">Note 4 : > 0%</span>
+                <span class="px-2.5 py-1 bg-green-950/80 border border-green-500/40 text-green-400 font-bold text-xs rounded-md">Note 3 : > -2.5%</span>
+                <span class="px-2.5 py-1 bg-amber-950/80 border border-amber-500/40 text-amber-400 font-bold text-xs rounded-md">Note 2 : > -5.0%</span>
+                <span class="px-2.5 py-1 bg-orange-950/80 border border-orange-500/40 text-orange-400 font-bold text-xs rounded-md">Note 1 : > -7.5%</span>
+                <span class="px-2.5 py-1 bg-rose-950/80 border border-rose-500/40 text-rose-400 font-bold text-xs rounded-md">Note 0 : ≤ -7.5%</span>
+            </div>
+        </div>
 
-<div class="cards-container">
-    <div class="card" th:each="teamSummary : ${detailParTeam}">
-        <h3>
-            <span th:text="${teamSummary.team}">Nom Team</span>
-            <span style="font-size: 0.85em; font-weight: normal; color: #555; margin-left: 8px;">
-                — Score : <strong th:text="${teamSummary.scoreTotal}">0</strong> 
-                | Moy. : <strong th:text="${#numbers.formatDecimal(teamSummary.noteMoyenne, 1, 2)}">0.00</strong>
-            </span>
-        </h3>
-        <table>
-            <thead>
-            <tr><th>Unité</th><th>Stat</th><th>Actuel</th><th>Objectif</th><th>Variation</th><th>Note</th></tr>
-            </thead>
-            <tbody>
-            <tr th:each="d : ${teamSummary.details}">
-                <td th:text="${d.nomUnite}"></td>
-                <td th:text="${d.nomStat}"></td>
-                <td th:text="${d.valeurActuelle != null ? #numbers.formatInteger(d.valeurActuelle, 1, 'WHITESPACE') : '-'}"></td>
-                <td th:text="${d.valeurObjectif != null ? #numbers.formatInteger(d.valeurObjectif, 1, 'WHITESPACE') : '-'}"></td>
-                <td th:text="${d.variation != null ? #numbers.formatDecimal(d.variation * 100, 1, 1) + ' %' : '-'}"></td>
-                <td th:class="'note-' + ${d.note}" th:text="${d.note}"></td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+        <!-- Grille des Teams -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden" th:each="teamSummary : ${detailParTeam}">
+                <div class="p-4 bg-slate-850 border-b border-slate-700 flex justify-between items-center">
+                    <h3 class="font-bold text-lg text-white" th:text="${teamSummary.team}">Nom Team</h3>
+                    <div class="text-xs bg-slate-900 border border-slate-700 px-3 py-1 rounded-lg text-slate-400">
+                        Score : <strong class="text-amber-400" th:text="${teamSummary.scoreTotal}">0</strong> 
+                        | Moy : <strong class="text-indigo-400" th:text="${#numbers.formatDecimal(teamSummary.noteMoyenne, 1, 2)}">0.00</strong>
+                    </div>
+                </div>
 
+                <div class="overflow-x-auto">
+                    <table class="w-full text-center text-xs text-slate-300">
+                        <thead class="bg-slate-900/50 text-slate-400 uppercase font-semibold border-b border-slate-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Unité</th>
+                                <th class="px-2 py-3">Stat</th>
+                                <th class="px-2 py-3">Actuel</th>
+                                <th class="px-2 py-3">Objectif</th>
+                                <th class="px-2 py-3">Var.</th>
+                                <th class="px-3 py-3">Note</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700/60">
+                            <tr th:each="d : ${teamSummary.details}" class="hover:bg-slate-750/50 transition-colors">
+                                <td class="px-4 py-3 text-left font-bold text-white" th:text="${d.nomUnite}"></td>
+                                <td class="px-2 py-3 text-slate-400" th:text="${d.nomStat}"></td>
+                                <td class="px-2 py-3" th:text="${d.valeurActuelle != null ? #numbers.formatInteger(d.valeurActuelle, 1, 'WHITESPACE') : '-'}"></td>
+                                <td class="px-2 py-3" th:text="${d.valeurObjectif != null ? #numbers.formatInteger(d.valeurObjectif, 1, 'WHITESPACE') : '-'}"></td>
+                                <td class="px-2 py-3 font-mono" th:text="${d.variation != null ? #numbers.formatDecimal(d.variation * 100, 1, 1) + ' %' : '-'}"></td>
+                                <td class="px-3 py-3">
+                                    <span th:if="${d.note == 4}" class="px-2 py-0.5 bg-emerald-950 text-emerald-400 border border-emerald-500/40 rounded font-bold">4</span>
+                                    <span th:if="${d.note == 3}" class="px-2 py-0.5 bg-green-950 text-green-400 border border-green-500/40 rounded font-bold">3</span>
+                                    <span th:if="${d.note == 2}" class="px-2 py-0.5 bg-amber-950 text-amber-400 border border-amber-500/40 rounded font-bold">2</span>
+                                    <span th:if="${d.note == 1}" class="px-2 py-0.5 bg-orange-950 text-orange-400 border border-orange-500/40 rounded font-bold">1</span>
+                                    <span th:if="${d.note == 0}" class="px-2 py-0.5 bg-rose-950 text-rose-400 border border-rose-500/40 rounded font-bold">0</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
 </body>
 </html>

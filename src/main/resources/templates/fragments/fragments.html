@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <!-- Navbar unifiée globale -->
+    <nav th:fragment="navbar" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <!-- Logo & Branding -->
+                <div class="flex items-center space-x-3">
+                    <a href="/guilde" class="flex items-center space-x-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-md group-hover:scale-105 transition-transform">
+                            <i class="bi bi-shield-shaded"></i>
+                        </div>
+                        <span class="text-xl font-bold bg-gradient-to-r from-white via-slate-200 to-amber-400 bg-clip-text text-transparent">
+                            SWGOH Manager
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Liens de navigation droite -->
+                <div class="flex items-center space-x-2 sm:space-x-3" 
+                     th:with="playerId=${vm != null and vm.joueur != null ? vm.joueur.playerId : (joueur != null ? joueur.playerId : null)}">
+                    
+                    <!-- Guilde -->
+                    <a href="/guilde" class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
+                        <i class="bi bi-shield me-1"></i>
+                        <span>Guilde</span>
+                    </a>
+
+                    <!-- Plan de Farm -->
+                    <a th:href="${playerId != null} ? @{/joueur/{id}/plan-farm(id=${playerId})} : @{/plan-farm}" 
+                       class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
+                        <i class="bi bi-journal-check me-1"></i>
+						<span th:text="${playerId != null ? 'Détails PDF' : 'Plan de Farm'}">Plan de Farm</span>
+					</a>
+
+                    <!-- Omicrons TW -->
+                    <a th:href="${playerId != null} ? @{/joueur/{id}/omicron-tw(id=${playerId})} : @{/omicron-tw}" 
+                       class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
+                        <i class="bi bi-lightning-charge me-1"></i>
+                        <span th:text="${playerId != null ? 'Détails Omicrons' : 'Omicrons'}">Omicrons TW</span>
+                    </a>
+
+                    <!-- StatQ Détail -->
+                    <a th:href="${playerId != null} ? @{/joueur/{id}/statq-detail(id=${playerId})} : @{/statq}" 
+                       class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
+                        <i class="bi bi-cpu me-1"></i>
+                        <span th:text="${playerId != null ? 'Détails StatQ' : 'StatQ'}">StatQ</span>
+                    </a>
+
+                    <!-- Lien Admin -->
+                    <a href="/admin" class="text-slate-400 hover:text-red-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-500/10 transition-colors flex items-center space-x-1 sm:space-x-2 border border-slate-700 hover:border-red-500/30">
+                        <i class="bi bi-gear-fill me-1"></i>
+                        <span>Admin</span>
+                    </a>
+
+                </div>
+            </div>
+        </div>
+    </nav>
+</body>
+</html>

@@ -13,7 +13,7 @@ public class SyncProgressService {
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     public SseEmitter createEmitter(String syncType) {
-        SseEmitter emitter = new SseEmitter(10 * 60 * 1000L);
+        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
         emitters.put(syncType, emitter);
         emitter.onCompletion(() -> emitters.remove(syncType));
         emitter.onTimeout(() -> emitters.remove(syncType));

@@ -1,66 +1,119 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwgohManager - Administration</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .sync-card { border-left: 4px solid #0d6efd; margin-bottom: 20px; }
-        .log-box { background: #212529; color: #00ff66; font-family: monospace; font-size: 0.85rem; max-height: 150px; overflow-y: auto; padding: 10px; border-radius: 4px; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { 
+                    colors: { 
+                        slate: { 850: '#152032', 950: '#0b1329' } 
+                    } 
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-light">
-    <div class="container py-5">
-        <h1 class="mb-4">⚙️ Administration SwgohManager</h1>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
-        <!-- 1. GAME DATA -->
-        <div class="card shadow-sm sync-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="card-title m-0">1. Synchronisation Game Data</h5>
-                    <button id="btn-gamedata" class="btn btn-primary" onclick="startSync('gamedata')">Lancer Game Data</button>
-                </div>
-                <p class="text-muted small mb-2">Synchronise les localisations, compétences, progressions de stats, unités et maîtrises.</p>
-                <div class="progress mb-2" style="height: 20px;">
-                    <div id="bar-gamedata" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;">0%</div>
-                </div>
-                <div id="step-gamedata" class="fw-bold text-secondary mb-1">Statut : En attente</div>
-                <div id="log-gamedata" class="log-box">Prêt...</div>
+    <!-- Navigation -->
+   <div th:replace="~{fragments/fragments :: navbar}"></div>
+
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+        <!-- Header Page -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+                    <i class="bi bi-sliders text-amber-400"></i> Administration
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">Gérez les synchronisations de données et les processus système</p>
             </div>
+            <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+                <i class="bi bi-cpu-fill"></i> Panneau de contrôle
+            </span>
         </div>
 
-        <!-- 2. GUILDE COMPLETE -->
-        <div class="card shadow-sm sync-card" style="border-left-color: #198754;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="card-title m-0">2. Synchronisation Guilde Complète</h5>
-                    <button id="btn-guild" class="btn btn-success" onclick="startSync('guild-full')">Lancer Guilde Complète</button>
+        <div class="space-y-6">
+            <!-- 1. GAME DATA -->
+            <div class="bg-slate-800 border-l-4 border-l-sky-500 border-y border-r border-slate-700 rounded-2xl p-6 shadow-xl transition-all">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="bi bi-controller text-sky-400"></i> 1. Synchronisation Game Data
+                        </h2>
+                        <p class="text-slate-400 text-xs mt-1">Synchronise les localisations, compétences, progressions de stats, unités et maîtrises.</p>
+                    </div>
+                    <button id="btn-gamedata" onclick="startSync('gamedata')" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2.5 px-5 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="bi bi-play-fill text-lg"></i> Lancer
+                    </button>
                 </div>
-                <p class="text-muted small mb-2">Synchronise les joueurs de la guilde, leurs rosters, et calcule les objectifs de stats & STATQ.</p>
-                <div class="progress mb-2" style="height: 20px;">
-                    <div id="bar-guild" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;">0%</div>
+                
+                <!-- Barre de progression -->
+                <div class="w-full bg-slate-900 rounded-full h-5 overflow-hidden mb-2 border border-slate-700/60 p-0.5">
+                    <div id="bar-gamedata" class="bg-sky-500 h-full rounded-full text-xs font-bold text-slate-950 flex items-center justify-center transition-all duration-300" style="width: 0%;">0%</div>
                 </div>
-                <div id="step-guild" class="fw-bold text-secondary mb-1">Statut : En attente</div>
-                <div id="log-guild" class="log-box">Prêt...</div>
+                <div id="step-gamedata" class="text-xs font-medium text-slate-400 mb-3">Statut : En attente</div>
+                
+                <!-- Terminal / Logs -->
+                <div id="log-gamedata" class="bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-xs rounded-xl p-3 max-h-40 overflow-y-auto leading-relaxed shadow-inner">Prêt...</div>
             </div>
-        </div>
 
-        <!-- 3. GAC LEADERBOARD -->
-        <div class="card shadow-sm sync-card" style="border-left-color: #ffc107;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="card-title m-0">3. Synchronisation GAC Leaderboard</h5>
-                    <button id="btn-gac" class="btn btn-warning" onclick="startSync('gac-full')">Lancer GAC Leaderboard</button>
+            <!-- 2. GAC LEADERBOARD -->
+            <div class="bg-slate-800 border-l-4 border-l-amber-500 border-y border-r border-slate-700 rounded-2xl p-6 shadow-xl transition-all">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="bi bi-trophy text-amber-400"></i> 2. Synchronisation GAC Leaderboard
+                        </h2>
+                        <p class="text-slate-400 text-xs mt-1">Synchronise le top des joueurs GAC et recalcule les moyennes des modules.</p>
+                    </div>
+                    <button id="btn-gac" onclick="startSync('gac-full')" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold py-2.5 px-5 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="bi bi-play-fill text-lg"></i> Lancer
+                    </button>
                 </div>
-                <p class="text-muted small mb-2">Synchronise le top des joueurs GAC et recalcule les moyennes des modules.</p>
-                <div class="progress mb-2" style="height: 20px;">
-                    <div id="bar-gac" class="progress-bar bg-warning text-dark progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;">0%</div>
+                
+                <!-- Barre de progression -->
+                <div class="w-full bg-slate-900 rounded-full h-5 overflow-hidden mb-2 border border-slate-700/60 p-0.5">
+                    <div id="bar-gac" class="bg-amber-500 h-full rounded-full text-xs font-bold text-slate-950 flex items-center justify-center transition-all duration-300" style="width: 0%;">0%</div>
                 </div>
-                <div id="step-gac" class="fw-bold text-secondary mb-1">Statut : En attente</div>
-                <div id="log-gac" class="log-box">Prêt...</div>
+                <div id="step-gac" class="text-xs font-medium text-slate-400 mb-3">Statut : En attente</div>
+                
+                <!-- Terminal / Logs -->
+                <div id="log-gac" class="bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-xs rounded-xl p-3 max-h-40 overflow-y-auto leading-relaxed shadow-inner">Prêt...</div>
             </div>
+            
+            <!-- 3. GUILDE COMPLETE -->
+            <div class="bg-slate-800 border-l-4 border-l-emerald-500 border-y border-r border-slate-700 rounded-2xl p-6 shadow-xl transition-all">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="bi bi-people text-emerald-400"></i> 3. Synchronisation Guilde Complète
+                        </h2>
+                        <p class="text-slate-400 text-xs mt-1">Synchronise les joueurs de la guilde, leurs rosters, et calcule les objectifs de stats & STATQ.</p>
+                    </div>
+                    <button id="btn-guild" onclick="startSync('guild-full')" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 px-5 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="bi bi-play-fill text-lg"></i> Lancer
+                    </button>
+                </div>
+                
+                <!-- Barre de progression -->
+                <div class="w-full bg-slate-900 rounded-full h-5 overflow-hidden mb-2 border border-slate-700/60 p-0.5">
+                    <div id="bar-guild" class="bg-emerald-500 h-full rounded-full text-xs font-bold text-slate-950 flex items-center justify-center transition-all duration-300" style="width: 0%;">0%</div>
+                </div>
+                <div id="step-guild" class="text-xs font-medium text-slate-400 mb-3">Statut : En attente</div>
+                
+                <!-- Terminal / Logs -->
+                <div id="log-guild" class="bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-xs rounded-xl p-3 max-h-40 overflow-y-auto leading-relaxed shadow-inner">Prêt...</div>
+            </div>
+
+            
         </div>
-    </div>
+    </main>
 
     <script>
     function startSync(type) {
@@ -73,13 +126,15 @@
         btn.disabled = true;
         progressBar.style.width = '0%';
         progressBar.innerText = '0%';
-        progressBar.classList.remove('bg-danger');
+        
+        // Reset styles d'erreur
+        progressBar.classList.remove('bg-rose-600');
+        
         stepText.innerText = 'Connexion SSE...';
         logBox.innerText = 'Initialisation de la connexion SSE...\n';
 
         const eventSource = new EventSource('/admin/stream/' + cleanType);
 
-        // Wait until SSE connection is established before launching POST request
         eventSource.onopen = function() {
             if (stepText.innerText === 'Connexion SSE...') {
                 stepText.innerText = 'Démarrage du traitement...';
@@ -111,7 +166,7 @@
                 btn.disabled = false;
                 if (data.error) {
                     stepText.innerText = '❌ Erreur !';
-                    progressBar.classList.add('bg-danger');
+                    progressBar.classList.add('bg-rose-600');
                 } else {
                     stepText.innerText = '✅ Terminé avec succès';
                 }
@@ -124,6 +179,6 @@
             btn.disabled = false;
         };
     }
-</script>
+    </script>
 </body>
 </html>

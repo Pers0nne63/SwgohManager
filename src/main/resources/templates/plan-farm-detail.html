@@ -1,53 +1,103 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${joueur != null ? joueur.playerName + ' - Plan de farm' : 'Plan de farm'}">Plan de farm</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: center; }
-        th { background: #f0f0f0; }
-        .card { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: inline-block; }
-        a { color: #2a6cd6; text-decoration: none; }
-        .ok { color: #1a9850; font-weight: bold; }
-        .ko { color: #d73027; font-weight: bold; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } }
+            }
+        }
+    </script>
 </head>
-<body>
-<p><a th:href="@{/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}">&larr; Retour à la fiche joueur</a></p>
-<p><a href="/guilde">&larr; Retour à la guilde</a></p>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
-<h1>
-    <span th:text="${joueur != null ? joueur.playerName : 'Joueur introuvable'}"></span>
-    <small th:if="${joueur != null}" style="font-weight:normal; color:#666;"
-           th:text="'(GP: ' + ${#numbers.formatInteger(joueur.galacticPower, 0, 'DEFAULT')} + ')'"></small>
-</h1>
+    <div th:replace="~{fragments/fragments :: navbar}"></div>
 
-<div class="card">
-    <h3>Progression du plan de farm</h3>
-    <p>Score : <b th:text="${#numbers.formatDecimal(progression.pourcentage, 1, 1)} + ' %'"></b></p>
-    <p><span class="ok" th:text="${progression.atteint}"></span> atteint(s) / <span th:text="${progression.total}"></span></p>
-</div>
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+        <div class="flex items-center space-x-4 mb-6">
+            <a th:href="@{/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}" class="text-slate-400 hover:text-amber-400 text-sm font-medium transition-colors">
+                <i class="bi bi-person-badge me-1"></i> Fiche Joueur
+            </a>
+            <span class="text-slate-600">/</span>
+            <a href="/guilde" class="text-slate-400 hover:text-amber-400 text-sm font-medium transition-colors">
+                <i class="bi bi-shield me-1"></i> Guilde
+            </a>
+        </div>
 
-<h2>Détail par unité</h2>
-<table>
-    <thead>
-    <tr><th>Unité</th><th>Étoiles cible</th><th>Relic cible</th><th>Relic actuel</th><th>Statut</th></tr>
-    </thead>
-    <tbody>
-    <tr th:each="d : ${progression.details}">
-    <td th:text="${d.nomUnite}"></td>
-    <td th:text="${d.etoilesCible}"></td>
-    <td th:text="${d.relicCible}"></td>
-    <td th:text="${d.relicActuel != null ? d.relicActuel : '-'}"></td>
-    <td>
-        <span th:if="${d.atteint}" class="ok">✅</span>
-        <span th:unless="${d.atteint}" class="ko">❌</span>
-    </td>
-</tr>
-    </tbody>
-</table>
+        <!-- Header Joueur -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+                <span th:text="${joueur != null ? joueur.playerName : 'Joueur introuvable'}"></span>
+                <span th:if="${joueur != null}" class="bg-slate-700 text-amber-400 text-xs font-bold px-3 py-1 rounded-full border border-slate-600"
+                      th:text="'PG: ' + ${#numbers.formatInteger(joueur.galacticPower, 0, 'WHITESPACE')}"></span>
+            </h1>
+        </div>
 
+        <!-- Summary Progress Card -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl">
+            <h2 class="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
+                <i class="bi bi-pie-chart text-emerald-400"></i> Progression du Plan de Farm
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                <div class="md:col-span-4">
+                    <div class="text-4xl font-black text-emerald-400 mb-1" th:text="${#numbers.formatDecimal(progression.pourcentage, 1, 1)} + ' %'">0 %</div>
+                    <p class="text-sm text-slate-400">
+                        <span class="font-bold text-emerald-400" th:text="${progression.atteint}"></span> objectifs atteints sur <span class="font-bold text-slate-200" th:text="${progression.total}"></span>
+                    </p>
+                </div>
+                <div class="md:col-span-8">
+                    <div class="w-full bg-slate-900 h-6 rounded-full overflow-hidden border border-slate-700/60">
+                        <div class="bg-gradient-to-r from-emerald-600 to-teal-400 h-full text-xs font-bold text-slate-950 flex items-center justify-center transition-all duration-500"
+                             th:style="'width: ' + ${progression.pourcentage} + '%'" 
+                             th:text="${#numbers.formatDecimal(progression.pourcentage, 1, 0)} + '%'"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Table -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+            <div class="p-6 border-b border-slate-700">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="bi bi-list-check text-amber-400"></i> Détail par unité
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-center text-sm text-slate-300">
+                    <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+                        <tr>
+                            <th class="px-6 py-4 text-left">Unité</th>
+                            <th class="px-4 py-4">Étoiles cible</th>
+                            <th class="px-4 py-4">Relic cible</th>
+                            <th class="px-4 py-4">Relic actuel</th>
+                            <th class="px-4 py-4">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700/60">
+                        <tr th:each="d : ${progression.details}" class="hover:bg-slate-750/50 transition-colors">
+                            <td class="px-6 py-4 text-left font-bold text-white" th:text="${d.nomUnite}"></td>
+                            <td class="px-4 py-4" th:text="${d.etoilesCible}"></td>
+                            <td class="px-4 py-4" th:text="${d.relicCible}"></td>
+                            <td class="px-4 py-4" th:text="${d.relicActuel != null ? d.relicActuel : '-'}"></td>
+                            <td class="px-4 py-4">
+                                <span th:if="${d.atteint}" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full font-bold text-xs">
+                                    ✅ Atteint
+                                </span>
+                                <span th:unless="${d.atteint}" class="px-3 py-1 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-full font-bold text-xs">
+                                    ❌ En cours
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 </body>
 </html>

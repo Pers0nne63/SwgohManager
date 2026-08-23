@@ -50,7 +50,7 @@
         </div>
 
         <!-- Cartes d'information Dernier Raid & BT -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <!-- Card Raid -->
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl" th:if="${raid != null}">
                 <div class="flex items-center gap-3 mb-4">
@@ -74,22 +74,79 @@
                 </div>
             </div>
 
-            <!-- Card BT -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl" th:if="${tb != null}">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="p-2.5 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-xl">
-                        <i class="bi bi-map-fill text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Dernière BT</h3>
-                        <p class="text-xs text-slate-400" th:text="${#temporals.format(tb.endTime, 'dd/MM/yyyy')}">01/01/2026</p>
-                    </div>
-                </div>
-                <div class="bg-slate-850 p-4 rounded-xl border border-slate-700/60">
-                    <span class="text-slate-400 block text-xs">Étoiles</span>
-                    <b class="text-amber-400 text-xl font-bold" th:text="${tb.totalStars}">0</b>
-                </div>
+            <!-- Card Répartition Reliques -->
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl" th:if="${relicRepartition != null}">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="p-2.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
+                <i class="bi bi-gem text-xl"></i>
             </div>
+            <div>
+                <h3 class="text-lg font-bold text-white">Relic Guilde</h3>
+                <p class="text-xs text-slate-400">Répartition du niveau de relic</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-2.5 text-sm bg-slate-850 p-3.5 rounded-xl border border-slate-700/60 text-center">
+            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-purple-500/30">
+                <span class="text-purple-300 block text-[11px] font-semibold">R10</span>
+                <b class="text-purple-400 text-sm font-mono" th:text="${relicRepartition.relic10 != null ? relicRepartition.relic10 : 0}">0</b>
+            </div>
+            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-red-500/30">
+                <span class="text-red-300 block text-[11px] font-semibold">R9</span>
+                <b class="text-red-400 text-sm font-mono" th:text="${relicRepartition.relic9 != null ? relicRepartition.relic9 : 0}">0</b>
+            </div>
+            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-amber-500/30">
+                <span class="text-amber-300 block text-[11px] font-semibold">R8</span>
+                <b class="text-amber-400 text-sm font-mono" th:text="${relicRepartition.relic8 != null ? relicRepartition.relic8 : 0}">0</b>
+            </div>
+            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-sky-500/30">
+                <span class="text-sky-300 block text-[11px] font-semibold">R6-7</span>
+                <b class="text-sky-400 text-sm font-mono" th:text="${relicRepartition.relic6Et7 != null ? relicRepartition.relic6Et7 : 0}">0</b>
+            </div>
+            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-emerald-500/30">
+                <span class="text-emerald-300 block text-[11px] font-semibold">R0-5</span>
+                <b class="text-emerald-400 text-sm font-mono" th:text="${relicRepartition.relic0A5 != null ? relicRepartition.relic0A5 : 0}">0</b>
+            </div>
+            <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-600">
+                <span class="text-slate-400 block text-[11px] font-semibold">Non R</span>
+                <b class="text-slate-300 text-sm font-mono" th:text="${relicRepartition.sansRelic != null ? relicRepartition.sansRelic : 0}">0</b>
+            </div>
+        </div>
+    </div>
+            <!-- Card Omicrons -->
+			<div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl" th:if="${omicronModeSynthese != null}">
+			    <div class="flex items-center gap-3 mb-4">
+			        <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl">
+			            <i class="bi bi-lightning-charge-fill text-xl"></i>
+			        </div>
+			        <div>
+			            <h3 class="text-lg font-bold text-white">Omicrons</h3>
+			            <p class="text-xs text-slate-400">Total posés sur les modes suivis</p>
+			        </div>
+			    </div>
+			    <div class="grid grid-cols-3 gap-3 text-sm bg-slate-850 p-4 rounded-xl border border-slate-700/60">
+			        <div>
+			            <span class="text-slate-400 block text-xs">TB</span>
+			            <b class="text-white text-base font-mono" th:text="${omicronModeSynthese.get('TERRITORY_BATTLE_BOTH_OMICRON')}">0</b>
+			        </div>
+			        <div>
+			            <span class="text-slate-400 block text-xs">TW</span>
+			            <b class="text-white text-base font-mono" th:text="${omicronModeSynthese.get('TERRITORY_WAR_OMICRON')}">0</b>
+			        </div>
+			        <div>
+			            <span class="text-slate-400 block text-xs">GAC</span>
+			            <b class="text-white text-base font-mono" th:text="${omicronModeSynthese.get('TERRITORY_TOURNAMENT_OMICRON')}">0</b>
+			        </div>
+			        <div>
+			            <span class="text-slate-400 block text-xs">GAC 3v3</span>
+			            <b class="text-white text-base font-mono" th:text="${omicronModeSynthese.get('TERRITORY_TOURNAMENT_3_OMICRON')}">0</b>
+			        </div>
+			        <div>
+			            <span class="text-slate-400 block text-xs">GAC 5v5</span>
+			            <b class="text-white text-base font-mono" th:text="${omicronModeSynthese.get('TERRITORY_TOURNAMENT_5_OMICRON')}">0</b>
+			        </div>
+			    </div>
+			</div>
         </div>
 
         <!-- Synthèse BT -->

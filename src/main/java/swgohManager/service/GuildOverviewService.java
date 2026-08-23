@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
+import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
 import swgohManager.model.Joueur;
 import swgohManager.model.PlayerModQActuel;
 import swgohManager.model.PlayerStatqActuel;
@@ -18,6 +19,7 @@ import swgohManager.repository.PlayerModQActuelRepository;
 import swgohManager.repository.PlayerRatingHistoriqueRepository;
 import swgohManager.repository.PlayerStatqActuelRepository;
 import swgohManager.repository.RaidHistoriqueRepository;
+import swgohManager.repository.RosterUnitActuelRepository;
 import swgohManager.repository.TerritoryBattleRepository;
 
 @Service
@@ -32,6 +34,7 @@ public class GuildOverviewService {
     private final OmicronPlanProgressService omicronPlanProgressService;
     private final PlayerRatingHistoriqueRepository playerRatingHistoriqueRepository;
     private final PlayerStatqActuelRepository playerStatqActuelRepository;
+    private final RosterUnitActuelRepository rosterUnitActuelRepository;
     
     public record PlayerRow(
             String playerId,
@@ -95,6 +98,10 @@ public class GuildOverviewService {
                     return new RaidSummary(dernier.getEndTime(), total, lignes.size());
                 })
                 .orElse(null);
+    }
+    
+    public GuildeRelicRepartitionProjection getRepartitionRelics() {
+        return rosterUnitActuelRepository.findRepartitionRelicsGuilde();
     }
 
     public TbSummary getDerniereTb() {

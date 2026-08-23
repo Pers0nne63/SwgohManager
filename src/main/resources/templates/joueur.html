@@ -160,25 +160,64 @@
         </div>
 
         <!-- EN-TÊTE JOUEUR -->
-        <div class="mb-8">
+        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
             <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
                 <span th:text="${vm.joueur != null ? vm.joueur.playerName : 'Joueur introuvable'}">Nom Joueur</span>
                 <small th:if="${vm.joueur != null}" class="text-lg font-normal text-slate-400" 
                        th:text="'(GP: ' + ${#numbers.formatInteger(vm.joueur.galacticPower, 0, 'DEFAULT')} + ')'">
                 </small>
             </h1>
+            
+            <!-- Rating affiché à côté -->
+            <div th:if="${vm.ratingActuel != null}" class="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 text-sm font-medium">
+                <span class="text-slate-400">Skill Rating :</span>
+                <b class="text-white font-mono" th:text="${vm.ratingActuel.skillRating}">0</b>
+                <span class="text-slate-500 mx-1">-</span>
+                <span class="text-amber-400 font-semibold" 
+                      th:text="${vm.ratingActuel.leagueId + ' ' + vm.ratingActuel.divisionId}">LEAGUE DIV</span>
+            </div>
         </div>
 
         <!-- BLOCS D'INFORMATIONS PRINCIPALES (GRID TAILWIND) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" th:if="${vm.joueur != null}">
             
-            <!-- RATING ACTUEL -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" th:if="${vm.ratingActuel != null}">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Rating actuel</h3>
-                <div class="space-y-2 text-sm">
-                    <p class="flex justify-between">Skill Rating : <b class="text-white" th:text="${vm.ratingActuel.skillRating}">-</b></p>
-                    <p class="flex justify-between">Ligue : <span class="text-slate-300" th:text="${vm.ratingActuel.leagueId}">-</span></p>
-                    <p class="flex justify-between">Division : <span class="text-slate-300" th:text="${vm.ratingActuel.divisionId}">-</span></p>
+            <!-- REPARTITION RELIQUES JOUEUR -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" th:if="${vm.relicRepartition != null}">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="p-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
+                        <i class="bi bi-gem text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Reliques</h3>
+                        <p class="text-[11px] text-slate-500">Répartition par niveau</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-1.5 text-sm bg-slate-850 p-2.5 rounded-xl border border-slate-700/60 text-center">
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-purple-500/30">
+                        <span class="text-purple-300 block text-[10px] font-bold">R10</span>
+                        <b class="text-purple-400 text-xs font-mono" th:text="${vm.relicRepartition.relic10 != null ? vm.relicRepartition.relic10 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-red-500/30">
+                        <span class="text-red-300 block text-[10px] font-bold">R9</span>
+                        <b class="text-red-400 text-xs font-mono" th:text="${vm.relicRepartition.relic9 != null ? vm.relicRepartition.relic9 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-amber-500/30">
+                        <span class="text-amber-300 block text-[10px] font-bold">R8</span>
+                        <b class="text-amber-400 text-xs font-mono" th:text="${vm.relicRepartition.relic8 != null ? vm.relicRepartition.relic8 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-sky-500/30">
+                        <span class="text-sky-300 block text-[10px] font-bold">R6-7</span>
+                        <b class="text-sky-400 text-xs font-mono" th:text="${vm.relicRepartition.relic6Et7 != null ? vm.relicRepartition.relic6Et7 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-emerald-500/30">
+                        <span class="text-emerald-300 block text-[10px] font-bold">R0-5</span>
+                        <b class="text-emerald-400 text-xs font-mono" th:text="${vm.relicRepartition.relic0A5 != null ? vm.relicRepartition.relic0A5 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-600">
+                        <span class="text-slate-400 block text-[10px] font-bold">G1-13</span>
+                        <b class="text-slate-300 text-xs font-mono" th:text="${vm.relicRepartition.sansRelic != null ? vm.relicRepartition.sansRelic : 0}">0</b>
+                    </div>
                 </div>
             </div>
 

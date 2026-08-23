@@ -194,10 +194,28 @@ public class SwgohDataClient {
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            var node = objectMapper.readTree(response.body());
-            String version = node.get("latestLocalizationBundleVersion").asText();
-            log.info("Version de localisation récupérée : {}", version);
-            return version;
+
+         // 1. On vérifie d'abord si la requête a réussi (Code HTTP 200 OK)
+         if (response.statusCode() != 200) {
+             log.error("Erreur de l'API SWGOH. Code HTTP: {}. Corps de la réponse: {}", 
+                       response.statusCode(), response.body());
+             throw new RuntimeException("Impossible de récupérer la version, l'API a retourné une erreur HTTP " + response.statusCode());
+         }
+
+         var node = objectMapper.readTree(response.body());
+
+         // 2. On utilise .path() pour éviter le NullPointerException
+         var versionNode = node.path("latestLocalizationBundleVersion");
+
+         // 3. On vérifie si la clé existe vraiment dans le JSON
+         if (versionNode.isMissingNode() || versionNode.isNull()) {
+             log.error("La clé 'latestLocalizationBundleVersion' est absente. Le JSON reçu était : {}", response.body());
+             throw new RuntimeException("Format de réponse API SWGOH inattendu.");
+         }
+
+         String version = versionNode.asText();
+         log.info("Version de localisation récupérée : {}", version);
+         return version;
 
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) Thread.currentThread().interrupt();

@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
+import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
 import swgohManager.model.Joueur;
 import swgohManager.model.PlayerModQActuel;
 import swgohManager.model.PlayerRatingHistorique;
@@ -16,6 +17,7 @@ import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.PlayerModQActuelRepository;
 import swgohManager.repository.PlayerRatingHistoriqueRepository;
 import swgohManager.repository.PlayerStatqActuelRepository;
+import swgohManager.repository.RosterUnitActuelRepository;
 import swgohManager.repository.RosterUnitModActuelRepository;
 
 @Service
@@ -31,6 +33,7 @@ public class PlayerViewService {
     private final RosterUnitModActuelRepository rosterUnitModActuelRepository;
     private final FarmPlanProgressService farmPlanProgressService;
     private final PlayerStatqActuelRepository playerStatqActuelRepository;
+    private final RosterUnitActuelRepository rosterUnitActuelRepository; // AJOUT
 
     // DTO pour Chart.js (série de données pour une rareté donnée)
     public record ModSpeedDataset(
@@ -49,7 +52,8 @@ public class PlayerViewService {
             FarmPlanProgressService.PlayerFarmProgress farmPlan,
             List<String> farmPlanHistoLabels,
             List<Double> farmPlanHistoValues,
-            Double statQ
+            Double statQ,
+            GuildeRelicRepartitionProjection relicRepartition // AJOUT
     ) {}
 
     public PlayerViewModel construire(String playerId) {
@@ -128,7 +132,10 @@ public class PlayerViewService {
         Double statQ = playerStatqActuelRepository.findByPlayerId(playerId)
                 .map(PlayerStatqActuel::getStatq).orElse(null);
         
-        return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanHistoLabels, farmPlanHistoValues, statQ);
+        // Récupération de la répartition des reliques du joueur
+        GuildeRelicRepartitionProjection relicRepartition = rosterUnitActuelRepository.findRepartitionRelicsJoueur(playerId); // AJOUT
+        
+        return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanHistoLabels, farmPlanHistoValues, statQ, relicRepartition);
     }
 
     private Integer parseRarity(String rarityStr) {

@@ -23,7 +23,7 @@ public class SkillDefinition {
 
     private Boolean skillZeta;
     private Integer tierZetaRequis;
-
+    private String omicronMode;
     private Boolean skillOmicron;
     private Integer tierOmicronRequis;
 

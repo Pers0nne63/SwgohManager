@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
 import org.springframework.data.jpa.repository.Query;
 import swgohManager.controller.dto.RosterIdUnitProjection;
+import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
 
 public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActuel, Long> {
     List<RosterUnitActuel> findByPlayerId(String playerId);
@@ -28,5 +29,32 @@ public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActu
     	    JOIN unit_definition ud ON ud.id_unit = ru.definition_id
     	    """, nativeQuery = true)
     	List<RosterIdUnitProjection> findTousLesIdUnitParBaseId();
+   
+
+    @Query(value = """
+            SELECT 
+                SUM(CASE WHEN ru.relic = 10 THEN 1 ELSE 0 END) AS relic10,
+                SUM(CASE WHEN ru.relic = 9 THEN 1 ELSE 0 END) AS relic9,
+                SUM(CASE WHEN ru.relic = 8 THEN 1 ELSE 0 END) AS relic8,
+                SUM(CASE WHEN ru.relic IN (6, 7) THEN 1 ELSE 0 END) AS relic6Et7,
+                SUM(CASE WHEN ru.relic BETWEEN 0 AND 5 THEN 1 ELSE 0 END) AS relic0A5,
+                SUM(CASE WHEN ru.relic = -1 THEN 1 ELSE 0 END) AS sansRelic
+            FROM roster_unit_actuel ru
+            WHERE ru.relic IS NOT NULL
+            """, nativeQuery = true)
+    GuildeRelicRepartitionProjection findRepartitionRelicsGuilde();
     
+    @Query(value = """
+            SELECT 
+                SUM(CASE WHEN ru.relic = 10 THEN 1 ELSE 0 END) AS relic10,
+                SUM(CASE WHEN ru.relic = 9 THEN 1 ELSE 0 END) AS relic9,
+                SUM(CASE WHEN ru.relic = 8 THEN 1 ELSE 0 END) AS relic8,
+                SUM(CASE WHEN ru.relic IN (6, 7) THEN 1 ELSE 0 END) AS relic6Et7,
+                SUM(CASE WHEN ru.relic BETWEEN 0 AND 5 THEN 1 ELSE 0 END) AS relic0A5,
+                SUM(CASE WHEN ru.relic = -1 THEN 1 ELSE 0 END) AS sansRelic
+            FROM roster_unit_actuel ru
+            WHERE ru.player_id = :playerId AND ru.relic IS NOT NULL
+            """, nativeQuery = true)
+    GuildeRelicRepartitionProjection findRepartitionRelicsJoueur(@Param("playerId") String playerId);
+
 }

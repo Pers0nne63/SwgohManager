@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import lombok.RequiredArgsConstructor;
 import swgohManager.repository.TbScoreJoueurRepository;
 import swgohManager.service.GuildOverviewService;
+import swgohManager.service.OmicronModeService;
 import swgohManager.service.TbStatsService;
 
 @Controller
@@ -16,6 +17,7 @@ public class GuildWebController {
     private final GuildOverviewService guildOverviewService;
     private final TbStatsService tbStatsService;
     private final TbScoreJoueurRepository tbScoreJoueurRepository;
+    private final OmicronModeService omicronModeService;
 
     @GetMapping({"/", "/guilde"})
     public String guilde(Model model) {
@@ -26,6 +28,8 @@ public class GuildWebController {
         model.addAttribute("tb", guildOverviewService.getDerniereTb());
         model.addAttribute("tbSynthese", tbStatsService.getSyntheseTb(null));
         model.addAttribute("tbMsSynthese", tbScoreJoueurRepository.findGuildTbMSStats());
+        model.addAttribute("omicronModeSynthese", omicronModeService.getSyntheseGuilde());
+        model.addAttribute("relicRepartition", guildOverviewService.getRepartitionRelics()); // AJOUT HERE
 
         return "guilde";
     }

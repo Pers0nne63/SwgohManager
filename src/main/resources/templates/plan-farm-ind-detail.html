@@ -75,14 +75,30 @@
             <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <i class="bi bi-plus-circle text-amber-400"></i> Ajouter un objectif personnel
             </h2>
-            <form th:action="@{/web/plan-farm-ind/joueur/{id}/ajouter(id=${joueur.playerId})}" method="post" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <div class="md:col-span-6">
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Unité</label>
-                    <input type="text" name="selection" list="baseIdOptions" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 text-sm" required placeholder="Rechercher une unité..." autocomplete="off" />
-                    <datalist id="baseIdOptions">
-                        <option th:each="u : ${unites}" th:value="${u.libelle}"></option>
-                    </datalist>
-                </div>
+            <form id="addObjectiveForm" 
+			      th:action="@{/web/plan-farm-ind/joueur/{id}/ajouter(id=${joueur.playerId})}" 
+			      method="post" 
+			      onsubmit="return validerUniteFormulaire(event)" 
+			      class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+			    
+			    <div class="md:col-span-6">
+			        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Unité</label>
+			        <input type="text" 
+			               id="unitInput" 
+			               name="selection" 
+			               list="baseIdOptions" 
+			               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 text-sm" 
+			               required 
+			               placeholder="Rechercher une unité..." 
+			               autocomplete="off" />
+			        <datalist id="baseIdOptions">
+			            <option th:each="u : ${unites}" th:value="${u.libelle}"></option>
+			        </datalist>
+			        <!-- Message d'erreur masqué par défaut -->
+			        <p id="unitErrorMsg" class="hidden text-xs text-rose-400 font-semibold mt-1">
+			            <i class="bi bi-exclamation-triangle-fill me-1"></i>Veuillez sélectionner une unité valide dans la liste.
+			        </p>
+			    </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Étoiles</label>
                     <select name="etoiles" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 text-sm">
@@ -151,5 +167,33 @@
             </div>
         </div>
     </main>
+    <script>
+	function validerUniteFormulaire(event) {
+	    const input = document.getElementById('unitInput');
+	    const errorMsg = document.getElementById('unitErrorMsg');
+	    const datalist = document.getElementById('baseIdOptions');
+	
+	    // Récupération de toutes les options valides
+	    const validValues = Array.from(datalist.options).map(opt => opt.value.trim().toLowerCase());
+	    const userValue = input.value.trim().toLowerCase();
+	
+	    // Vérification de la présence exacte dans la liste
+	    if (!validValues.includes(userValue)) {
+	        event.preventDefault(); // Annule l'envoi du formulaire
+	        
+	        // Affichage de l'erreur visuelle
+	        errorMsg.classList.remove('hidden');
+	        input.classList.add('border-rose-500', 'focus:border-rose-500');
+	        input.classList.remove('border-slate-700', 'focus:border-amber-500');
+	        return false;
+	    }
+	
+	    // Masquage de l'erreur si valide
+	    errorMsg.classList.add('hidden');
+	    input.classList.remove('border-rose-500', 'focus:border-rose-500');
+	    input.classList.add('border-slate-700', 'focus:border-amber-500');
+	    return true;
+	}
+	</script>
 </body>
 </html>

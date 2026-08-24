@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plans de Farm Individuels - Guilde</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+
+    <div th:replace="~{fragments/fragments :: navbar}"></div>
+
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+        <a href="/guilde" class="inline-flex items-center text-sm font-medium text-slate-400 hover:text-amber-400 mb-6 transition-colors">
+            <i class="bi bi-arrow-left me-2"></i> Retour à la guilde
+        </a>
+
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+                <i class="bi bi-journal-bookmark text-amber-400"></i> Plans de Farm Individuels
+            </h1>
+        </div>
+
+        <!-- Table des joueurs -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="bi bi-people text-amber-400"></i> Progression par membre
+                </h2>
+                <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs px-3 py-1 rounded-full font-bold" th:text="${#lists.size(joueurs)} + ' joueurs'">0 joueurs</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table id="planIndTable" class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700 select-none">
+                        <tr>
+                            <th onclick="sortTable(0, 'text')" class="px-6 py-4 cursor-pointer hover:text-amber-400 transition-colors">
+                                Joueur <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+                            </th>
+                            <th onclick="sortTable(1, 'number')" class="px-4 py-4 cursor-pointer hover:text-amber-400 transition-colors">
+                                Puissance Galactique <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+                            </th>
+                            <th onclick="sortTable(2, 'number')" class="px-6 py-4 cursor-pointer hover:text-amber-400 transition-colors">
+                                Progression Individuelle <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+                            </th>
+                            <th class="px-4 py-4 text-center w-36">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700/60">
+                        <tr th:each="j : ${joueurs}" class="hover:bg-slate-750/50 transition-colors" th:with="pct=${pourcentages != null ? pourcentages[j.playerId] : null}">
+                            <td class="px-6 py-4 font-bold text-white" 
+                                th:data-sort="${j.playerName}">
+                                <a th:href="@{/joueur/{id}(id=${j.playerId})}" class="hover:text-amber-400 transition-colors" th:text="${j.playerName}">Nom Joueur</a>
+                            </td>
+                            <td class="px-4 py-4 text-slate-400" 
+                                th:data-sort="${j.galacticPower != null ? j.galacticPower : 0}"
+                                th:text="${#numbers.formatInteger(j.galacticPower, 0, 'WHITESPACE')} + ' PG'">0 PG</td>
+                            <td class="px-6 py-4" 
+                                th:data-sort="${pct != null ? pct : -1}">
+                                
+                                <!-- Affichage de la barre de progression si un plan existe -->
+                                <div th:if="${pct != null}" class="flex items-center gap-3">
+                                    <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700/60 max-w-xs">
+                                        <div class="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-300"
+                                             th:style="'width: ' + ${pct} + '%'"></div>
+                                    </div>
+                                    <span class="font-bold text-amber-400 text-xs w-12" th:text="${#numbers.formatDecimal(pct, 1, 1) + ' %'}">0 %</span>
+                                </div>
+
+                                <!-- Message si aucun plan n'est défini -->
+                                <span th:if="${pct == null}" class="text-xs text-slate-500 italic flex items-center gap-1.5">
+                                    <i class="bi bi-dash-circle"></i> Aucun plan individuel défini
+                                </span>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <a th:href="@{/web/plan-farm-ind/joueur/{id}(id=${j.playerId})}" 
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/30 rounded-lg text-xs font-bold transition-all">
+                                    <i class="bi bi-pencil-square"></i> Gérer
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentSortColumn = -1;
+        let currentSortAsc = true;
+
+        function sortTable(columnIndex, type) {
+            const table = document.getElementById("planIndTable");
+            if (!table) return;
+
+            const tbody = table.querySelector("tbody");
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+
+            if (currentSortColumn === columnIndex) {
+                currentSortAsc = !currentSortAsc;
+            } else {
+                currentSortColumn = columnIndex;
+                currentSortAsc = true;
+            }
+
+            rows.sort((a, b) => {
+                const cellA = a.children[columnIndex];
+                const cellB = b.children[columnIndex];
+
+                let valA = cellA.getAttribute("data-sort") || cellA.innerText.trim();
+                let valB = cellB.getAttribute("data-sort") || cellB.innerText.trim();
+
+                if (type === 'number') {
+                    let numA = parseFloat(valA);
+                    let numB = parseFloat(valB);
+                    if (isNaN(numA)) numA = -1;
+                    if (isNaN(numB)) numB = -1;
+                    return currentSortAsc ? numA - numB : numB - numA;
+                } else {
+                    return currentSortAsc 
+                        ? valA.localeCompare(valB, 'fr', { sensitivity: 'base' })
+                        : valB.localeCompare(valA, 'fr', { sensitivity: 'base' });
+                }
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // Tri automatique par joueur (A -> Z) au chargement de la page
+        document.addEventListener("DOMContentLoaded", () => {
+            sortTable(0, 'text');
+        });
+    </script>
+</body>
+</html>

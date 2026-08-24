@@ -21,7 +21,6 @@ public class FarmPlanProgressService {
 
     private final FarmPlanRepository farmPlanRepository;
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
-    private final RosterUnitHistoriqueRepository rosterUnitHistoriqueRepository;
     private final SyncExecutionRepository syncExecutionRepository;
     private final PlayerPdfActuelRepository playerPdfActuelRepository;
     private final PlayerPdfHistoriqueRepository playerPdfHistoriqueRepository;

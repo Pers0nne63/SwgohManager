@@ -176,6 +176,14 @@
                 <span class="text-amber-400 font-semibold" 
                       th:text="${vm.ratingActuel.leagueId + ' ' + vm.ratingActuel.divisionId}">LEAGUE DIV</span>
             </div>
+            
+        	<!-- Bouton PDF Individuel -->
+            
+            <a th:href="@{/web/plan-farm-ind/joueur/{id}(id=${vm.joueur.playerId})}"
+			   class="inline-flex items-center space-x-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/30 rounded-xl font-semibold text-sm transition-all duration-200 shadow-md">
+			    <i class="bi bi-pencil-square"></i>
+			    <span>Plan Individuel</span>
+			</a>
         </div>
 
         <!-- BLOCS D'INFORMATIONS PRINCIPALES (GRID TAILWIND) -->
@@ -238,18 +246,35 @@
             </div>
 
             <!-- PLAN DE FARM -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" th:if="${vm.farmPlan != null and vm.farmPlan.total() > 0}">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Plan de farm</h3>
-                <div class="space-y-3 text-sm">
-                    <p class="flex justify-between items-center">Progression :
-                        <a th:href="@{/joueur/{id}/plan-farm(id=${vm.joueur.playerId})}"
-                           class="text-2xl font-bold text-emerald-400 hover:underline" th:text="${#numbers.formatDecimal(vm.farmPlan.pourcentage(), 1, 1)} + ' %'">0%</a>
-                    </p>
-                    <p class="flex justify-between">Unités terminées : 
-                        <span class="text-slate-300"><span th:text="${vm.farmPlan.atteint()}">0</span> / <span th:text="${vm.farmPlan.total()}">0</span></span>
-                    </p>
-                </div>
-            </div>
+			<div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" 
+			     th:if="${vm.farmPlan != null or vm.farmPlanInd != null}">
+			    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Plans de farm</h3>
+			    <div class="space-y-3 text-sm">
+			        
+			        <!-- % Global -> plan-farm-detail.html -->
+			        <div th:if="${vm.farmPlan != null}" class="flex justify-between items-center pb-2 border-b border-slate-700/50">
+			            <div>
+			                <span class="text-slate-300 font-medium block">Global</span>
+			                <span class="text-xs text-slate-500" th:text="${vm.farmPlan.atteint()} + ' / ' + ${vm.farmPlan.total()} + ' atteints'">0/0</span>
+			            </div>
+			            <a th:href="@{/joueur/{id}/plan-farm(id=${vm.joueur.playerId})}" 
+			               class="text-xl font-bold text-emerald-400 hover:underline" 
+			               th:text="${vm.farmPlan.pourcentage() != null ? #numbers.formatDecimal(vm.farmPlan.pourcentage(), 1, 1) + ' %' : '0 %'}">0 %</a>
+			        </div>
+			
+			        <!-- % Individuel -> plan-farm-ind-detail.html -->
+			        <div th:if="${vm.farmPlanInd != null}" class="flex justify-between items-center">
+			            <div>
+			                <span class="text-slate-300 font-medium block">Individuel</span>
+			                <span class="text-xs text-slate-500" th:text="${vm.farmPlanInd.atteint()} + ' / ' + ${vm.farmPlanInd.total()} + ' atteints'">0/0</span>
+			            </div>
+			            <a th:href="@{/web/plan-farm-ind/joueur/{id}(id=${vm.joueur.playerId})}" 
+			               class="text-xl font-bold text-amber-400 hover:underline" 
+			               th:text="${vm.farmPlanInd.pourcentage() != null ? #numbers.formatDecimal(vm.farmPlanInd.pourcentage(), 1, 1) + ' %' : '0 %'}">0 %</a>
+			        </div>
+			
+			    </div>
+			</div>
 
             <!-- OMICRON TW -->
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" id="omicron-tw" th:if="${globalOmicron != null}">

@@ -6,7 +6,6 @@ import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
-import org.springframework.data.jpa.repository.Query;
 import swgohManager.controller.dto.RosterIdUnitProjection;
 import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
 

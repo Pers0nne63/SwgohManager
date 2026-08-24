@@ -31,12 +31,19 @@
                         <span>Guilde</span>
                     </a>
 
-                    <!-- Plan de Farm -->
+                    <!-- Plan de Farm Commun -->
                     <a th:href="${playerId != null} ? @{/joueur/{id}/plan-farm(id=${playerId})} : @{/plan-farm}" 
                        class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
                         <i class="bi bi-journal-check me-1"></i>
-						<span th:text="${playerId != null ? 'Détails PDF' : 'Plan de Farm'}">Plan de Farm</span>
-					</a>
+                        <span th:text="${playerId != null ? 'PDF Commun' : 'Plan Commun'}">Plan Commun</span>
+                    </a>
+
+                    <!-- Plan de Farm Individuel -->
+                    <a th:href="${playerId != null} ? @{/web/plan-farm-ind/joueur/{id}(id=${playerId})} : @{/web/plan-farm-ind}" 
+                       class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
+                        <i class="bi bi-journal-bookmark me-1"></i>
+                        <span th:text="${playerId != null ? 'PDF Indiv.' : 'Plans Indiv.'}">Plans Indiv.</span>
+                    </a>
 
                     <!-- Omicrons TW -->
                     <a th:href="${playerId != null} ? @{/joueur/{id}/omicron-tw(id=${playerId})} : @{/omicron-tw}" 

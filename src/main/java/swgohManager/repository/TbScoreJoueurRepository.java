@@ -64,7 +64,7 @@ public interface TbScoreJoueurRepository extends JpaRepository<TbScoreJoueur, Lo
             JOIN territory_battle bt ON bt.id = ta.territory_battle_id
             WHERE (:playerId IS NULL OR tsj.player_id = :playerId) AND bt.id IN (SELECT id from territory_battle ORDER BY end_time DESC LIMIT 5)
             GROUP BY bt.end_time, j.player_name
-            ORDER BY j.player_name
+            ORDER BY j.player_name, bt.end_time DESC LIMIT 5
             """, nativeQuery = true)
     List<TbMSStatsProjection> findPlayerTbMSStats(@Param("playerId") String playerId);
     

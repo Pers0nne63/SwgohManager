@@ -33,7 +33,8 @@ public class PlayerViewService {
     private final RosterUnitModActuelRepository rosterUnitModActuelRepository;
     private final FarmPlanProgressService farmPlanProgressService;
     private final PlayerStatqActuelRepository playerStatqActuelRepository;
-    private final RosterUnitActuelRepository rosterUnitActuelRepository; // AJOUT
+    private final RosterUnitActuelRepository rosterUnitActuelRepository; 
+    private final FarmPlanIndProgressService farmPlanIndProgressService; 
 
     // DTO pour Chart.js (série de données pour une rareté donnée)
     public record ModSpeedDataset(
@@ -50,6 +51,7 @@ public class PlayerViewService {
             List<Integer> vitesseLabels,
             List<ModSpeedDataset> vitesseDatasets,
             FarmPlanProgressService.PlayerFarmProgress farmPlan,
+            FarmPlanIndProgressService.PlayerFarmIndProgress farmPlanInd,
             List<String> farmPlanHistoLabels,
             List<Double> farmPlanHistoValues,
             Double statQ,
@@ -132,10 +134,12 @@ public class PlayerViewService {
         Double statQ = playerStatqActuelRepository.findByPlayerId(playerId)
                 .map(PlayerStatqActuel::getStatq).orElse(null);
         
+        FarmPlanIndProgressService.PlayerFarmIndProgress farmPlanInd = farmPlanIndProgressService.getProgressionPersistee(playerId);
+        
         // Récupération de la répartition des reliques du joueur
         GuildeRelicRepartitionProjection relicRepartition = rosterUnitActuelRepository.findRepartitionRelicsJoueur(playerId); // AJOUT
         
-        return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanHistoLabels, farmPlanHistoValues, statQ, relicRepartition);
+        return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanInd, farmPlanHistoLabels, farmPlanHistoValues, statQ, relicRepartition);
     }
 
     private Integer parseRarity(String rarityStr) {

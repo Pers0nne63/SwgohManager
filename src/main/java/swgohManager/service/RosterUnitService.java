@@ -17,13 +17,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RosterUnitService {
 
-
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
-    private final RosterUnitHistoriqueRepository rosterUnitHistoriqueRepository;
     private final RosterUnitSkillActuelRepository rosterUnitSkillActuelRepository;
-    private final RosterUnitSkillHistoriqueRepository rosterUnitSkillHistoriqueRepository;
     private final RosterUnitModActuelRepository rosterUnitModActuelRepository;
-    private final RosterUnitModHistoriqueRepository rosterUnitModHistoriqueRepository;
     private final SkillDefinitionRepository skillDefinitionRepository;
     private final PlayerModQService playerModQService;
     private final RosterUnitStatCalculService rosterUnitStatCalculService;
@@ -41,43 +37,11 @@ public class RosterUnitService {
             return "Aucune unité trouvée";
         }
 
-
         // Référentiel zeta/omicron, chargé une fois pour toute la synchro
         Map<String, SkillDefinition> definitions = skillDefinitionRepository.findAll().stream()
                 .collect(Collectors.toMap(SkillDefinition::getIdSkill, d -> d));
 
-        List<RosterUnitActuel> anciennesUnites = rosterUnitActuelRepository.findByPlayerId(playerId);
-        List<RosterUnitSkillActuel> anciensSkills = rosterUnitSkillActuelRepository.findByPlayerId(playerId);
-        List<RosterUnitModActuel> anciensMods = rosterUnitModActuelRepository.findByPlayerId(playerId);
-
-        rosterUnitHistoriqueRepository.saveAll(anciennesUnites.stream()
-                .map(u -> RosterUnitHistorique.builder()
-                        .playerId(u.getPlayerId()).idUnit(u.getIdUnit()).definitionId(u.getDefinitionId())
-                        .etoiles(u.getEtoiles()).niveau(u.getNiveau()).gear(u.getGear()).relic(u.getRelic())
-                        .idSync(u.getIdSync())
-                        .build())
-                .toList());
-
-        rosterUnitSkillHistoriqueRepository.saveAll(anciensSkills.stream()
-                .map(s -> RosterUnitSkillHistorique.builder()
-                        .playerId(s.getPlayerId()).idUnit(s.getIdUnit()).idSkill(s.getIdSkill())
-                        .tier(s.getTier()).type(s.getType()).numero(s.getNumero())
-                        .skillZeta(s.getSkillZeta()).zetaApplied(s.getZetaApplied())
-                        .skillOmicron(s.getSkillOmicron()).omicronApplied(s.getOmicronApplied())
-                        .idSync(s.getIdSync())
-                        .build())
-                .toList());
-
-        rosterUnitModHistoriqueRepository.saveAll(anciensMods.stream()
-                .map(m -> RosterUnitModHistorique.builder()
-                        .playerId(m.getPlayerId()).idUnit(m.getIdUnit()).idMod(m.getIdMod()).definitionId(m.getDefinitionId())
-                        .set(m.getSet()).rarity(m.getRarity()).position(m.getPosition()).niveau(m.getNiveau())
-                        .idPrimaire(m.getIdPrimaire()).primaire(m.getPrimaire()).valeurPrimaire(m.getValeurPrimaire())
-                        .idSecondaire(m.getIdSecondaire()).secondaire(m.getSecondaire()).valeurSecondaire(m.getValeurSecondaire())
-                        .idSync(m.getIdSync())
-                        .build())
-                .toList());
-
+        // Suppression des anciennes données actuelles (avant de réinsérer les nouvelles)
         rosterUnitActuelRepository.deleteByPlayerId(playerId);
         rosterUnitSkillActuelRepository.deleteByPlayerId(playerId);
         rosterUnitModActuelRepository.deleteByPlayerId(playerId);
@@ -156,7 +120,7 @@ public class RosterUnitService {
         String resultat = String.format(
                 "Sync #%d : %d unité(s), %d skill(s) (%d sans référentiel), %d ligne(s) de mod",
                 idSync, unitesActuelles.size(), skillsActuels.size(), skillsSansDefinition, modsActuels.size());
-        
+
         playerModQService.calculerEtEnregistrer(playerId, modsActuels, idSync);
         
         farmPlanProgressService.calculerEtEnregistrer(playerId, idSync);
@@ -165,7 +129,7 @@ public class RosterUnitService {
         
         String resultatStats = rosterUnitStatCalculService.calculerEtEnregistrer(playerId, unitesActuelles, modsActuels);
         
-        log.info(resultat,resultatStats);
+        log.info("{} | Stats: {}", resultat, resultatStats);
         return resultat;
     }
 

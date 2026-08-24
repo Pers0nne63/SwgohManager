@@ -4,6 +4,7 @@ import swgohManager.client.SwgohApiClient;
 import swgohManager.client.dto.PlayerResponse;
 import swgohManager.model.PlayerRatingHistorique;
 import swgohManager.model.SyncExecution;
+import swgohManager.repository.PlanFarmIndRepository;
 import swgohManager.repository.SyncExecutionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,10 @@ public class PlayerSyncService {
     private final RosterUnitService rosterUnitService;
     private final SyncExecutionRepository syncExecutionRepository;
 
+    // Dépendances injectées pour le plan individuel
+    private final PlanFarmIndRepository planFarmIndRepository;
+    private final FarmPlanIndProgressService farmPlanIndProgressService;
+
     /** Appel isolé (un seul joueur) : crée son propre idSync. */
     public PlayerSyncResult synchroniserJoueur(PlayerIdentifier identifier) {
         Long idSync = syncExecutionRepository.save(new SyncExecution()).getIdSync();
@@ -32,6 +37,11 @@ public class PlayerSyncService {
 
         PlayerRatingHistorique rating = playerRatingService.enregistrerRating(response);
         String resultatRoster = rosterUnitService.enregistrerRoster(response, idSync);
+
+        // Calcul et enregistrement de la progression si le joueur a au moins un objectif
+        if (!planFarmIndRepository.findByPlayerId(response.playerId()).isEmpty()) {
+            farmPlanIndProgressService.calculerEtEnregistrer(response.playerId(), idSync);
+        }
 
         String message = String.format("Joueur %s (%s) : skillRating=%s, ligue=%s, division=%s | %s",
                 response.name(), response.playerId(),

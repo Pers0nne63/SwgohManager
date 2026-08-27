@@ -28,7 +28,7 @@ public class TbPlanWebController {
     private final TbAnalyseService tbAnalyseService;
 
     @GetMapping
-    public String page(@RequestParam(defaultValue = "modeles") String tab,
+    public String page(@RequestParam(defaultValue = "analyse") String tab,
                         @RequestParam(required = false) Long tbId,
                         Model model) {
         model.addAttribute("plans", tbPlanService.getAllPlansAvecRounds());

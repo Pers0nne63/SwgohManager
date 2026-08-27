@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import swgohManager.controller.dto.TbMSStatsProjection;
+import swgohManager.controller.dto.TbRoundPlayerStatsProjection;
 import swgohManager.controller.dto.TbRoundStatsProjection;
 import swgohManager.model.TbActivite;
 import swgohManager.model.TbScoreJoueur;
@@ -100,4 +101,35 @@ public interface TbScoreJoueurRepository extends JpaRepository<TbScoreJoueur, Lo
             ORDER BY bt.end_time DESC LIMIT 5
             """, nativeQuery = true)
     List<TbMSStatsProjection> findGuildTbMSStats();
+    
+    @Query(value = """
+    	    SELECT tsj.player_id AS playerId,
+    	        SUM(CASE WHEN ta.stat_type = 'power' THEN tsj.score ELSE 0 END) AS power,
+    	        SUM(CASE WHEN ta.stat_type = 'summary' THEN tsj.score ELSE 0 END) AS summary,
+    	        SUM(CASE WHEN ta.stat_type = 'strike_attempt' THEN tsj.score ELSE 0 END) AS strikeAttempt,
+    	        SUM(CASE WHEN ta.stat_type = 'strike_encounter' THEN tsj.score ELSE 0 END) AS strikeEncounter,
+    	        SUM(CASE WHEN ta.stat_type = 'covert_attempt' THEN tsj.score ELSE 0 END) AS covertAttempt
+    	    FROM tb_score_joueur tsj
+    	    JOIN tb_activite ta ON ta.id = tsj.tb_activite_id
+    	    WHERE ta.territory_battle_id = :tbId AND ta.round_num = :roundNum
+    	    GROUP BY tsj.player_id
+    	    """, nativeQuery = true)
+    	List<TbRoundPlayerStatsProjection> findStatsParRoundEtTb(@Param("tbId") Long tbId, @Param("roundNum") Integer roundNum);
+
+    @Query(value = """
+            SELECT 
+                ta.round_num AS roundNum,
+                SUM(CASE WHEN ta.stat_type = 'power' THEN tsj.score ELSE 0 END) AS power,
+                SUM(CASE WHEN ta.stat_type = 'summary' THEN tsj.score ELSE 0 END) AS summary,
+                SUM(CASE WHEN ta.stat_type = 'strike_attempt' THEN tsj.score ELSE 0 END) AS strikeAttempt,
+                SUM(CASE WHEN ta.stat_type = 'strike_encounter' THEN tsj.score ELSE 0 END) AS strikeEncounter,
+                SUM(CASE WHEN ta.stat_type = 'covert_attempt' THEN tsj.score ELSE 0 END) AS covertAttempt
+            FROM tb_score_joueur tsj
+            JOIN tb_activite ta ON ta.id = tsj.tb_activite_id
+            WHERE ta.territory_battle_id = :tbId AND ta.round_num IS NOT NULL
+            GROUP BY ta.round_num
+            ORDER BY ta.round_num ASC
+            """, nativeQuery = true)
+    List<TbRoundPlayerStatsProjection> findSyntheseGlobaleParRound(@Param("tbId") Long tbId);
+
 }

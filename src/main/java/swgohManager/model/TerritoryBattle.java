@@ -23,4 +23,5 @@ public class TerritoryBattle {
     private Instant startTime;
     private Instant endTime;
     private Integer totalStars;
+    private Long planId;
 }

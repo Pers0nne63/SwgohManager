@@ -1,10 +1,17 @@
 package swgohManager.scheduler;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import swgohManager.service.*;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import swgohManager.service.GacRosterSyncService;
+import swgohManager.service.GameDataSyncService;
+import swgohManager.service.GuildFullSyncService;
+import swgohManager.service.LeaderboardModMoyService;
+import swgohManager.service.RosterUnitService;
+import swgohManager.service.RosterUnitStatObjectifService;
+import swgohManager.service.StatqCalculService;
 
 @Component
 @RequiredArgsConstructor
@@ -17,12 +24,13 @@ public class SyncScheduler {
     private final GuildFullSyncService guildFullSyncService;
     private final RosterUnitStatObjectifService rosterUnitStatObjectifService;
     private final StatqCalculService statqCalculService;
+    private final RosterUnitService rosterUnitService;
 
     /**
      * 1. Synchronisation GameData
      * Tous les jeudis à 09h00
      */
-    @Scheduled(cron = "0 0 9 ? * THU")
+    @Scheduled(cron = "0 0 1 ? * THU")
     public void syncGameData() {
         log.info("--- [CRON] Début synchronisation GameData (Jeudi 09h00) ---");
         try {
@@ -37,7 +45,7 @@ public class SyncScheduler {
      * 2. Synchronisation GAC Full (Top Players + Calcul Mods Moyen)
      * Tous les mercredis à 09h00
      */
-    @Scheduled(cron = "0 0 9 ? * WED")
+    @Scheduled(cron = "0 0 2 ? * WED")
     public void syncGacFull() {
         log.info("--- [CRON] Début synchronisation GAC Full (Mercredi 09h00) ---");
         try {
@@ -58,7 +66,7 @@ public class SyncScheduler {
      * 3. Synchronisation Guilde Full (Guilde + Objectifs + StatQ)
      * Tous les jours à 10h00
      */
-    @Scheduled(cron = "0 0 10 * * ?")
+    @Scheduled(cron = "0 0 3 * * ?")
     public void syncGuildFull() {
         log.info("--- [CRON] Début synchronisation Guilde Full (Quotidien 10h00) ---");
         try {
@@ -76,6 +84,21 @@ public class SyncScheduler {
 
         } catch (Exception e) {
             log.error("[CRON] Erreur lors de la synchro Guilde Full : {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 4. Historisation du Roster
+     * Tous les dimanches à 23h00
+     */
+    @Scheduled(cron = "0 0 4 ? * MON")
+    public void historiserRosterHebdomadaire() {
+        log.info("--- [CRON] Début de l'historisation du roster (Dimanche 23h00) ---");
+        try {
+            int nbUnites = rosterUnitService.historiserRosterActuel();
+            log.info("[CRON] Historisation terminée avec succès ({} unités).", nbUnites);
+        } catch (Exception e) {
+            log.error("[CRON] Erreur lors de l'historisation du roster : {}", e.getMessage(), e);
         }
     }
 }

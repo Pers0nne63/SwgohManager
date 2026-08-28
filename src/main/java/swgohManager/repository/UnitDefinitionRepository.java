@@ -15,4 +15,12 @@ public interface UnitDefinitionRepository extends JpaRepository<UnitDefinition, 
     
     @Query("SELECT DISTINCT u.baseId AS baseId, u.libelle AS libelle FROM UnitDefinition u WHERE u.baseId IS NOT NULL")
     List<BaseIdLibelleProjection> findDistinctBaseIdsAvecLibelle();
+    
+    @Query(value = """
+    SELECT DISTINCT u.base_id AS baseId, u.libelle AS libelle
+    FROM roster_unit_actuel rua
+    LEFT JOIN  unit_definition u ON u.id_unit=rua.definition_id
+    WHERE rua.relic IS NOT NULL
+    """, nativeQuery = true)
+    List<BaseIdLibelleProjection> findDistinctPlayableBaseIdsAvecLibelle();
 }

@@ -1,12 +1,14 @@
 package swgohManager.repository;
 
-import swgohManager.model.RosterUnitSkillActuel;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import swgohManager.controller.dto.OmicronOptionProjection;
 import swgohManager.controller.dto.PlayerOmicronStatusProjection;
+import swgohManager.model.RosterUnitSkillActuel;
 
 public interface RosterUnitSkillActuelRepository extends JpaRepository<RosterUnitSkillActuel, Long> {
     List<RosterUnitSkillActuel> findByPlayerId(String playerId);
@@ -31,4 +33,15 @@ public interface RosterUnitSkillActuelRepository extends JpaRepository<RosterUni
     	    WHERE rus.player_id = :playerId
     	    """, nativeQuery = true)
     	List<PlayerOmicronStatusProjection> findStatutOmicronParJoueur(@Param("playerId") String playerId);
+    	
+
+    	// Requête groupée pour alimenter la matrice sur l'ensemble des joueurs
+        @Query(value = """
+                SELECT rus.player_id AS playerId, j.player_name as playerName, rus.id_skill AS idSkill, rus.numero as Numero, rus.omicron_applied AS isApplied
+                FROM roster_unit_skill_actuel rus
+                LEFT JOIN joueurs j ON rus.player_id = j.player_id
+                WHERE rus.id_skill IN :skillIds
+                """, nativeQuery = true)
+        List<OmicronJoueurProjection> findOmicronsAppliquesPourSkills(@Param("skillIds")List<String> skillIds);
+        
 }

@@ -1,16 +1,26 @@
 package swgohManager.service;
 
-import swgohManager.client.dto.PlayerResponse;
-import swgohManager.model.*;
-import swgohManager.repository.*;
-import swgohManager.util.SkillIdParser;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import swgohManager.client.dto.PlayerResponse;
+import swgohManager.model.RosterUnitActuel;
+import swgohManager.model.RosterUnitModActuel;
+import swgohManager.model.RosterUnitSkillActuel;
+import swgohManager.model.SkillDefinition;
+import swgohManager.repository.RosterUnitActuelRepository;
+import swgohManager.repository.RosterUnitHistoriqueRepository;
+import swgohManager.repository.RosterUnitModActuelRepository;
+import swgohManager.repository.RosterUnitSkillActuelRepository;
+import swgohManager.repository.SkillDefinitionRepository;
+import swgohManager.util.SkillIdParser;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +28,7 @@ import java.util.stream.Collectors;
 public class RosterUnitService {
 
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
+    private final RosterUnitHistoriqueRepository rosterUnitHistoriqueRepository;
     private final RosterUnitSkillActuelRepository rosterUnitSkillActuelRepository;
     private final RosterUnitModActuelRepository rosterUnitModActuelRepository;
     private final SkillDefinitionRepository skillDefinitionRepository;
@@ -180,5 +191,13 @@ public class RosterUnitService {
             log.warn("Impossible de parser la valeur numérique du mod : {}", value);
             return null;
         }
+    }
+    
+    @Transactional
+    public int historiserRosterActuel() {
+        log.info("Début de la copie du roster actuel vers l'historique...");
+        int nombreLignesCopiees = rosterUnitHistoriqueRepository.copierRosterActuelVersHistorique();
+        log.info("Historisation terminée : {} unité(s) ajoutée(s) à l'historique.", nombreLignesCopiees);
+        return nombreLignesCopiees;
     }
 }

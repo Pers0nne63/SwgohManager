@@ -12,4 +12,6 @@ public interface JoueurRepository extends JpaRepository<Joueur, Long> {
     
 
     List<Joueur> findAllByPresentInGuildTrue();
+    
+    List<Joueur> findByPresentInGuildTrueOrderByPlayerNameAsc();
 }

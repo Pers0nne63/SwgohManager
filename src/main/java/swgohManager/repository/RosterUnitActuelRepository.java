@@ -1,13 +1,16 @@
 package swgohManager.repository;
 
-import swgohManager.model.RosterUnitActuel;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
+import swgohManager.controller.dto.RelicJoueurProjection;
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
 import swgohManager.controller.dto.RosterIdUnitProjection;
-import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
+import swgohManager.model.RosterUnitActuel;
 
 public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActuel, Long> {
     List<RosterUnitActuel> findByPlayerId(String playerId);
@@ -55,5 +58,19 @@ public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActu
             WHERE ru.player_id = :playerId AND ru.relic IS NOT NULL
             """, nativeQuery = true)
     GuildeRelicRepartitionProjection findRepartitionRelicsJoueur(@Param("playerId") String playerId);
+    
+    @Query(value = """
+            SELECT 
+                ru.player_id AS "playerId", 
+                j.player_name AS "playerName", 
+                ud.base_id AS "baseId", 
+                ud.libelle AS "libelle", 
+                ru.relic AS "relic"
+            FROM roster_unit_actuel ru
+            JOIN unit_definition ud ON ud.id_unit = ru.definition_id
+            LEFT JOIN joueurs j ON ru.player_id = j.player_id
+            WHERE ud.base_id IN :baseIds
+            """, nativeQuery = true)
+    List<RelicJoueurProjection> findRelicsPourUnites(@Param("baseIds") List<String> baseIds);
 
 }

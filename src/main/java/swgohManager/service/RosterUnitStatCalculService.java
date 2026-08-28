@@ -141,4 +141,12 @@ public class RosterUnitStatCalculService {
                 .defense(r.defense())
                 .build();
     }
+    
+    @Transactional
+    public void nettoyerJoueursInactifs(List<String> joueursActifs) {
+        if (!joueursActifs.isEmpty()) {
+            rosterUnitStatActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
+            rosterUnitStatActuelRepository.flush();
+        }
+    }
 }

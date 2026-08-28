@@ -10,6 +10,7 @@ import java.util.List;
 public interface PlayerOmicronModeActuelRepository extends JpaRepository<PlayerOmicronModeActuel, Long> {
 
     void deleteByPlayerId(String playerId);
+    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
 
     @Query("""
         SELECT p.omicronMode AS omicronMode, SUM(p.nbOmicron) AS total

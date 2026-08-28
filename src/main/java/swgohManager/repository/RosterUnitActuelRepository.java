@@ -15,6 +15,7 @@ import swgohManager.model.RosterUnitActuel;
 public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActuel, Long> {
     List<RosterUnitActuel> findByPlayerId(String playerId);
     void deleteByPlayerId(String playerId);
+    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
     
     @Query(value = """
     	    SELECT ud.base_id AS baseId, MAX(ru.etoiles) AS maxEtoiles, MAX(ru.relic) AS maxRelic

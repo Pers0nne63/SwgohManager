@@ -79,4 +79,12 @@ public class PlayerModQService {
         log.info("ModQ calculé pour {} : {} (25+={}, 20-24={}, 15-19={}, 10-14={})",
                 playerId, modQ, mod25Plus, mod20_24, mod15_19, mod10_14);
     }
+    
+    @Transactional
+    public void nettoyerJoueursInactifs(List<String> joueursActifs) {
+        if (!joueursActifs.isEmpty()) {
+            playerModQActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
+            playerModQActuelRepository.flush();
+        }
+    }
 }

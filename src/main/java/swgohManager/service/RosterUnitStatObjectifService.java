@@ -165,4 +165,12 @@ public class RosterUnitStatObjectifService {
                 .defense(r.defense())
                 .build();
     }
+    
+    @Transactional
+    public void nettoyerJoueursInactifs(List<String> joueursActifs) {
+        if (!joueursActifs.isEmpty()) {
+            rosterUnitStatObjectifRepository.deleteByPlayerIdNotIn(joueursActifs);
+            rosterUnitStatObjectifRepository.flush();
+        }
+    }
 }

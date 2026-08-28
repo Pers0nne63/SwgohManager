@@ -138,4 +138,12 @@ public class OmicronPlanProgressService {
                         (v1, v2) -> v1
                 ));
     }
+    
+    @Transactional
+    public void nettoyerJoueursInactifs(List<String> joueursActifs) {
+        if (!joueursActifs.isEmpty()) {
+            playerPdfOmicronActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
+            playerPdfOmicronActuelRepository.flush(); // Force l'exécution immédiate
+        }
+    }
 }

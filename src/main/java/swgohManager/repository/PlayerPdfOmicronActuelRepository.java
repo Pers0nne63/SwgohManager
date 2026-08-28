@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface PlayerPdfOmicronActuelRepository extends JpaRepository<PlayerPdfOmicronActuel, Long> {
     Optional<PlayerPdfOmicronActuel> findByPlayerId(String playerId);
     List<PlayerPdfOmicronActuel> findByPlayerIdIn(List<String> playerIds);
+    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
 }

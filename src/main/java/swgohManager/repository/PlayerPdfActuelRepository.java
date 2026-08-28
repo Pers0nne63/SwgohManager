@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface PlayerPdfActuelRepository extends JpaRepository<PlayerPdfActuel, Long> {
     Optional<PlayerPdfActuel> findByPlayerId(String playerId);
     List<PlayerPdfActuel> findByPlayerIdIn(List<String> playerIds);
+    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
 }

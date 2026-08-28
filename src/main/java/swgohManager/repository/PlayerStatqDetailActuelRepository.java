@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface PlayerStatqDetailActuelRepository extends JpaRepository<PlayerStatqDetailActuel, Long> {
     List<PlayerStatqDetailActuel> findByPlayerId(String playerId);
+    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
 }

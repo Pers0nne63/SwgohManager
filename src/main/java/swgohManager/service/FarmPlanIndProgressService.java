@@ -149,4 +149,11 @@ public class FarmPlanIndProgressService {
         double pourcentage = 100.0 * atteint / plans.size();
         return new PlayerFarmIndProgress(atteint, plans.size(), pourcentage, details);
     }
+    
+    @Transactional
+    public void nettoyerJoueursInactifs(List<String> joueursActifs) {
+        if (!joueursActifs.isEmpty()) {
+        	planFarmIndRepository.deleteByPlayerIdNotIn(joueursActifs);
+        }
+    }
 }

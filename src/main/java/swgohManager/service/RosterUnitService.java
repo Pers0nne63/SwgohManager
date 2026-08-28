@@ -21,6 +21,8 @@ import swgohManager.repository.RosterUnitModActuelRepository;
 import swgohManager.repository.RosterUnitSkillActuelRepository;
 import swgohManager.repository.SkillDefinitionRepository;
 import swgohManager.util.SkillIdParser;
+import swgohManager.repository.JoueurRepository;
+import swgohManager.model.Joueur;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +39,7 @@ public class RosterUnitService {
     private final FarmPlanProgressService farmPlanProgressService;
     private final OmicronPlanProgressService omicronPlanProgressService;
     private final OmicronModeService omicronModeService;
+    private final JoueurRepository joueurRepository;
 
     @Transactional
     public String enregistrerRoster(PlayerResponse response, Long idSync) {
@@ -199,5 +202,28 @@ public class RosterUnitService {
         int nombreLignesCopiees = rosterUnitHistoriqueRepository.copierRosterActuelVersHistorique();
         log.info("Historisation terminée : {} unité(s) ajoutée(s) à l'historique.", nombreLignesCopiees);
         return nombreLignesCopiees;
+    }
+    
+    @Transactional
+    public void nettoyerJoueursInactifs(List<String> joueursActifs) {
+        log.info("Début du nettoyage des joueurs inactifs dans les tables '_actuel'...");
+
+        // Sécurité
+        if (joueursActifs == null || joueursActifs.isEmpty()) {
+            log.warn("Aucun joueur actif fourni, annulation du nettoyage par sécurité.");
+            return;
+        }
+
+        // Supprimer les lignes orphelines
+        rosterUnitActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
+        rosterUnitSkillActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
+        rosterUnitModActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
+        
+        // FORCER Hibernate à envoyer les DELETE
+        rosterUnitActuelRepository.flush();
+        rosterUnitSkillActuelRepository.flush();
+        rosterUnitModActuelRepository.flush();
+
+        log.info("Nettoyage des joueurs inactifs terminé.");
     }
 }

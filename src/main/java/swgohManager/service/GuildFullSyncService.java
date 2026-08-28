@@ -1,18 +1,19 @@
 package swgohManager.service;
 
-import swgohManager.model.Joueur;
-import swgohManager.model.SyncExecution;
-import swgohManager.repository.JoueurRepository;
-import swgohManager.repository.SyncExecutionRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import swgohManager.model.Joueur;
+import swgohManager.model.SyncExecution;
+import swgohManager.repository.JoueurRepository;
+import swgohManager.repository.SyncExecutionRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,13 @@ public class GuildFullSyncService {
     private final JoueurRepository joueurRepository;
     private final PlayerSyncService playerSyncService;
     private final SyncExecutionRepository syncExecutionRepository;
+
+    // Services à nettoyer après la synchronisation
+    private final RosterUnitService rosterUnitService;
+    private final FarmPlanProgressService farmPlanProgressService;
+    private final OmicronPlanProgressService omicronPlanProgressService;
+    private final PlayerModQService playerModQService;
+    private final FarmPlanIndProgressService farmPlanIndProgressService;
 
     @Qualifier("playerSyncExecutor")
     private final ExecutorService playerSyncExecutor;
@@ -51,6 +59,28 @@ public class GuildFullSyncService {
             } else {
                 echecs.add(outcome.playerId());
             }
+        }
+
+        // Nettoyage global des données des anciens joueurs
+        log.info("Lancement du nettoyage des tables '_actuel' pour les joueurs inactifs...");
+        try {
+            List<String> joueursActifs = joueursPresents.stream()
+                    .map(Joueur::getPlayerId)
+                    .toList();
+
+            if (!joueursActifs.isEmpty()) {
+                farmPlanIndProgressService.nettoyerJoueursInactifs(joueursActifs);
+                farmPlanProgressService.nettoyerJoueursInactifs(joueursActifs);
+                omicronPlanProgressService.nettoyerJoueursInactifs(joueursActifs);
+                playerModQService.nettoyerJoueursInactifs(joueursActifs);
+                rosterUnitService.nettoyerJoueursInactifs(joueursActifs);
+                
+                log.info("Nettoyage des joueurs inactifs terminé avec succès.");
+            } else {
+                log.warn("Aucun joueur actif trouvé, nettoyage annulé par sécurité.");
+            }
+        } catch (Exception e) {
+            log.error("Erreur lors du nettoyage des joueurs inactifs : {}", e.getMessage(), e);
         }
 
         String resume = String.format("%d joueur(s) synchronisé(s) avec succès, %d échec(s) (idSync=%d)",

@@ -13,6 +13,7 @@ import swgohManager.model.RosterUnitSkillActuel;
 public interface RosterUnitSkillActuelRepository extends JpaRepository<RosterUnitSkillActuel, Long> {
     List<RosterUnitSkillActuel> findByPlayerId(String playerId);
     void deleteByPlayerId(String playerId);
+    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
     
     @Query(value = """
     	    SELECT DISTINCT ud.base_id AS baseId, rus.id_skill AS idSkill, rus.type AS type, rus.numero AS numero, ud.libelle AS libelle

@@ -7,4 +7,5 @@ import java.util.List;
 public interface RosterUnitStatActuelRepository extends JpaRepository<RosterUnitStatActuel, Long> {
     List<RosterUnitStatActuel> findByPlayerId(String playerId);
     void deleteByPlayerId(String playerId);
+    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
 }

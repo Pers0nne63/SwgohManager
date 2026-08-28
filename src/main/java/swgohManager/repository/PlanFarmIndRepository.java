@@ -8,6 +8,6 @@ import java.util.List;
 @Repository
 public interface PlanFarmIndRepository extends JpaRepository<PlanFarmInd, Long> {
     List<PlanFarmInd> findByPlayerId(String playerId);
-    
+    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
     boolean existsByPlayerId(String playerId);
 }

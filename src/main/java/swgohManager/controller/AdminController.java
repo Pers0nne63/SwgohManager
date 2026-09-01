@@ -13,6 +13,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import swgohManager.service.AbilityDefinitionService;
+import swgohManager.service.BattleTargetingRuleService;
+import swgohManager.service.CategoryDefinitionService;
 import swgohManager.service.DatacronTemplateService;
 // Service imports...
 import swgohManager.service.GacRosterSyncService;
@@ -48,6 +50,8 @@ public class AdminController {
     private final StatqCalculService statqCalculService;
     private final GacRosterSyncService gacRosterSyncService;
     private final LeaderboardModMoyService leaderboardModMoyService;
+    private final CategoryDefinitionService categoryDefinitionService;
+    private final BattleTargetingRuleService battleTargetingRuleService;
     
     // Inject custom Spring TaskExecutor
     private final TaskExecutor syncTaskExecutor;
@@ -75,20 +79,26 @@ public class AdminController {
                 progressService.notifyProgress("gamedata", 20, "Compétences", "Synchronisation des compétences...");
                 skillDefinitionService.synchroniserDefinitions();
 
-                progressService.notifyProgress("gamedata", 40, "Stat Progression", "Synchronisation de la progression...");
+                progressService.notifyProgress("gamedata", 30, "Stat Progression", "Synchronisation de la progression...");
                 statProgressionService.synchroniserStatProgression();
 
-                progressService.notifyProgress("gamedata", 60, "Unités", "Synchronisation des unités...");
+                progressService.notifyProgress("gamedata", 40, "Unités", "Synchronisation des unités...");
                 unitDefinitionService.synchroniserUnites();
 
-                progressService.notifyProgress("gamedata", 75, "Mastery Stats", "Seeding maîtrise...");
+                progressService.notifyProgress("gamedata", 50, "Mastery Stats", "Seeding maîtrise...");
                 masteryStatService.seedDonnees();
 
-                progressService.notifyProgress("gamedata", 80, "Stat Definitions", "Seeding définitions...");
+                progressService.notifyProgress("gamedata", 60, "Stat Definitions", "Seeding définitions...");
                 statDefinitionService.seedDonnees();
 
-                progressService.notifyProgress("gamedata", 85, "Datacrons", "Synchronisation des Datacrons...");
+                progressService.notifyProgress("gamedata", 70, "Datacrons", "Synchronisation des Datacrons...");
                 datacronTemplateService.synchroniserDatacrons();
+                
+                progressService.notifyProgress("gamedata", 80, "Catégories", "Synchronisation des catégories...");
+                categoryDefinitionService.synchroniserCategories();
+
+                progressService.notifyProgress("gamedata", 90, "Règles de ciblage", "Synchronisation des règles de ciblage...");
+                battleTargetingRuleService.synchroniserBattleTargetingRules();
 
                 progressService.notifyProgress("gamedata", 95, "Abilities", "Synchronisation des Capacités...");
                 abilityDefinitionService.synchroniserAbilities();

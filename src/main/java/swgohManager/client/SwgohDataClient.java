@@ -61,6 +61,14 @@ public class SwgohDataClient {
     public List<swgohManager.client.dto.SkillRaw> streamSkillSegment(String version) {
         return streamSegment(version, 1, "skill", swgohManager.client.dto.SkillRaw.class);
     }
+    
+    public List<swgohManager.client.dto.CategoryRaw> getCategories(String version) {
+        return streamSegment(version, 1, "category", swgohManager.client.dto.CategoryRaw.class);
+    }
+
+    public List<swgohManager.client.dto.BattleTargetingRuleRaw> getBattleTargetingRules(String version) {
+        return streamSegment(version, 1, "battleTargetingRule", swgohManager.client.dto.BattleTargetingRuleRaw.class);
+    }
 
     public List<swgohManager.client.dto.StatProgressionRaw> streamStatProgressionSegment(String version) {
         return streamSegment(version, 2, "statProgression", swgohManager.client.dto.StatProgressionRaw.class);
@@ -77,6 +85,7 @@ public class SwgohDataClient {
     public List<swgohManager.client.dto.DatacronAffixTemplateSetRaw> getDatacronAffixes(String version) {
         return streamSegment(version, 4, "datacronAffixTemplateSet", swgohManager.client.dto.DatacronAffixTemplateSetRaw.class);
     }
+    
 
     /**
      * Récupère un segment de /data et n'extrait QUE le champ demandé, en streaming,

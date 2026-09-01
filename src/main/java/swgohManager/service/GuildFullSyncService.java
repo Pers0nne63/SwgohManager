@@ -31,6 +31,8 @@ public class GuildFullSyncService {
     private final OmicronPlanProgressService omicronPlanProgressService;
     private final PlayerModQService playerModQService;
     private final FarmPlanIndProgressService farmPlanIndProgressService;
+    private final PlayerDatacronService playerDatacronService;
+    private final PlayerEraUnitStatusService playerEraUnitStatusService;
 
     @Qualifier("playerSyncExecutor")
     private final ExecutorService playerSyncExecutor;
@@ -74,6 +76,8 @@ public class GuildFullSyncService {
                 omicronPlanProgressService.nettoyerJoueursInactifs(joueursActifs);
                 playerModQService.nettoyerJoueursInactifs(joueursActifs);
                 rosterUnitService.nettoyerJoueursInactifs(joueursActifs);
+                playerDatacronService.nettoyerJoueursInactifs(joueursActifs);
+                playerEraUnitStatusService.nettoyerJoueursInactifs(joueursActifs);
                 
                 log.info("Nettoyage des joueurs inactifs terminé avec succès.");
             } else {

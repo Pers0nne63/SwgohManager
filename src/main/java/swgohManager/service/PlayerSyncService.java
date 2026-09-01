@@ -1,14 +1,15 @@
 package swgohManager.service;
 
+import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import swgohManager.client.SwgohApiClient;
 import swgohManager.client.dto.PlayerResponse;
 import swgohManager.model.PlayerRatingHistorique;
 import swgohManager.model.SyncExecution;
 import swgohManager.repository.PlanFarmIndRepository;
 import swgohManager.repository.SyncExecutionRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,10 @@ public class PlayerSyncService {
     // Dépendances injectées pour le plan individuel
     private final PlanFarmIndRepository planFarmIndRepository;
     private final FarmPlanIndProgressService farmPlanIndProgressService;
+    
+    // Nouvelles dépendances injectées
+    private final PlayerDatacronService playerDatacronService;
+    private final PlayerEraUnitStatusService playerEraUnitStatusService;
 
     /** Appel isolé (un seul joueur) : crée son propre idSync. */
     public PlayerSyncResult synchroniserJoueur(PlayerIdentifier identifier) {
@@ -37,6 +42,10 @@ public class PlayerSyncService {
 
         PlayerRatingHistorique rating = playerRatingService.enregistrerRating(response);
         String resultatRoster = rosterUnitService.enregistrerRoster(response, idSync);
+
+        // Enregistrement des datacrons et des statuts d'ère
+        playerDatacronService.enregistrer(response.playerId(), response);
+        playerEraUnitStatusService.enregistrer(response.playerId(), response);
 
         // Calcul et enregistrement de la progression si le joueur a au moins un objectif
         if (!planFarmIndRepository.findByPlayerId(response.playerId()).isEmpty()) {

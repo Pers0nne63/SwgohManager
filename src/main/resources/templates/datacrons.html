@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${joueur != null ? joueur.playerName + ' - Datacrons' : 'Datacrons'}">Datacrons</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } } }
+        }
+    </script>
+
+    <style>
+        .tab-btn.active {
+            background-color: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .text-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.35rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+
+    <div th:replace="~{fragments/fragments :: navbar}"></div>
+
+    <main class="flex-grow container mx-auto px-4 lg:px-8 py-8 max-w-7xl">
+
+        <!-- EN-TÊTE -->
+        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+            <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+                <i class="bi bi-hexagon text-amber-400"></i>
+                <span>Datacrons</span>
+                <small th:if="${joueur != null}" class="text-lg font-normal text-slate-400" th:text="'- ' + ${joueur.playerName}"></small>
+            </h1>
+            <a th:if="${joueur != null}" th:href="@{/joueur/{id}(id=${joueur.playerId})}"
+               class="inline-flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl font-semibold text-sm transition-all duration-200">
+                <i class="bi bi-arrow-left"></i>
+                <span>Retour au profil</span>
+            </a>
+        </div>
+
+        <!-- Aucun datacron -->
+        <div th:if="${#lists.isEmpty(sets)}" class="text-center py-20 text-slate-500">
+            <i class="bi bi-inbox text-4xl mb-3 block"></i>
+            Aucun datacron trouvé pour ce joueur.
+        </div>
+
+        <div th:if="${!#lists.isEmpty(sets)}">
+
+            <!-- ONGLETS -->
+            <div class="flex flex-wrap gap-2 mb-6" id="tabButtons">
+                <button th:each="setTab, iter : ${sets}"
+                        type="button"
+                        class="tab-btn px-4 py-2 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 text-sm font-semibold transition-colors"
+                        th:classappend="${iter.first} ? 'active' : ''"
+                        th:attr="onclick='showTab(' + ${iter.index} + ')'"
+                        th:text="'SET ' + ${setTab.setId}">
+                </button>
+            </div>
+
+            <!-- PANNEAUX -->
+            <div th:each="setTab, iter : ${sets}"
+                 class="tab-panel"
+                 th:classappend="${iter.first} ? 'active' : ''"
+                 th:id="'panel-' + ${iter.index}">
+
+                <!-- ===================== LOT FOCUS DTC ===================== -->
+                <h2 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="bi bi-star-fill"></i> Focus DTC
+                </h2>
+
+                <div th:if="${#lists.isEmpty(setTab.focusDatacrons)}" class="text-slate-500 text-sm mb-8">
+                    Pas de FDTC
+                </div>
+
+                <div th:if="${!#lists.isEmpty(setTab.focusDatacrons)}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+                    <div th:each="card : ${setTab.focusDatacrons}"
+                         class="bg-slate-800 border border-amber-500/30 rounded-2xl p-5 shadow-xl flex flex-col">
+
+                        <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+                            <i class="bi bi-star-fill text-amber-400"></i>
+                            <span th:text="${card.titre}"></span>
+                        </h3>
+
+                        <!-- Stats brutes (ordre = 0) -->
+                        <div th:if="${!#lists.isEmpty(card.statsBrutes)}" class="flex flex-wrap gap-2 mb-4">
+                            <span th:each="stat : ${card.statsBrutes}"
+                                  class="inline-flex items-center gap-1 bg-slate-850 border border-slate-700 rounded-lg px-2.5 py-1 text-xs max-w-[200px]">
+                                <span class="text-slate-400 truncate" th:text="${stat.description}" th:title="${stat.description}"></span>
+                                <b class="text-emerald-400 font-mono whitespace-nowrap" th:text="'+' + ${#numbers.formatDecimal(stat.value, 1, 2)}"></b>
+                            </span>
+                        </div>
+
+                        <!-- Tableau des paliers 3/6/9/12/15 -->
+                        <table class="w-full text-xs text-left table-fixed">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-slate-700">
+                                    <th class="py-1.5 pr-2 font-semibold w-10">Tier</th>
+                                    <th class="py-1.5 font-semibold">Affixe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="tier : ${card.tiers}" class="border-b border-slate-700/60">
+                                    <td class="py-2 pr-2 align-top">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/10 text-amber-400 font-bold"
+                                              th:text="${tier.ordre}"></span>
+                                    </td>
+                                    <td class="py-2 align-top">
+                                        <div class="text-clamp-2 text-slate-300"
+                                             th:text="${tier.description}"
+                                             th:title="${tier.description}"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== LOT DTC (non-focus) ===================== -->
+				<h2 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="bi bi-star-fill"></i> DTC
+                </h2>
+
+                <div th:if="${#lists.isEmpty(setTab.autresDatacrons)}" class="text-slate-500 text-sm">
+                    Aucun DTC.
+                </div>
+
+                <div th:if="${!#lists.isEmpty(setTab.autresDatacrons)}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div th:each="card : ${setTab.autresDatacrons}"
+                         class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col">
+
+                        <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+                            <i class="bi bi-gem text-purple-400"></i>
+                            <span th:text="${card.titre}"></span>
+                        </h3>
+
+                        <!-- Stats brutes (ordre = 0) -->
+                        <div th:if="${!#lists.isEmpty(card.statsBrutes)}" class="flex flex-wrap gap-2 mb-4">
+                            <span th:each="stat : ${card.statsBrutes}"
+                                  class="inline-flex items-center gap-1 bg-slate-850 border border-slate-700 rounded-lg px-2.5 py-1 text-xs max-w-[200px]">
+                                <span class="text-slate-400 truncate" th:text="${stat.description}" th:title="${stat.description}"></span>
+                                <b class="text-emerald-400 font-mono whitespace-nowrap" th:text="'+' + ${#numbers.formatDecimal(stat.value, 1, 2)}"></b>
+                            </span>
+                        </div>
+
+                        <!-- Tableau des paliers 3/6/9/12/15 -->
+                        <table class="w-full text-xs text-left table-fixed">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-slate-700">
+                                    <th class="py-1.5 pr-2 font-semibold w-10">Tier</th>
+                                    <th class="py-1.5 font-semibold">Affixe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="tier : ${card.tiers}" class="border-b border-slate-700/60">
+                                    <td class="py-2 pr-2 align-top">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/10 text-amber-400 font-bold"
+                                              th:text="${tier.ordre}"></span>
+                                    </td>
+                                    <td class="py-2 align-top">
+                                        <div class="text-clamp-2 text-slate-300"
+                                             th:text="${tier.description}"
+                                             th:title="${tier.description}"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function showTab(index) {
+            document.querySelectorAll('.tab-panel').forEach((panel, i) => {
+                panel.classList.toggle('active', i === index);
+            });
+            document.querySelectorAll('#tabButtons .tab-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+    </script>
+
+</body>
+</html>

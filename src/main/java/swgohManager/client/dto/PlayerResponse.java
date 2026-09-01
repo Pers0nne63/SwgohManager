@@ -1,7 +1,8 @@
 package swgohManager.client.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record PlayerResponse(
@@ -9,7 +10,9 @@ public record PlayerResponse(
         String allyCode,
         String name,
         PlayerRating playerRating,
-        List<RosterUnit> rosterUnit
+        List<RosterUnit> rosterUnit,
+        List<DatacronRaw> datacron,
+        List<EraUnitStatusRaw> eraUnitStatus
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record PlayerRating(PlayerSkillRating playerSkillRating, PlayerRankStatus playerRankStatus) {}
@@ -55,4 +58,21 @@ public record PlayerResponse(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Stat(Integer unitStatId, String unscaledDecimalValue) {}
+    
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DatacronRaw(
+            String id, Integer setId, String templateId, Boolean locked,
+            Integer rerollIndex, Integer rerollCount, Boolean focused,
+            List<AffixRaw> affix
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record AffixRaw(
+            List<String> tag, String targetRule, String abilityId,
+            Integer statType, String statValue,
+            Integer requiredUnitTier, Integer requiredRelicTier, String scopeIcon
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record EraUnitStatusRaw(String unitBaseId, Integer eraLevel) {}
 }

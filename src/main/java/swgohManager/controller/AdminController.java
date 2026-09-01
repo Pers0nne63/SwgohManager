@@ -12,6 +12,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import swgohManager.service.AbilityDefinitionService;
+import swgohManager.service.DatacronTemplateService;
+// Service imports...
 import swgohManager.service.GacRosterSyncService;
 import swgohManager.service.GuildFullSyncService;
 import swgohManager.service.LeaderboardModMoyService;
@@ -24,7 +27,6 @@ import swgohManager.service.StatProgressionService;
 import swgohManager.service.StatqCalculService;
 import swgohManager.service.SyncProgressService;
 import swgohManager.service.UnitDefinitionService;
-// Service imports...
 
 @Controller
 @RequestMapping("/admin")
@@ -37,6 +39,8 @@ public class AdminController {
     private final SkillDefinitionService skillDefinitionService;
     private final StatProgressionService statProgressionService;
     private final UnitDefinitionService unitDefinitionService;
+    private final DatacronTemplateService datacronTemplateService;
+    private final AbilityDefinitionService abilityDefinitionService;
     private final MasteryStatService masteryStatService;
     private final StatDefinitionService statDefinitionService;
     private final GuildFullSyncService guildFullSyncService;
@@ -64,23 +68,30 @@ public class AdminController {
     public ResponseEntity<String> syncGameData() {
         syncTaskExecutor.execute(() -> {
             try {
-                progressService.notifyProgress("gamedata", 10, "Localisations", "Rafraîchissement des localisations...");
+                //Localization appelé en 1er pour mettre les traductions en cache.
+            	progressService.notifyProgress("gamedata", 10, "Localisations", "Rafraîchissement des localisations...");
                 localizationService.rafraichir();
 
-                progressService.notifyProgress("gamedata", 30, "Compétences", "Synchronisation des compétences...");
+                progressService.notifyProgress("gamedata", 20, "Compétences", "Synchronisation des compétences...");
                 skillDefinitionService.synchroniserDefinitions();
 
-                progressService.notifyProgress("gamedata", 50, "Stat Progression", "Synchronisation de la progression...");
+                progressService.notifyProgress("gamedata", 40, "Stat Progression", "Synchronisation de la progression...");
                 statProgressionService.synchroniserStatProgression();
 
-                progressService.notifyProgress("gamedata", 70, "Unités", "Synchronisation des unités...");
+                progressService.notifyProgress("gamedata", 60, "Unités", "Synchronisation des unités...");
                 unitDefinitionService.synchroniserUnites();
 
-                progressService.notifyProgress("gamedata", 85, "Mastery Stats", "Seeding maîtrise...");
+                progressService.notifyProgress("gamedata", 75, "Mastery Stats", "Seeding maîtrise...");
                 masteryStatService.seedDonnees();
 
-                progressService.notifyProgress("gamedata", 95, "Stat Definitions", "Seeding définitions...");
+                progressService.notifyProgress("gamedata", 80, "Stat Definitions", "Seeding définitions...");
                 statDefinitionService.seedDonnees();
+
+                progressService.notifyProgress("gamedata", 85, "Datacrons", "Synchronisation des Datacrons...");
+                datacronTemplateService.synchroniserDatacrons();
+
+                progressService.notifyProgress("gamedata", 95, "Abilities", "Synchronisation des Capacités...");
+                abilityDefinitionService.synchroniserAbilities();
 
                 progressService.notifyProgress("gamedata", 100, "Terminé", "Toutes les Game Datas ont été synchronisées !");
             } catch (Exception e) {

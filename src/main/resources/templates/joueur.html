@@ -184,6 +184,11 @@
 			    <i class="bi bi-pencil-square"></i>
 			    <span>Plan Individuel</span>
 			</a>
+			<a th:href="@{/joueur/{id}/datacrons(id=${vm.joueur.playerId})}"
+   				class="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-slate-950 border border-indigo-500/30 rounded-xl font-semibold text-sm transition-all duration-200 shadow-md">
+    				<i class="bi bi-hexagon"></i>
+    				<span>Datacrons</span>
+			</a>
         </div>
 
         <!-- BLOCS D'INFORMATIONS PRINCIPALES (GRID TAILWIND) -->

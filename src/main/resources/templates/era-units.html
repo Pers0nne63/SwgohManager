@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Guilde - Unités d'Ère</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body class="bg-slate-900 text-slate-300 font-sans p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- En-tête -->
+        <div class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center gap-3">
+                    <i class="bi bi-stars text-amber-400"></i>
+                    Tableau des Unités d'Ère
+                </h1>
+                <p class="text-slate-400 mt-2">Vue d'ensemble des niveaux d'ère et d'étoiles de tous les membres.</p>
+            </div>
+            <a th:href="@{/guilde}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-600 transition-colors">
+                <i class="bi bi-arrow-left me-2"></i>Retour
+            </a>
+        </div>
+
+        <!-- Tableau -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-x-auto">
+            <table id="eraUnitsTable" class="w-full text-sm text-left">
+                <thead class="text-xs text-slate-400 uppercase bg-slate-900/50 border-b border-slate-700 select-none">
+                    <tr>
+                        <!-- Tri sur le Joueur -->
+                        <th scope="col" class="px-6 py-4 font-semibold w-64 cursor-pointer hover:text-amber-400 transition-colors"
+                            onclick="sortTable(0)">
+                            Joueur <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+                        </th>
+                        
+                        <!-- Tri dynamique sur chaque Unité d'ère -->
+                        <th scope="col" class="px-6 py-4 font-semibold text-center cursor-pointer hover:text-amber-400 transition-colors" 
+                            th:each="col : ${columns}" 
+                            onclick="sortTable(this.cellIndex)">
+                            <span th:text="${col.libelle}">Unité</span>
+                            <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/50">
+                    <tr th:each="row : ${rows}" class="hover:bg-slate-700/30 transition-colors">
+                        <!-- Cellule Joueur -->
+                        <td class="px-6 py-4 font-medium whitespace-nowrap" th:data-sort="${row.playerName}">
+						    <a th:href="@{/joueur/{id}(id=${row.playerId})}" 
+						       class="text-amber-400 hover:text-amber-300 hover:underline transition-colors" 
+						       th:text="${row.playerName}">
+						        Joueur
+						    </a>
+						</td>
+                        
+                        <!-- Cellules des Unités -->
+                        <td class="px-6 py-4 text-center" 
+                            th:each="col : ${columns}"
+                            th:data-sort="${row.unitData.get(col.baseId) != null ? row.unitData.get(col.baseId) : ''}">
+                            <span th:if="${row.unitData.get(col.baseId) != null}" 
+                                  class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-900 border border-slate-600 text-slate-200"
+                                  th:text="${row.unitData.get(col.baseId)}">
+                                7★ - N3
+                            </span>
+                            <span th:unless="${row.unitData.get(col.baseId) != null}" class="text-slate-600">
+                                -
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div th:if="${rows == null or rows.isEmpty()}" class="p-8 text-center text-slate-400">
+                <i class="bi bi-inbox text-4xl mb-3 block"></i>
+                <p>Aucune unité d'ère trouvée pour la guilde.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de tri -->
+    <script>
+        let currentSortColumn = -1;
+        let currentSortAsc = true;
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById("eraUnitsTable");
+            if (!table) return;
+
+            const tbody = table.querySelector("tbody");
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+
+            if (currentSortColumn === columnIndex) {
+                currentSortAsc = !currentSortAsc;
+            } else {
+                currentSortColumn = columnIndex;
+                // Ordre alphabétique croissant pour le joueur (0), mais décroissant par défaut pour les unités (les plus fortes en haut)
+                currentSortAsc = (columnIndex === 0);
+            }
+
+            rows.sort((a, b) => {
+                const cellA = a.children[columnIndex];
+                const cellB = b.children[columnIndex];
+
+                let valA = cellA.getAttribute("data-sort") || "";
+                let valB = cellB.getAttribute("data-sort") || "";
+
+                // Placer les cellules vides ("-") toujours à la fin
+                if (valA === "" && valB !== "") return 1;
+                if (valA !== "" && valB === "") return -1;
+
+                // Comparaison alphanumérique (gère proprement "7★ - N3" vs "5★ - N1" ou "N10")
+                return currentSortAsc 
+                    ? valA.localeCompare(valB, 'fr', { numeric: true, sensitivity: 'base' })
+                    : valB.localeCompare(valA, 'fr', { numeric: true, sensitivity: 'base' });
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // Tri par défaut au chargement : Nom des joueurs de A à Z
+        document.addEventListener("DOMContentLoaded", () => {
+            sortTable(0);
+        });
+    </script>
+</body>
+</html>

@@ -1,17 +1,5 @@
 package swgohManager.client;
 
-import swgohManager.client.dto.UnitRaw;
-import swgohManager.client.dto.RelicTierDefinitionRaw;
-import swgohManager.client.dto.UnitSegmentData;
-
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -21,6 +9,19 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import swgohManager.client.dto.RelicTierDefinitionRaw;
+import swgohManager.client.dto.UnitRaw;
+import swgohManager.client.dto.UnitSegmentData;
 
 @Component
 @RequiredArgsConstructor
@@ -64,6 +65,18 @@ public class SwgohDataClient {
     public List<swgohManager.client.dto.StatProgressionRaw> streamStatProgressionSegment(String version) {
         return streamSegment(version, 2, "statProgression", swgohManager.client.dto.StatProgressionRaw.class);
     }
+    
+    public List<swgohManager.client.dto.AbilityRaw> getAbilities(String version) {
+        return streamSegment(version, 2, "ability", swgohManager.client.dto.AbilityRaw.class);
+    }
+    
+    public List<swgohManager.client.dto.DatacronTemplateRaw> getDatacronTemplates(String version) {
+        return streamSegment(version, 4, "datacronTemplate", swgohManager.client.dto.DatacronTemplateRaw.class);
+    }
+
+    public List<swgohManager.client.dto.DatacronAffixTemplateSetRaw> getDatacronAffixes(String version) {
+        return streamSegment(version, 4, "datacronAffixTemplateSet", swgohManager.client.dto.DatacronAffixTemplateSetRaw.class);
+    }
 
     /**
      * Récupère un segment de /data et n'extrait QUE le champ demandé, en streaming,
@@ -93,6 +106,8 @@ public class SwgohDataClient {
             throw new SwgohDataException("Erreur lors du streaming du segment " + segment + " (" + champ + ")", e);
         }
     }
+    
+
 
     private <T> List<T> extraireListe(InputStream in, String champRecherche, Class<T> type) throws IOException {
         List<T> resultat = new ArrayList<>();

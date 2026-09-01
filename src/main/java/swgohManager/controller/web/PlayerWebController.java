@@ -16,6 +16,7 @@ import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.RaidHistoriqueRepository;
 import swgohManager.repository.TbScoreJoueurRepository;
 import swgohManager.service.OmicronPlanProgressService;
+import swgohManager.service.PlayerDatacronViewService;
 import swgohManager.service.PlayerViewService;
 import swgohManager.service.TbStatsService;
 
@@ -29,6 +30,8 @@ public class PlayerWebController {
     private final RaidHistoriqueRepository raidHistoriqueRepository;
     private final JoueurRepository joueurRepository;
     private final OmicronPlanProgressService omicronPlanProgressService;
+    private final PlayerDatacronViewService playerDatacronViewService; 
+
     
     @GetMapping("/joueur/{playerId}")
     public String joueur(@PathVariable String playerId, Model model) {
@@ -64,5 +67,16 @@ public class PlayerWebController {
                 .sorted(Comparator.comparing(Joueur::getPlayerName, String.CASE_INSENSITIVE_ORDER))
                 .toList());
         return "joueur-select";
+    }
+    
+    @GetMapping("/joueur/{playerId}/datacrons")
+    public String datacrons(@PathVariable String playerId, Model model) {
+        Joueur joueur = joueurRepository.findByPlayerId(playerId).orElse(null);
+        model.addAttribute("joueur", joueur);
+        model.addAttribute("joueurs", joueurRepository.findAllByPresentInGuildTrue().stream()
+                .sorted(Comparator.comparing(Joueur::getPlayerName, String.CASE_INSENSITIVE_ORDER))
+                .toList());
+        model.addAttribute("sets", playerDatacronViewService.construire(playerId));
+        return "datacrons";
     }
 }

@@ -1,8 +1,9 @@
 package swgohManager.service;
 
+import org.springframework.stereotype.Service;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +16,7 @@ public class GameDataSyncService {
     private final UnitDefinitionService unitDefinitionService;
     private final MasteryStatService masteryStatService;
     private final StatDefinitionService statDefinitionService;
+    private final DatacronTemplateService datacronTemplateService;
 
     public String synchroniserToutesLesDonnees() {
         String resultatLoc = localizationService.rafraichir();
@@ -34,6 +36,9 @@ public class GameDataSyncService {
 
         String resultatStatDefinition = statDefinitionService.seedDonnees();
         resultat += " | " + resultatStatDefinition;
+        
+        String resultatDatacrons = datacronTemplateService.synchroniserDatacrons();
+        resultat += " | Datacrons : " + resultatDatacrons;
 
         log.info(resultat);
         return resultat;

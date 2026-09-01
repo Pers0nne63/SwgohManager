@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan de Farm Datacron</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } } }
+        }
+    </script>
+
+    <style>
+        .tab-btn.active {
+            background-color: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            transition: background-color 0.15s;
+        }
+        .checkbox-row:hover { background-color: rgba(255,255,255,0.03); }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+
+    <div th:replace="~{fragments/fragments :: navbar}"></div>
+
+    <main class="flex-grow container mx-auto px-4 lg:px-8 py-8 max-w-7xl">
+
+        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+            <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+                <i class="bi bi-bullseye text-amber-400"></i>
+                <span>Plan de Farm Datacron</span>
+            </h1>
+        </div>
+
+        <div th:if="${#lists.isEmpty(onglets)}" class="text-center py-20 text-slate-500">
+            <i class="bi bi-inbox text-4xl mb-3 block"></i>
+            Aucun set de datacron disponible.
+        </div>
+
+        <div th:if="${!#lists.isEmpty(onglets)}">
+
+            <!-- ONGLETS -->
+            <div class="flex flex-wrap gap-2 mb-6" id="tabButtons">
+                <button th:each="onglet, iter : ${onglets}"
+                        type="button"
+                        class="tab-btn px-4 py-2 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 text-sm font-semibold transition-colors"
+                        th:classappend="${iter.first} ? 'active' : ''"
+                        th:attr="onclick='showTab(' + ${iter.index} + ')'"
+                        th:text="'SET ' + ${onglet.setId}">
+                </button>
+            </div>
+
+            <!-- PANNEAUX -->
+            <div th:each="onglet, iter : ${onglets}"
+                 class="tab-panel"
+                 th:classappend="${iter.first} ? 'active' : ''"
+                 th:id="'panel-' + ${iter.index}">
+
+                <!-- ===================== FORMULAIRE DE CRÉATION ===================== -->
+                <div th:if="${onglet.options != null}" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8">
+                    <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="bi bi-plus-circle text-emerald-400"></i>
+                        Nouveau datacron cible — SET <span th:text="${onglet.setId}"></span>
+                    </h2>
+
+                    <form th:action="@{/web/plan-farm-datacron/creer}" method="post" class="space-y-6">
+                        <input type="hidden" name="setId" th:value="${onglet.setId}">
+
+                        <!-- Mécaniques -->
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mécaniques (tiers 3/6/9/12/15)</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-64 overflow-y-auto bg-slate-850 border border-slate-700/60 rounded-xl p-2">
+                                <label th:each="mec : ${onglet.options.mecaniques}" class="checkbox-row cursor-pointer">
+                                    <input type="checkbox" name="mecaniques" th:value="${mec.tier} + '|' + ${mec.abilityId}"
+                                           class="accent-amber-500 shrink-0">
+                                    <span class="text-xs">
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px] mr-1"
+                                              th:text="${mec.tier}"></span>
+                                        <span class="text-slate-300" th:text="${mec.descriptionCourte}" th:title="${mec.descriptionComplete}"></span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Stats -->
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Statistiques cibles</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-64 overflow-y-auto bg-slate-850 border border-slate-700/60 rounded-xl p-2">
+                                <div th:each="stat : ${onglet.options.stats}" class="checkbox-row">
+                                    <input type="checkbox" name="statsSelectionnees" th:value="${stat.statType}"
+                                           class="accent-amber-500 shrink-0">
+                                    <span class="text-xs text-slate-300 flex-1" th:text="${stat.statLibelle}"></span>
+                                    <input type="number" step="0.01"
+                                           th:name="'statValue_' + ${stat.statType}"
+                                           placeholder="Valeur"
+                                           class="w-24 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/30 rounded-xl font-semibold text-sm transition-all duration-200">
+                            <i class="bi bi-save"></i>
+                            <span>Enregistrer le datacron cible</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div th:if="${onglet.options == null}" class="text-slate-500 text-sm mb-8">
+                    Ce set n'est plus disponible pour la création (hors des 4 sets les plus récents).
+                </div>
+
+                <!-- ===================== CARDS ENREGISTRÉES ===================== -->
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="bi bi-collection"></i> Datacrons cibles enregistrés
+                    </h2>
+                    <form th:if="${!#lists.isEmpty(onglet.cartes.datacrons)}"
+                          th:action="@{/web/plan-farm-datacron/set/{setId}/supprimer(setId=${onglet.setId})}"
+                          method="post"
+                          onsubmit="return confirm('Supprimer tous les datacrons cibles de ce set ?');">
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-slate-950 border border-red-500/30 rounded-lg font-semibold text-xs transition-all duration-200">
+                            <i class="bi bi-trash3"></i>
+                            <span>Vider ce set</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div th:if="${#lists.isEmpty(onglet.cartes.datacrons)}" class="text-slate-500 text-sm">
+                    Aucun datacron cible enregistré pour ce set.
+                </div>
+
+                <div th:if="${!#lists.isEmpty(onglet.cartes.datacrons)}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div th:each="carte : ${onglet.cartes.datacrons}"
+                         class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col">
+
+                        <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
+                            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                <i class="bi bi-gem text-purple-400"></i>
+                                <span th:text="'Datacron #' + ${carte.id}"></span>
+                            </h3>
+                            <form th:action="@{/web/plan-farm-datacron/{id}/supprimer(id=${carte.id})}"
+                                  method="post"
+                                  onsubmit="return confirm('Supprimer ce datacron cible ?');">
+                                <button type="submit" class="text-red-400 hover:text-red-300" title="Supprimer le datacron">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Mécaniques -->
+                        <div th:if="${!#lists.isEmpty(carte.mecaniques)}" class="mb-4">
+                            <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mécaniques</h4>
+                            <ul class="space-y-1">
+                                <li th:each="mec : ${carte.mecaniques}" class="flex items-center justify-between gap-2 text-xs">
+                                    <span class="flex items-center gap-2 flex-1">
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px]"
+                                              th:text="${mec.tier}"></span>
+                                        <span class="text-slate-300 truncate" th:text="${mec.description}" th:title="${mec.description}"></span>
+                                    </span>
+                                    <form th:action="@{/web/plan-farm-datacron/mecanique/{id}/supprimer(id=${mec.id})}" method="post">
+                                        <button type="submit" class="text-slate-500 hover:text-red-400" title="Supprimer cette mécanique">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Stats -->
+                        <div th:if="${!#lists.isEmpty(carte.stats)}">
+                            <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Statistiques</h4>
+                            <ul class="space-y-1">
+                                <li th:each="stat : ${carte.stats}" class="flex items-center justify-between gap-2 text-xs">
+                                    <span class="text-slate-300 flex-1 truncate" th:text="${stat.statLibelle}"></span>
+                                    <b class="text-emerald-400 font-mono" th:text="${stat.value != null ? stat.value : '-'}"></b>
+                                    <form th:action="@{/web/plan-farm-datacron/stat/{id}/supprimer(id=${stat.id})}" method="post">
+                                        <button type="submit" class="text-slate-500 hover:text-red-400" title="Supprimer cette stat">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function showTab(index) {
+            document.querySelectorAll('.tab-panel').forEach((panel, i) => {
+                panel.classList.toggle('active', i === index);
+            });
+            document.querySelectorAll('#tabButtons .tab-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+    </script>
+
+</body>
+</html>

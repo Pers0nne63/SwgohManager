@@ -19,9 +19,9 @@ public class PlanFarmDatacronOptionsService {
 
     private final DatacronAffixTemplateRepository datacronAffixTemplateRepository;
 
-    private static final int LONGUEUR_MAX_DESCRIPTION = 50;
+    private static final int LONGUEUR_MAX_DESCRIPTION = 100;
 
-    public record MecaniqueOption(Integer tier, String abilityId, String descriptionCourte, String descriptionComplete) {}
+    public record MecaniqueOption(Integer tier, String abilityId, String libelle, String libelleAffichage, String descriptionComplete) {}
     public record StatOption(String statType, String statLibelle) {}
     public record SetOptions(String setId, List<MecaniqueOption> mecaniques, List<StatOption> stats) {}
 
@@ -44,10 +44,15 @@ public class PlanFarmDatacronOptionsService {
                     for (DatacronAffixOptionProjection l : entry.getValue()) {
                         if (l.getTier() != null && l.getAbilityId() != null) {
                             String cle = l.getTier() + "|" + l.getAbilityId();
+                            String libelle = l.getLibelle() != null ? l.getLibelle() : "";
+                            String descriptionTronquee = tronquer(l.getDescription(), LONGUEUR_MAX_DESCRIPTION);
+                            String libelleAffichage = "[T" + l.getTier() + "] " + libelle + " - " + descriptionTronquee;
+
                             mecaniques.putIfAbsent(cle, new MecaniqueOption(
                                     l.getTier(),
                                     l.getAbilityId(),
-                                    tronquer(l.getDescription(), LONGUEUR_MAX_DESCRIPTION),
+                                    libelle,
+                                    libelleAffichage,
                                     l.getDescription()
                             ));
                         }
@@ -57,7 +62,8 @@ public class PlanFarmDatacronOptionsService {
                     }
 
                     List<MecaniqueOption> mecaniquesTriees = mecaniques.values().stream()
-                            .sorted(Comparator.comparing(MecaniqueOption::tier).thenComparing(MecaniqueOption::abilityId))
+                            .sorted(Comparator.comparing(MecaniqueOption::tier)
+                                    .thenComparing(m -> m.libelle().toLowerCase()))
                             .toList();
 
                     List<StatOption> statsTriees = stats.values().stream()

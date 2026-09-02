@@ -57,8 +57,7 @@ public class GuildOverviewService {
 
         // Requêtes "Batch" (1 seule requête SQL par sujet)
         Map<String, Double> farmPlanPourcentages = farmPlanProgressService.getPourcentagesPourJoueurs(playerIds);
-        Map<String, Double> omicronP1Pourcentages = omicronPlanProgressService.getPourcentagesOmiPourJoueurs(playerIds);
-
+        Map<String, Map<String, Double>> omicronPourcentages = omicronPlanProgressService.getPourcentagesOmiPourJoueurs(playerIds);
         Map<String, Double> modQMap = playerModQActuelRepository.findByPlayerIdIn(playerIds).stream()
                 .collect(Collectors.toMap(PlayerModQActuel::getPlayerId, PlayerModQActuel::getModQ, (m1, m2) -> m1));
 
@@ -84,7 +83,7 @@ public class GuildOverviewService {
                         modQMap.get(j.getPlayerId()),
                         farmPlanPourcentages.get(j.getPlayerId()),
                         ratingsMap.get(j.getPlayerId()),
-                        omicronP1Pourcentages.get(j.getPlayerId()),
+                        (omicronPourcentages.get(j.getPlayerId()) != null ? omicronPourcentages.get(j.getPlayerId()).get("P1") : null),
                         statQMap.get(j.getPlayerId())
                 		))
                 .toList();

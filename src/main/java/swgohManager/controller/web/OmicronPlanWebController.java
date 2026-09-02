@@ -1,12 +1,22 @@
 package swgohManager.controller.web;
 
-import swgohManager.service.OmicronPlanService;
-import lombok.RequiredArgsConstructor;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.Comparator;
+import lombok.RequiredArgsConstructor;
+import swgohManager.model.Joueur;
+import swgohManager.repository.JoueurRepository;
+import swgohManager.service.OmicronPlanProgressService;
+import swgohManager.service.OmicronPlanService;
 
 @Controller
 @RequestMapping("/omicron-tw")
@@ -14,6 +24,8 @@ import java.util.Comparator;
 public class OmicronPlanWebController {
 
     private final OmicronPlanService omicronPlanService;
+    private final OmicronPlanProgressService omicronPlanProgressService;
+    private final JoueurRepository joueurRepository;
 
     @GetMapping
     public String page(Model model) {
@@ -41,5 +53,19 @@ public class OmicronPlanWebController {
     public String supprimer(@PathVariable Long id) {
         omicronPlanService.supprimer(id);
         return "redirect:/omicron-tw";
+    }
+    
+    @GetMapping("/commun")
+    public String pageCommun(Model model) {
+        List<Joueur> joueurs = joueurRepository.findByPresentInGuildTrueOrderByPlayerNameAsc();
+        List<String> playerIds = joueurs.stream().map(Joueur::getPlayerId).toList();
+
+        // La map contient maintenant les 4 priorités pour chaque joueur
+        Map<String, Map<String, Double>> pourcentages = omicronPlanProgressService.getPourcentagesOmiPourJoueurs(playerIds);
+
+        model.addAttribute("joueurs", joueurs);
+        model.addAttribute("pourcentages", pourcentages);
+
+        return "omicron-progress-commun";
     }
 }

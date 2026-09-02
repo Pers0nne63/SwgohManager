@@ -8,6 +8,10 @@
 </head>
 <body class="bg-slate-900 text-slate-300 font-sans p-6">
 
+    <!-- Navbar Globale -->
+    <div th:replace="~{fragments/fragments :: navbar}"></div>
+
+
     <div class="max-w-7xl mx-auto">
         <!-- En-tête -->
         <div class="mb-8 flex items-center justify-between">
@@ -18,9 +22,6 @@
                 </h1>
                 <p class="text-slate-400 mt-2">Vue d'ensemble des niveaux d'ère et d'étoiles de tous les membres.</p>
             </div>
-            <a th:href="@{/guilde}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-600 transition-colors">
-                <i class="bi bi-arrow-left me-2"></i>Retour
-            </a>
         </div>
 
         <!-- Tableau -->

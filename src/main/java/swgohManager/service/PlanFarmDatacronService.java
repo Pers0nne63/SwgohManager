@@ -32,17 +32,19 @@ public class PlanFarmDatacronService {
 
     public record MecaniqueAffichee(Long id, Integer tier, String description) {}
     public record StatAffichee(Long id, String statLibelle, BigDecimal value) {}
-    public record DatacronCarte(Long id, List<MecaniqueAffichee> mecaniques, List<StatAffichee> stats) {}
+    public record DatacronCarte(Long id, String nom, List<MecaniqueAffichee> mecaniques, List<StatAffichee> stats) {}
     public record SetCartes(String setId, List<DatacronCarte> datacrons) {}
 
     @Transactional
     public void creer(String setId,
+                       String nom,
                        List<String> mecaniquesBrutes,
                        List<String> statsSelectionnees,
                        Map<String, String> valeursBrutes) {
 
         PlanFarmDatacron datacron = planFarmDatacronRepository.save(PlanFarmDatacron.builder()
                 .setId(setId)
+                .nom(nom)
                 .dateCreation(LocalDateTime.now())
                 .build());
 
@@ -144,8 +146,8 @@ public class PlanFarmDatacronService {
                                                 s.getStatValue()
                                         ))
                                         .toList();
-
-                                return new DatacronCarte(d.getId(), mecaniques, stats);
+                                String nomAffiche = (d.getNom() != null && !d.getNom().isBlank()) ? d.getNom() : "Datacron #" + d.getId();
+                                return new DatacronCarte(d.getId(), nomAffiche, mecaniques, stats);
                             })
                             .toList();
 

@@ -34,6 +34,14 @@
             transition: background-color 0.15s;
         }
         .checkbox-row:hover { background-color: rgba(255,255,255,0.03); }
+
+        .text-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.35rem;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
@@ -83,19 +91,44 @@
                     <form th:action="@{/web/plan-farm-datacron/creer}" method="post" class="space-y-6">
                         <input type="hidden" name="setId" th:value="${onglet.setId}">
 
-                        <!-- Mécaniques -->
+                        <!-- Nom du datacron cible -->
                         <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mécaniques (tiers 3/6/9/12/15)</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-64 overflow-y-auto bg-slate-850 border border-slate-700/60 rounded-xl p-2">
-                                <label th:each="mec : ${onglet.options.mecaniques}" class="checkbox-row cursor-pointer">
-                                    <input type="checkbox" name="mecaniques" th:value="${mec.tier} + '|' + ${mec.abilityId}"
-                                           class="accent-amber-500 shrink-0">
-                                    <span class="text-xs">
-                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px] mr-1"
-                                              th:text="${mec.tier}"></span>
-                                        <span class="text-slate-300" th:text="${mec.descriptionCourte}" th:title="${mec.descriptionComplete}"></span>
-                                    </span>
-                                </label>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nom du datacron cible</h3>
+                            <input type="text" name="nom" placeholder="Ex : DTC Tank Lumineux"
+                                   class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                        </div>
+
+                        <!-- Mécaniques : 3 sélecteurs empilés -->
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mécaniques (jusqu'à 3)</h3>
+                            <div class="space-y-2">
+                                <select name="mecaniques"
+                                        class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                                    <option value="">-- Mécanique 1 : aucune --</option>
+                                    <option th:each="mec : ${onglet.options.mecaniques}"
+                                            th:value="${mec.tier} + '|' + ${mec.abilityId}"
+                                            th:text="${mec.libelleAffichage}"
+                                            th:title="${mec.descriptionComplete}">
+                                    </option>
+                                </select>
+                                <select name="mecaniques"
+                                        class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                                    <option value="">-- Mécanique 2 : aucune --</option>
+                                    <option th:each="mec : ${onglet.options.mecaniques}"
+                                            th:value="${mec.tier} + '|' + ${mec.abilityId}"
+                                            th:text="${mec.libelleAffichage}"
+                                            th:title="${mec.descriptionComplete}">
+                                    </option>
+                                </select>
+                                <select name="mecaniques"
+                                        class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                                    <option value="">-- Mécanique 3 : aucune --</option>
+                                    <option th:each="mec : ${onglet.options.mecaniques}"
+                                            th:value="${mec.tier} + '|' + ${mec.abilityId}"
+                                            th:text="${mec.libelleAffichage}"
+                                            th:title="${mec.descriptionComplete}">
+                                    </option>
+                                </select>
                             </div>
                         </div>
 
@@ -155,7 +188,7 @@
                         <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
                             <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
                                 <i class="bi bi-gem text-purple-400"></i>
-                                <span th:text="'Datacron #' + ${carte.id}"></span>
+                                <span th:text="${carte.nom}"></span>
                             </h3>
                             <form th:action="@{/web/plan-farm-datacron/{id}/supprimer(id=${carte.id})}"
                                   method="post"
@@ -170,13 +203,13 @@
                         <div th:if="${!#lists.isEmpty(carte.mecaniques)}" class="mb-4">
                             <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mécaniques</h4>
                             <ul class="space-y-1">
-                                <li th:each="mec : ${carte.mecaniques}" class="flex items-center justify-between gap-2 text-xs">
-                                    <span class="flex items-center gap-2 flex-1">
-                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px]"
-                                              th:text="${mec.tier}"></span>
-                                        <span class="text-slate-300 truncate" th:text="${mec.description}" th:title="${mec.description}"></span>
-                                    </span>
-                                    <form th:action="@{/web/plan-farm-datacron/mecanique/{id}/supprimer(id=${mec.id})}" method="post">
+                                <li th:each="mec : ${carte.mecaniques}" class="flex items-start gap-2 text-xs">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px] shrink-0 mt-0.5"
+                                          th:text="${mec.tier}"></span>
+                                    <div class="text-slate-300 text-clamp-2 flex-1 min-w-0"
+                                         th:text="${mec.description}"
+                                         th:title="${mec.description}"></div>
+                                    <form th:action="@{/web/plan-farm-datacron/mecanique/{id}/supprimer(id=${mec.id})}" method="post" class="shrink-0">
                                         <button type="submit" class="text-slate-500 hover:text-red-400" title="Supprimer cette mécanique">
                                             <i class="bi bi-x-circle"></i>
                                         </button>

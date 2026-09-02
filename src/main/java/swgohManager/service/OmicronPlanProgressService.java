@@ -99,44 +99,62 @@ public class OmicronPlanProgressService {
 
     @Transactional
     public void calculerEtEnregistrer(String playerId, Long idSync) {
-        PrioriteSummary p1 = getProgression(playerId).parPriorite().get(1);
+        PlayerOmicronProgress progress = getProgression(playerId);
 
-        int atteint = p1 != null ? p1.atteint() : 0;
-        int total = p1 != null ? p1.total() : 0;
-        Double pourcentage = p1 != null ? p1.pourcentage() : null;
+        // On boucle sur les 4 priorités pour les enregistrer
+        for (int i = 1; i <= 4; i++) {
+            PrioriteSummary pSummary = progress.parPriorite().get(i);
+            String prioriteLabel = "P" + i;
+            
+            int atteint = pSummary != null ? pSummary.atteint() : 0;
+            int total = pSummary != null ? pSummary.total() : 0;
+            Double pourcentage = pSummary != null ? pSummary.pourcentage() : null;
 
-        PlayerPdfOmicronActuel existant = playerPdfOmicronActuelRepository.findByPlayerId(playerId).orElse(null);
+            PlayerPdfOmicronActuel existant = playerPdfOmicronActuelRepository
+                    .findByPlayerIdAndPriorite(playerId, prioriteLabel).orElse(null);
 
-        if (existant != null) {
-            playerPdfOmicronHistoriqueRepository.save(PlayerPdfOmicronHistorique.builder()
-                    .playerId(existant.getPlayerId())
-                    .priorite(existant.getPriorite())
-                    .atteint(existant.getAtteint())
-                    .total(existant.getTotal())
-                    .pourcentage(existant.getPourcentage())
-                    .idSync(existant.getIdSync())
-                    .build());
-        } else {
-            existant = new PlayerPdfOmicronActuel();
-            existant.setPlayerId(playerId);
+            if (existant != null) {
+                // Historisation
+                playerPdfOmicronHistoriqueRepository.save(PlayerPdfOmicronHistorique.builder()
+                        .playerId(existant.getPlayerId())
+                        .priorite(existant.getPriorite())
+                        .atteint(existant.getAtteint())
+                        .total(existant.getTotal())
+                        .pourcentage(existant.getPourcentage())
+                        .idSync(existant.getIdSync())
+                        .build());
+            } else {
+                existant = new PlayerPdfOmicronActuel();
+                existant.setPlayerId(playerId);
+                existant.setPriorite(prioriteLabel);
+            }
+
+            existant.setAtteint(atteint);
+            existant.setTotal(total);
+            existant.setPourcentage(pourcentage);
+            existant.setIdSync(idSync);
+
+            playerPdfOmicronActuelRepository.save(existant);
         }
-
-        existant.setPriorite("P1");
-        existant.setAtteint(atteint);
-        existant.setTotal(total);
-        existant.setPourcentage(pourcentage);
-        existant.setIdSync(idSync);
-
-        playerPdfOmicronActuelRepository.save(existant);
     }
 
-    public Map<String, Double> getPourcentagesOmiPourJoueurs(List<String> playerIds) {
-        return playerPdfOmicronActuelRepository.findByPlayerIdIn(playerIds).stream()
-                .collect(Collectors.toMap(
-                        PlayerPdfOmicronActuel::getPlayerId,
-                        p -> p.getPourcentage() != null ? p.getPourcentage() : -1.0,
-                        (v1, v2) -> v1
-                ));
+    // Renvoie désormais une Map contenant le playerId, et à l'intérieur une autre Map avec les 4 pourcentages
+    public Map<String, Map<String, Double>> getPourcentagesOmiPourJoueurs(List<String> playerIds) {
+        List<PlayerPdfOmicronActuel> tousLesActuels = playerPdfOmicronActuelRepository.findByPlayerIdIn(playerIds);
+        
+        // Initialiser la map pour chaque joueur
+        Map<String, Map<String, Double>> mapGlobale = new HashMap<>();
+        for (String pid : playerIds) {
+            mapGlobale.put(pid, new HashMap<>());
+        }
+        
+        // Remplir avec les données en base
+        for (PlayerPdfOmicronActuel p : tousLesActuels) {
+            Double pct = p.getPourcentage() != null ? p.getPourcentage() : -1.0;
+            mapGlobale.get(p.getPlayerId()).put(p.getPriorite(), pct);
+        }
+        
+        return mapGlobale;
     }
     
     @Transactional

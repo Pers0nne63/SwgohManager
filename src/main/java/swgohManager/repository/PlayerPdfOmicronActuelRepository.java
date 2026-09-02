@@ -9,4 +9,5 @@ public interface PlayerPdfOmicronActuelRepository extends JpaRepository<PlayerPd
     Optional<PlayerPdfOmicronActuel> findByPlayerId(String playerId);
     List<PlayerPdfOmicronActuel> findByPlayerIdIn(List<String> playerIds);
     void deleteByPlayerIdNotIn(List<String> activePlayerIds);
+    Optional<PlayerPdfOmicronActuel> findByPlayerIdAndPriorite(String playerId, String priorite);
 }

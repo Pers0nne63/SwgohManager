@@ -57,10 +57,11 @@ public class PlanFarmDatacronWebController {
 
     @PostMapping("/creer")
     public String creer(@RequestParam String setId,
+                         @RequestParam(required = false) String nom,
                          @RequestParam(required = false) List<String> mecaniques,
                          @RequestParam(required = false) List<String> statsSelectionnees,
                          @RequestParam Map<String, String> allParams) {
-        planFarmDatacronService.creer(setId, mecaniques, statsSelectionnees, allParams);
+        planFarmDatacronService.creer(setId, nom, mecaniques, statsSelectionnees, allParams);
         return "redirect:/web/plan-farm-datacron";
     }
 

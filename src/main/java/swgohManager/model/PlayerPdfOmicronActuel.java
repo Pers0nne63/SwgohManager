@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "player_pdfomicron_actuel", uniqueConstraints = @UniqueConstraint(columnNames = "playerId"),
+@Table(name = "player_pdfomicron_actuel",
 		indexes = {
         @Index(name = "pdfomiidx_playerId", columnList = "playerId")
 		})

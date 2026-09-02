@@ -15,5 +15,7 @@ public class PlanFarmDatacron {
     @Column(nullable = false)
     private String setId;
 
+    private String nom;
+
     private LocalDateTime dateCreation;
 }

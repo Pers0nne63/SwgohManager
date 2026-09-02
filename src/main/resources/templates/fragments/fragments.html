@@ -4,63 +4,129 @@
     <meta charset="UTF-8">
 </head>
 <body>
-    <!-- Navbar unifiée globale -->
+
+    <!-- Navbar unifiée globale avec menus déroulants -->
     <nav th:fragment="navbar" class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-lg">
-	    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-	        <div class="flex items-center justify-between h-16">
-	            
-	            <!-- Logo & Branding -->
-	            <div class="flex items-center space-x-3">
-	                <a href="/guilde" class="flex items-center space-x-3 group">
-	                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-md group-hover:scale-105 transition-transform">
-	                        <i class="bi bi-shield-shaded"></i>
-	                    </div>
-	                    <span class="text-xl font-bold bg-gradient-to-r from-white via-slate-200 to-amber-400 bg-clip-text text-transparent">
-	                        Les Baguettes Enflammées
-	                    </span>
-	                </a>
-	            </div>
-	
-	            <!-- Liens de navigation droite -->
-	            <div class="flex items-center space-x-2 sm:space-x-3" 
-	                 th:with="playerId=${vm != null and vm.joueur != null ? vm.joueur.playerId : (joueur != null ? joueur.playerId : null)}">
-					<!-- Guilde -->
-                    <a href="/guilde" class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <!-- Logo & Branding -->
+                <div class="flex items-center space-x-3">
+                    <a th:href="@{/guilde}" class="flex items-center space-x-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-md group-hover:scale-105 transition-transform">
+                            <i class="bi bi-shield-shaded"></i>
+                        </div>
+                        <span class="text-xl font-bold bg-gradient-to-r from-white via-slate-200 to-amber-400 bg-clip-text text-transparent hidden sm:block">
+                            Les Baguettes Enflammées
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Menus déroulants de navigation -->
+                <div class="flex items-center gap-2 sm:gap-4">
+                    
+                    <!-- Lien simple : Guilde (Accueil) -->
+                    <a th:href="@{/guilde}" class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
                         <i class="bi bi-shield me-1"></i>
-                        <span>Guilde</span>
+                        <span class="hidden md:inline">Guilde</span>
                     </a>
                     
-	                <!-- Plan de Farm Commun -->
-	                <a th:href="${playerId != null} ? @{/joueur/{id}/plan-farm(id=${playerId})} : @{/plan-farm}" 
-	                   class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
-	                    <i class="bi bi-journal-check me-1"></i>
-	                    <span th:text="${playerId != null ? 'PDF Commun' : 'Plan Commun'}">Plan Commun</span>
-	                </a>
-	
-	                <!-- Plan de Farm Individuel -->
-	                <a th:href="${playerId != null} ? @{/web/plan-farm-ind/joueur/{id}(id=${playerId})} : @{/web/plan-farm-ind}" 
-	                   class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
-	                    <i class="bi bi-journal-bookmark me-1"></i>
-	                    <span th:text="${playerId != null ? 'PDF Indiv.' : 'Plans Indiv.'}">Plans Indiv.</span>
-	                </a>
-	
-	                <!-- Omicrons TW -->
-	                <a th:href="${playerId != null} ? @{/joueur/{id}/omicron-tw(id=${playerId})} : @{/omicron-tw}" 
-	                   class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
-	                    <i class="bi bi-lightning-charge me-1"></i>
-	                    <span th:text="${playerId != null ? 'Détails Omicrons' : 'Omicrons'}">Omicrons TW</span>
-	                </a>
-	
-	                <!-- StatQ Détail -->
-	                <a th:href="${playerId != null} ? @{/joueur/{id}/statq-detail(id=${playerId})} : @{/statq}" 
-	                   class="text-slate-300 hover:text-amber-400 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-700/50 transition-colors flex items-center space-x-1 sm:space-x-2">
-	                    <i class="bi bi-cpu me-1"></i>
-	                    <span th:text="${playerId != null ? 'Détails StatQ' : 'StatQ'}">StatQ</span>
-	                </a>
-	
-	            </div>
-	        </div>
-	    </div>
-	</nav>
+                    <!-- Menu 1 : Objectifs -->
+                    <div class="relative group">
+                        <button type="button" class="px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 border border-slate-600">
+                            <i class="bi bi-target text-sky-400 text-sm"></i> 
+                            <span class="hidden lg:inline">Objectifs</span>
+                            <i class="bi bi-chevron-down text-slate-400 text-[10px] group-hover:rotate-180 transition-transform"></i>
+                        </button>
+                        <div class="absolute top-full right-0 pt-2 w-48 hidden group-hover:block z-50">
+                            <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-1 overflow-hidden">
+                                <a th:href="@{/plan-farm}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-journal-check text-sky-400 text-sm"></i> PDF Commun
+                                </a>
+                                <a th:href="@{/omicron-tw}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-lightning-charge-fill text-amber-400 text-sm"></i> Omicrons
+                                </a>
+                                <a th:href="@{/web/plan-farm-datacron}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-bullseye text-purple-400 text-sm"></i> Datacrons
+                                </a>
+                                <a th:href="@{/statq}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-graph-up text-emerald-400 text-sm"></i> Statq
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menu 2 : Suivi -->
+                    <div class="relative group">
+                        <button type="button" class="px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 border border-slate-600">
+                            <i class="bi bi-activity text-emerald-400 text-sm"></i> 
+                            <span class="hidden lg:inline">Suivi</span>
+                            <i class="bi bi-chevron-down text-slate-400 text-[10px] group-hover:rotate-180 transition-transform"></i>
+                        </button>
+                        <div class="absolute top-full right-0 pt-2 w-64 hidden group-hover:block z-50">
+                            <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-1 overflow-hidden">
+                                <a th:href="@{/tb-plan(tab='analyse')}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+								    <i class="bi bi-graph-up-arrow text-emerald-400 text-sm"></i> Analyse BT
+								</a>
+                                <a th:href="@{/web/plan-farm-datacron/progression}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-bar-chart-fill text-purple-400 text-sm"></i> Suivi PDF DTC
+                                </a>
+                                <a th:href="@{/plan-farm/commun}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+					                <i class="bi bi-people-fill text-blue-400 text-sm"></i> Suivi PDF commun
+					            </a>
+                                <a th:href="@{/web/plan-farm-ind}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-journal-bookmark text-amber-400 text-sm"></i> Suivi PDF individuel
+                                </a>
+                                <a th:href="@{/omicron-tw/commun}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+								    <i class="bi bi-shield-shaded text-emerald-400 text-sm"></i> Suivi PDF Omicrons
+								</a>
+                            </div>
+                        </div>
+                    </div>
+
+					<!-- Menu 3 : Collection -->
+                    <div class="relative group">
+                        <button type="button" class="px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 border border-slate-600">
+                            <i class="bi bi-collection text-amber-400 text-sm"></i> 
+                            <span class="hidden lg:inline">Collection</span>
+                            <i class="bi bi-chevron-down text-slate-400 text-[10px] group-hover:rotate-180 transition-transform"></i>
+                        </button>
+                        <div class="absolute top-full right-0 pt-2 w-56 hidden group-hover:block z-50">
+                            <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-1 overflow-hidden">
+                                <a th:href="@{/guilde/era-units}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-layers text-purple-400 text-sm"></i> Unités d'ère
+                                </a>
+                                <a th:href="@{/analyse-roster}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-search text-red-400 text-sm"></i> Recherche omi/relic
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Menu 4 : Gestion -->
+                    <div class="relative group">
+                        <button type="button" class="px-3 py-2 sm:px-4 sm:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 border border-slate-600">
+                            <i class="bi bi-sliders text-purple-400 text-sm"></i> 
+                            <span class="hidden lg:inline">Gestion</span>
+                            <i class="bi bi-chevron-down text-slate-400 text-[10px] group-hover:rotate-180 transition-transform"></i>
+                        </button>
+                        <div class="absolute top-full right-0 pt-2 w-48 hidden group-hover:block z-50">
+                            <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-1 overflow-hidden">
+                                <a th:href="@{/tb-plan(tab='modeles')}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-map text-purple-400 text-sm"></i> Plans BT
+                                </a>
+                                <a th:href="@{/admin}" class="px-4 py-2.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700/70 flex items-center gap-2.5 transition-colors">
+                                    <i class="bi bi-gear-fill text-rose-400 text-sm"></i> Admin
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+
+                </div>
+            </div>
+        </div>
+    </nav>
 </body>
 </html>

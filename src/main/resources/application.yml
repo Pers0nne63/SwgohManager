@@ -3,9 +3,9 @@ spring:
     name: swgoh
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/swgoh
-    username: postgres
-    password: ${DB_PASSWORD:root}
+    url: jdbc:${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 15
 

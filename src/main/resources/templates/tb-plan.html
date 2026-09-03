@@ -32,6 +32,10 @@
                     class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
                 <i class="bi bi-graph-up-arrow text-base"></i> Analyse BT
             </button>
+            <button id="btn-tab-mission" onclick="switchTab('mission')" 
+			        class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
+			    <i class="bi bi-crosshair text-base"></i> Mission Spéciale
+			</button>
             <button id="btn-tab-modeles" onclick="switchTab('modeles')" 
                     class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
                 <i class="bi bi-sliders text-base"></i> Modèles de plans
@@ -174,8 +178,135 @@
                 </div>
             </div>
         </div>
-
-        <!-- ONGLET 2 : MODÈLES DE PLANS -->
+		<!-- ONGLET 2 : MISSION SPÉCIALE -->
+		<div id="tab-mission" class="hidden space-y-6">
+		
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+		        <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+		            <i class="bi bi-crosshair text-amber-400"></i> Choisir une BT et une mission spéciale
+		        </h2>
+		        <form method="get" th:action="@{/tb-plan}" class="flex flex-wrap items-end gap-4">
+		            <input type="hidden" name="tab" value="mission" />
+		            <div>
+		                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Territory Battle</label>
+		                <select name="msTbId" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500 min-w-[220px]">
+		                    <option value="">-- Sélectionner --</option>
+		                    <option th:each="tb : ${territoryBattles}" th:value="${tb.id}"
+		                            th:selected="${msTbIdSelectionnee != null and msTbIdSelectionnee == tb.id}"
+		                            th:text="${(tb.startTime != null ? #temporals.format(tb.startTime, 'dd/MM/yyyy') : tb.instanceId)}"></option>
+		                </select>
+		            </div>
+		            <div>
+		                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Mission spéciale</label>
+		                <select name="msMission" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500 min-w-[180px]">
+		                    <option value="">-- Sélectionner --</option>
+		                    <option th:each="m : ${missionsSpeciales}" th:value="${m.name()}"
+		                            th:selected="${msMissionSelectionnee != null and msMissionSelectionnee == m.name()}"
+		                            th:text="${m.libelle}"></option>
+		                </select>
+		            </div>
+		            <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-6 rounded-xl transition-colors shadow-lg flex items-center gap-2 text-sm">
+		                <i class="bi bi-search"></i> Analyser
+		            </button>
+		        </form>
+		    </div>
+		
+		    <th:block th:if="${missionAnalyse != null}">
+		
+		        <!-- Cards de synthèse -->
+		        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+		            <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-5 flex items-center gap-4">
+		                <i class="bi bi-check-circle-fill text-3xl text-emerald-400"></i>
+		                <div>
+		                    <div class="text-2xl font-extrabold text-white" th:text="${missionAnalyse.nbReussis}">0</div>
+		                    <div class="text-xs uppercase font-semibold text-emerald-400/80 tracking-wider">Réussies</div>
+		                </div>
+		            </div>
+		            <div class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-5 flex items-center gap-4">
+		                <i class="bi bi-x-circle-fill text-3xl text-rose-400"></i>
+		                <div>
+		                    <div class="text-2xl font-extrabold text-white" th:text="${missionAnalyse.nbEchecs}">0</div>
+		                    <div class="text-xs uppercase font-semibold text-rose-400/80 tracking-wider">Échouées</div>
+		                </div>
+		            </div>
+		            <div class="bg-slate-700/30 border border-slate-600/40 rounded-2xl p-5 flex items-center gap-4">
+		                <i class="bi bi-dash-circle-fill text-3xl text-slate-400"></i>
+		                <div>
+		                    <div class="text-2xl font-extrabold text-white" th:text="${missionAnalyse.nbNonTentes}">0</div>
+		                    <div class="text-xs uppercase font-semibold text-slate-400/80 tracking-wider">Non tentées</div>
+		                </div>
+		            </div>
+		        </div>
+		
+		        <p class="text-slate-500 text-xs italic px-1">
+		            Historique par joueur : les 5 dernières BT avant celle sélectionnée, de la plus ancienne (gauche) à la plus récente (droite).
+		        </p>
+		
+		        <!-- Joueurs en échec -->
+		        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden" th:if="${not #lists.isEmpty(missionAnalyse.joueursEnEchec)}">
+			    <div class="p-6 border-b border-slate-700">
+			        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+			            <i class="bi bi-x-circle text-rose-400"></i> Joueurs ayant échoué (<span th:text="${#lists.size(missionAnalyse.joueursEnEchec)}">0</span>)
+			        </h2>
+			    </div>
+			    <div class="overflow-x-auto">
+			        <table class="w-full text-sm text-slate-300">
+			            <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+			                <tr>
+			                    <th class="px-4 py-3 text-left">Joueur</th>
+			                    <th class="px-3 py-3 text-center w-20" th:each="tbHist : ${missionAnalyse.tbHistorique}"
+			                        th:text="${tbHist.startTime != null ? #temporals.format(tbHist.startTime, 'dd/MM') : '-'}"></th>
+			                </tr>
+			            </thead>
+			            <tbody class="divide-y divide-slate-700/60">
+			                <tr th:each="j : ${missionAnalyse.joueursEnEchec}" class="hover:bg-slate-850/50 transition-colors">
+			                    <td class="px-4 py-2.5 font-semibold text-slate-200" th:text="${j.playerName}"></td>
+			                    <td class="px-3 py-2.5 text-center" th:each="h : ${j.historique}">
+			                        <span class="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold"
+			                              th:classappend="${h.name() == 'REUSSI' ? 'bg-emerald-500/20 text-emerald-400' : (h.name() == 'ECHOUE' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-700 text-slate-500')}"
+			                              th:text="${h.name() == 'REUSSI' ? '✓' : (h.name() == 'ECHOUE' ? '✕' : '–')}"></span>
+			                    </td>
+			                </tr>
+			            </tbody>
+			        </table>
+			    </div>
+			</div>
+		
+		        <!-- Joueurs n'ayant pas tenté -->
+		        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden" th:if="${not #lists.isEmpty(missionAnalyse.joueursNonTentes)}">
+			    <div class="p-6 border-b border-slate-700">
+			        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+			            <i class="bi bi-dash-circle text-slate-400"></i> Joueurs n'ayant pas tenté (<span th:text="${#lists.size(missionAnalyse.joueursNonTentes)}">0</span>)
+			        </h2>
+			    </div>
+			    <div class="overflow-x-auto">
+			        <table class="w-full text-sm text-slate-300">
+			            <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+			                <tr>
+			                    <th class="px-4 py-3 text-left">Joueur</th>
+			                    <th class="px-3 py-3 text-center w-20" th:each="tbHist : ${missionAnalyse.tbHistorique}"
+			                        th:text="${tbHist.startTime != null ? #temporals.format(tbHist.startTime, 'dd/MM') : '-'}"></th>
+			                </tr>
+			            </thead>
+			            <tbody class="divide-y divide-slate-700/60">
+			                <tr th:each="j : ${missionAnalyse.joueursNonTentes}" class="hover:bg-slate-850/50 transition-colors">
+			                    <td class="px-4 py-2.5 font-semibold text-slate-200" th:text="${j.playerName}"></td>
+			                    <td class="px-3 py-2.5 text-center" th:each="h : ${j.historique}">
+			                        <span class="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold"
+			                              th:classappend="${h.name() == 'REUSSI' ? 'bg-emerald-500/20 text-emerald-400' : (h.name() == 'ECHOUE' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-700 text-slate-500')}"
+			                              th:text="${h.name() == 'REUSSI' ? '✓' : (h.name() == 'ECHOUE' ? '✕' : '–')}"></span>
+			                    </td>
+			                </tr>
+			            </tbody>
+			        </table>
+			    </div>
+			</div>
+		
+		    </th:block>
+		
+		</div>
+		
+        <!-- ONGLET 3 : MODÈLES DE PLANS -->
         <div id="tab-modeles" class="space-y-8">
             <!-- Formulaire de création -->
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
@@ -303,7 +434,7 @@
             </div>
         </div>
 
-        <!-- ONGLET 3 : AFFECTATION AUX BT -->
+        <!-- ONGLET 4 : AFFECTATION AUX BT -->
         <div id="tab-affectations" class="hidden space-y-6">
             <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
                 <div class="p-6 border-b border-slate-700">
@@ -371,11 +502,12 @@
 
     <script th:inline="javascript">
         function switchTab(tabName) {
-            const tabs = {
-                analyse: { div: document.getElementById('tab-analyse'), btn: document.getElementById('btn-tab-analyse') },
-                modeles: { div: document.getElementById('tab-modeles'), btn: document.getElementById('btn-tab-modeles') },
-                affectations: { div: document.getElementById('tab-affectations'), btn: document.getElementById('btn-tab-affectations') }
-            };
+        	const tabs = {
+        		    analyse: { div: document.getElementById('tab-analyse'), btn: document.getElementById('btn-tab-analyse') },
+        		    mission: { div: document.getElementById('tab-mission'), btn: document.getElementById('btn-tab-mission') },
+        		    modeles: { div: document.getElementById('tab-modeles'), btn: document.getElementById('btn-tab-modeles') },
+        		    affectations: { div: document.getElementById('tab-affectations'), btn: document.getElementById('btn-tab-affectations') }
+        		};
     
             const activeStyle = ['border-amber-400', 'text-amber-400'];
             const inactiveStyle = ['border-transparent', 'text-slate-400', 'hover:text-slate-200'];

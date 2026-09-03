@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import swgohManager.model.TerritoryBattle;
 import swgohManager.repository.TerritoryBattleRepository;
 import swgohManager.service.TbAnalyseService;
+import swgohManager.service.TbMissionSpecialeService;
 import swgohManager.service.TbPlanService;
 
 @Controller
@@ -26,11 +27,14 @@ public class TbPlanWebController {
     private final TbPlanService tbPlanService;
     private final TerritoryBattleRepository territoryBattleRepository;
     private final TbAnalyseService tbAnalyseService;
+    private final TbMissionSpecialeService tbMissionSpecialeService;
 
     @GetMapping
     public String page(@RequestParam(defaultValue = "analyse") String tab,
-                        @RequestParam(required = false) Long tbId,
-                        Model model) {
+            @RequestParam(required = false) Long tbId,
+            @RequestParam(required = false) Long msTbId,
+            @RequestParam(required = false) String msMission,
+            Model model) {
         model.addAttribute("plans", tbPlanService.getAllPlansAvecRounds());
         model.addAttribute("libellesPlanetes", tbPlanService.getLibellesPlanetes());
         model.addAttribute("optionsLs", tbPlanService.getOptionsLs());
@@ -51,6 +55,19 @@ public class TbPlanWebController {
             model.addAttribute("syntheseRounds", tbAnalyseService.calculerSyntheseRounds(analyseJoueurs));
         }
 
+        model.addAttribute("missionsSpeciales", TbMissionSpecialeService.MissionSpeciale.values());
+        model.addAttribute("msTbIdSelectionnee", msTbId);
+        model.addAttribute("msMissionSelectionnee", msMission);
+
+        if (msTbId != null && msMission != null && !msMission.isBlank()) {
+            try {
+                TbMissionSpecialeService.MissionSpeciale mission = TbMissionSpecialeService.MissionSpeciale.valueOf(msMission);
+                model.addAttribute("missionAnalyse", tbMissionSpecialeService.analyser(msTbId, mission));
+            } catch (IllegalArgumentException ignored) {
+                // mission inconnue, on n'affiche pas de résultat
+            }
+        }
+        
         return "tb-plan";
     }
 

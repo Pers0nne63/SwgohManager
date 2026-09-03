@@ -7,6 +7,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import swgohManager.controller.dto.TbMSStatsProjection;
+import swgohManager.controller.dto.TbMissionHistoriqueProjection;
+import swgohManager.controller.dto.TbMissionJoueurStatsProjection;
+import swgohManager.controller.dto.TbParticipantProjection;
 import swgohManager.controller.dto.TbRoundPlayerStatsProjection;
 import swgohManager.controller.dto.TbRoundStatsProjection;
 import swgohManager.model.TbActivite;
@@ -132,4 +135,50 @@ public interface TbScoreJoueurRepository extends JpaRepository<TbScoreJoueur, Lo
             """, nativeQuery = true)
     List<TbRoundPlayerStatsProjection> findSyntheseGlobaleParRound(@Param("tbId") Long tbId);
 
+    @Query(value = """
+            SELECT tsj.player_id AS playerId,
+                SUM(CASE WHEN ta.map_stat_id = :attemptedId THEN tsj.score ELSE 0 END) AS tentes,
+                SUM(CASE WHEN ta.map_stat_id = :completedId THEN tsj.score ELSE 0 END) AS reussis
+            FROM tb_score_joueur tsj
+            JOIN tb_activite ta ON ta.id = tsj.tb_activite_id
+            WHERE ta.territory_battle_id = :tbId
+              AND ta.map_stat_id IN (:attemptedId, :completedId)
+            GROUP BY tsj.player_id
+            """, nativeQuery = true)
+    List<TbMissionJoueurStatsProjection> findStatsMissionParTb(@Param("tbId") Long tbId,
+                                                                @Param("attemptedId") String attemptedId,
+                                                                @Param("completedId") String completedId);
+
+    @Query(value = """
+            SELECT id FROM territory_battle
+            WHERE end_time < (SELECT end_time FROM territory_battle WHERE id = :tbId)
+            ORDER BY end_time DESC
+            LIMIT 5
+            """, nativeQuery = true)
+    List<Long> findTbIdsPrecedentes(@Param("tbId") Long tbId);
+
+    @Query(value = """
+            SELECT ta.territory_battle_id AS territoryBattleId,
+                tsj.player_id AS playerId,
+                SUM(CASE WHEN ta.map_stat_id = :attemptedId THEN tsj.score ELSE 0 END) AS tentes,
+                SUM(CASE WHEN ta.map_stat_id = :completedId THEN tsj.score ELSE 0 END) AS reussis
+            FROM tb_score_joueur tsj
+            JOIN tb_activite ta ON ta.id = tsj.tb_activite_id
+            WHERE ta.territory_battle_id IN (:tbIds)
+              AND ta.map_stat_id IN (:attemptedId, :completedId)
+            GROUP BY ta.territory_battle_id, tsj.player_id
+            """, nativeQuery = true)
+    List<TbMissionHistoriqueProjection> findStatsMissionHistorique(@Param("tbIds") List<Long> tbIds,
+                                                                     @Param("attemptedId") String attemptedId,
+                                                                     @Param("completedId") String completedId);
+    
+    @Query(value = """
+            SELECT DISTINCT tsj.player_id AS playerId, j.player_name AS playerName
+            FROM tb_score_joueur tsj
+            JOIN tb_activite ta ON ta.id = tsj.tb_activite_id
+            JOIN joueurs j ON j.player_id = tsj.player_id
+            WHERE ta.territory_battle_id = :tbId
+            """, nativeQuery = true)
+    List<TbParticipantProjection> findParticipantsTb(@Param("tbId") Long tbId);
+    
 }

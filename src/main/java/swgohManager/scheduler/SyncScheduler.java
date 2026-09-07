@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import swgohManager.service.ExternalPlayerSyncService;
 import swgohManager.service.GacRosterSyncService;
 import swgohManager.service.GameDataSyncService;
 import swgohManager.service.GuildFullSyncService;
@@ -25,6 +26,7 @@ public class SyncScheduler {
     private final RosterUnitStatObjectifService rosterUnitStatObjectifService;
     private final StatqCalculService statqCalculService;
     private final RosterUnitService rosterUnitService;
+    private final ExternalPlayerSyncService externalPlayerSyncService;
 
     /**
      * 1. Synchronisation GameData
@@ -99,6 +101,17 @@ public class SyncScheduler {
             log.info("[CRON] Historisation terminée avec succès ({} unités).", nbUnites);
         } catch (Exception e) {
             log.error("[CRON] Erreur lors de l'historisation du roster : {}", e.getMessage(), e);
+        }
+    }
+    
+    public class ExternalPlayerPurgeScheduler {
+
+        // Tous les jours à 4h du matin
+        @Scheduled(cron = "0 0 4 * * *")
+        public void purgerScansExternes() {
+            log.info("Démarrage de la purge planifiée des scans externes (>30j)...");
+            int nb = externalPlayerSyncService.purgerAnciensScan();
+            log.info("Purge planifiée terminée : {} joueur(s) supprimé(s)", nb);
         }
     }
 }

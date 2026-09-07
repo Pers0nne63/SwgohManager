@@ -182,7 +182,7 @@
                 <!-- Légende -->
                 <div class="text-xs text-slate-400 flex items-center gap-2 bg-slate-850 px-3 py-1.5 rounded-lg border border-slate-700">
                     <span class="font-bold text-slate-300">💡 Légende :</span>
-                    <span>✅ Nb Victoires (ratio)</span>
+                    <span>✅ Nb Victoires (ratio) — cliquer pour le détail</span>
                 </div>
             </div>
 
@@ -210,102 +210,122 @@
 
                             <!-- Qira -->
                             <td class="px-3 py-3" th:with="ratio=${ms.qiraT > 0 ? (ms.qiraW * 100.0 / ms.qiraT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='QIRA'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.qiraW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.qiraT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- JKCK -->
                             <td class="px-3 py-3" th:with="ratio=${ms.jkckT > 0 ? (ms.jkckW * 100.0 / ms.jkckT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='JKCK'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.jkckW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.jkckT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- Saw -->
                             <td class="px-3 py-3" th:with="ratio=${ms.sawT > 0 ? (ms.sawW * 100.0 / ms.sawT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='SAW'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.sawW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.sawT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- Reva -->
                             <td class="px-3 py-3" th:with="ratio=${ms.revaT > 0 ? (ms.revaW * 100.0 / ms.revaT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='REVA'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.revaW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.revaT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- BKM -->
                             <td class="px-3 py-3" th:with="ratio=${ms.bkmT > 0 ? (ms.bkmW * 100.0 / ms.bkmT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='BKM'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.bkmW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.bkmT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- Merrin -->
                             <td class="px-3 py-3" th:with="ratio=${ms.merrinT > 0 ? (ms.merrinW * 100.0 / ms.merrinT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='MERRIN'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.merrinW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.merrinT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- Clones -->
                             <td class="px-3 py-3" th:with="ratio=${ms.clonesT > 0 ? (ms.clonesW * 100.0 / ms.clonesT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='CLONES'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.clonesW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.clonesT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- Inquis -->
                             <td class="px-3 py-3" th:with="ratio=${ms.inquisT > 0 ? (ms.inquisW * 100.0 / ms.inquisT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='INQUIS'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.inquisW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.inquisT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- L337 -->
                             <td class="px-3 py-3" th:with="ratio=${ms.l337T > 0 ? (ms.l337W * 100.0 / ms.l337T) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='L337'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.l337W}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.l337T == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
 
                             <!-- YHan -->
                             <td class="px-3 py-3" th:with="ratio=${ms.yhanT > 0 ? (ms.yhanW * 100.0 / ms.yhanT) : 0}">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <button type="button"
+                                        class="mission-detail-btn flex items-center justify-center gap-1.5 w-full hover:opacity-75 transition-opacity cursor-pointer"
+                                        th:attr="data-tbid=${ms.territoryBattleId},data-mission='YHAN'">
                                     <span class="font-semibold text-slate-200">✅ <span th:text="${ms.yhanW}">0</span></span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" 
                                           th:classappend="${ms.yhanT == 0 ? 'bg-slate-700 text-slate-400 border-slate-600' : (ratio == 100 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : (ratio >= 75 ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : (ratio >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-rose-500/10 text-rose-400 border-rose-500/30')))}"
                                           th:text="'(' + ${#numbers.formatDecimal(ratio, 1, 0)} + '%)'">(0%)</span>
-                                </div>
+                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -392,6 +412,23 @@
         </div>
     </main>
 
+    <!-- Modale détail mission spéciale -->
+    <div id="modalMissionOverlay" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4" onclick="fermerDetailMission(event)">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <div class="p-5 border-b border-slate-700 flex justify-between items-center">
+                <h3 id="modalMissionTitre" class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="bi bi-star-fill text-amber-400"></i> Détail mission
+                </h3>
+                <button onclick="fermerDetailMission()" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="bi bi-x-lg text-xl"></i>
+                </button>
+            </div>
+            <div id="modalMissionContenu" class="p-5 overflow-y-auto space-y-6">
+                <!-- Rempli en JS -->
+            </div>
+        </div>
+    </div>
+
     <!-- Script de tri JavaScript préservé -->
     <script>
         var derniereColonneTriee = -1;
@@ -426,6 +463,85 @@
             lignes.forEach(function (ligne) {
                 tbody.appendChild(ligne);
             });
+        }
+    </script>
+
+    <!-- Script détail mission spéciale (modale) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.mission-detail-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var tbId = btn.getAttribute('data-tbid');
+                    var mission = btn.getAttribute('data-mission');
+                    ouvrirDetailMission(tbId, mission);
+                });
+            });
+        });
+
+        function ouvrirDetailMission(tbId, mission) {
+            if (!tbId || !mission) return;
+
+            var overlay = document.getElementById('modalMissionOverlay');
+            var contenu = document.getElementById('modalMissionContenu');
+            var titre = document.getElementById('modalMissionTitre');
+
+            titre.innerHTML = '<i class="bi bi-star-fill text-amber-400"></i> Détail mission — ' + mission;
+            contenu.innerHTML = '<p class="text-slate-400 text-sm italic">Chargement...</p>';
+            overlay.classList.remove('hidden');
+
+            fetch('/tb-plan/mission-detail?tbId=' + encodeURIComponent(tbId) + '&mission=' + encodeURIComponent(mission))
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    contenu.innerHTML = construireContenuModale(data);
+                })
+                .catch(function () {
+                    contenu.innerHTML = '<p class="text-rose-400 text-sm">Erreur lors du chargement des données.</p>';
+                });
+        }
+
+        function fermerDetailMission(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('modalMissionOverlay').classList.add('hidden');
+        }
+
+        function construireContenuModale(data) {
+            var html = '';
+
+            html += '<div class="grid grid-cols-3 gap-3 text-center mb-2">';
+            html += '<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3"><div class="text-xl font-extrabold text-white">' + data.nbReussis + '</div><div class="text-[10px] uppercase font-semibold text-emerald-400/80">Réussies</div></div>';
+            html += '<div class="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3"><div class="text-xl font-extrabold text-white">' + data.nbEchecs + '</div><div class="text-[10px] uppercase font-semibold text-rose-400/80">Échouées</div></div>';
+            html += '<div class="bg-slate-700/30 border border-slate-600/40 rounded-xl p-3"><div class="text-xl font-extrabold text-white">' + data.nbNonTentes + '</div><div class="text-[10px] uppercase font-semibold text-slate-400/80">Non tentées</div></div>';
+            html += '</div>';
+
+            html += '<div>';
+            html += '<h4 class="text-sm font-bold text-rose-400 mb-2 flex items-center gap-2"><i class="bi bi-x-circle"></i> Joueurs ayant échoué</h4>';
+            if (data.joueursEnEchec.length === 0) {
+                html += '<p class="text-slate-500 text-xs italic">Aucun</p>';
+            } else {
+                html += '<div class="space-y-1.5">';
+                data.joueursEnEchec.forEach(function (nom) {
+                    html += '<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 rounded-lg border border-slate-700/50 text-sm text-slate-200">'
+                         + '<span class="text-rose-400 font-bold">✕</span> ' + nom + '</div>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+
+            html += '<div>';
+            html += '<h4 class="text-sm font-bold text-slate-400 mb-2 flex items-center gap-2"><i class="bi bi-dash-circle"></i> Joueurs n\'ayant pas tenté</h4>';
+            if (data.joueursNonTentes.length === 0) {
+                html += '<p class="text-slate-500 text-xs italic">Aucun</p>';
+            } else {
+                html += '<div class="space-y-1.5">';
+                data.joueursNonTentes.forEach(function (nom) {
+                    html += '<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 rounded-lg border border-slate-700/50 text-sm text-slate-200">'
+                         + '<span class="text-slate-400 font-bold">–</span> ' + nom + '</div>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+
+            return html;
         }
     </script>
 </body>

@@ -18,6 +18,7 @@ import swgohManager.repository.TerritoryBattleRepository;
 import swgohManager.service.TbAnalyseService;
 import swgohManager.service.TbMissionSpecialeService;
 import swgohManager.service.TbPlanService;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/tb-plan")
@@ -109,4 +110,29 @@ public class TbPlanWebController {
         if (v == null || v.isBlank()) return null;
         try { return Long.parseLong(v); } catch (NumberFormatException e) { return null; }
     }
+    
+    @GetMapping("/mission-detail")
+    @ResponseBody
+    public MissionDetailResponse missionDetail(@RequestParam Long tbId, @RequestParam String mission) {
+        swgohManager.service.TbMissionSpecialeService.MissionSpeciale m =
+                swgohManager.service.TbMissionSpecialeService.MissionSpeciale.valueOf(mission);
+        var analyse = tbMissionSpecialeService.analyser(tbId, m);
+
+        List<String> echec = analyse.joueursEnEchec().stream()
+                .map(swgohManager.service.TbMissionSpecialeService.JoueurHistoriqueMission::playerName)
+                .toList();
+        List<String> nonTente = analyse.joueursNonTentes().stream()
+                .map(swgohManager.service.TbMissionSpecialeService.JoueurHistoriqueMission::playerName)
+                .toList();
+
+        return new MissionDetailResponse(analyse.nbReussis(), analyse.nbEchecs(), analyse.nbNonTentes(), echec, nonTente);
+    }
+
+    public record MissionDetailResponse(
+            long nbReussis,
+            long nbEchecs,
+            long nbNonTentes,
+            List<String> joueursEnEchec,
+            List<String> joueursNonTentes
+    ) {}
 }

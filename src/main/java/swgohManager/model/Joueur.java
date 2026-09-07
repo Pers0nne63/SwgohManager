@@ -22,8 +22,9 @@ public class Joueur {
 
     @Column(unique = true, nullable = false)
     private String playerId;
-    private String GuildId;
     private String playerName;
+    private String GuildId;
+    private String GuildName;
     private Long galacticPower;
     private String leagueId;
     private Long shipGalacticPower;

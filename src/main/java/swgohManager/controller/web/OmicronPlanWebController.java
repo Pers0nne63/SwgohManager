@@ -1,9 +1,13 @@
 package swgohManager.controller.web;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,10 +15,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import lombok.RequiredArgsConstructor;
 import swgohManager.model.Joueur;
 import swgohManager.repository.JoueurRepository;
+import swgohManager.service.OmicronExportService;
 import swgohManager.service.OmicronPlanProgressService;
 import swgohManager.service.OmicronPlanService;
 
@@ -25,6 +31,7 @@ public class OmicronPlanWebController {
 
     private final OmicronPlanService omicronPlanService;
     private final OmicronPlanProgressService omicronPlanProgressService;
+    private final OmicronExportService omicronExportService;
     private final JoueurRepository joueurRepository;
 
     @GetMapping
@@ -67,5 +74,32 @@ public class OmicronPlanWebController {
         model.addAttribute("pourcentages", pourcentages);
 
         return "omicron-progress-commun";
+    }
+    
+    @GetMapping("/commun/export")
+    @ResponseBody
+    public ResponseEntity<byte[]> exporterDetail() throws IOException {
+        byte[] fichier = omicronExportService.exportDetailXlsx();
+
+        String filename = "omicrons-detail-" + java.time.LocalDate.now() + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(fichier);
+    }
+    
+    @GetMapping("/api/manquants")
+    @ResponseBody
+    public List<String> getOmicronsManquants(@RequestParam String playerId, @RequestParam int priorite) {
+        OmicronPlanProgressService.PlayerOmicronProgress progress = omicronPlanProgressService.getProgression(playerId);
+        OmicronPlanProgressService.PrioriteSummary summary = progress.parPriorite().get(priorite);
+
+        if (summary == null) return List.of();
+
+        return summary.details().stream()
+                .filter(d -> !d.atteint())
+                .map(OmicronPlanProgressService.DetailRow::label)
+                .toList();
     }
 }

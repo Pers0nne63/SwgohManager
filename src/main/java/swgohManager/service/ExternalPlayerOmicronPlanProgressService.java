@@ -2,41 +2,32 @@ package swgohManager.service;
 
 import swgohManager.controller.dto.PlayerOmicronStatusProjection;
 import swgohManager.model.OmicronPlan;
-import swgohManager.model.PlayerPdfOmicronActuel;
-import swgohManager.model.PlayerPdfOmicronHistorique;
 import swgohManager.model.UnitDefinition;
+import swgohManager.repository.ExternalRosterUnitSkillActuelRepository;
 import swgohManager.repository.OmicronPlanRepository;
-import swgohManager.repository.PlayerPdfOmicronActuelRepository;
-import swgohManager.repository.PlayerPdfOmicronHistoriqueRepository;
-import swgohManager.repository.RosterUnitSkillActuelRepository;
 import swgohManager.repository.UnitDefinitionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class OmicronPlanProgressService {
+public class ExternalPlayerOmicronPlanProgressService {
 
     private final OmicronPlanRepository omicronPlanRepository;
-    private final RosterUnitSkillActuelRepository rosterUnitSkillActuelRepository;
+    private final ExternalRosterUnitSkillActuelRepository externalRosterUnitSkillActuelRepository;
     private final OmicronPlanService omicronPlanService;
-    private final PlayerPdfOmicronActuelRepository playerPdfOmicronActuelRepository;
-    private final PlayerPdfOmicronHistoriqueRepository playerPdfOmicronHistoriqueRepository;
     private final UnitDefinitionRepository unitDefinitionRepository;
 
     public record DetailRow(String baseId, String label, boolean atteint) {}
     public record PrioriteSummary(int priorite, int atteint, int total, Double pourcentage, List<DetailRow> details) {}
     public record PlayerOmicronProgress(Map<Integer, PrioriteSummary> parPriorite) {}
     public record GlobalSummary(String label, int atteint, int total, Double pourcentage) {}
-
-    // 👇 Nouveau : représente une colonne du tableau détaillé (un omicron = une colonne)
     public record OmicronColonneDetail(String cle, String baseId, String idSkill, String label, int priorite) {}
 
-    // --- Helpers factorisés (utilisés par getProgression ET getColonnesDetail) ---
+    // --- Helpers factorisés ---
 
     private Map<String, String> buildUnitMap() {
         return unitDefinitionRepository.findAll().stream()
@@ -64,7 +55,8 @@ public class OmicronPlanProgressService {
         Map<String, OmicronPlanService.Option> optionsParBaseIdSkill = buildOptionsMap();
 
         Map<String, Boolean> statutJoueur = new HashMap<>();
-        for (PlayerOmicronStatusProjection p : rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId)) {
+        // Changement de repository ici pour taper sur le joueur externe
+        for (PlayerOmicronStatusProjection p : externalRosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId)) {
             statutJoueur.put(p.getBaseId() + "|" + p.getIdSkill(), Boolean.TRUE.equals(p.getOmicronApplied()));
         }
 
@@ -109,7 +101,6 @@ public class OmicronPlanProgressService {
         return new GlobalSummary("GLOBAL", totalAtteint, totalTotal, pct);
     }
 
-    // 👇 Nouveau : liste ordonnée des colonnes (un omicron par colonne), toutes priorités confondues
     public List<OmicronColonneDetail> getColonnesDetail() {
         List<OmicronPlan> plans = omicronPlanRepository.findAll();
         Map<String, String> unitMap = buildUnitMap();
@@ -130,77 +121,11 @@ public class OmicronPlanProgressService {
         return colonnes;
     }
 
-    // 👇 Nouveau : statut brut (cle -> atteint) pour un joueur, sans agrégation par priorité
-    // Si une clé est absente de la map, cela signifie que le joueur ne possède pas le personnage
-    // (ou pas ce skill) — à distinguer côté vue d'un "posé=false".
     public Map<String, Boolean> getStatutDetailParJoueur(String playerId) {
         Map<String, Boolean> statutJoueur = new HashMap<>();
-        for (PlayerOmicronStatusProjection p : rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId)) {
+        for (PlayerOmicronStatusProjection p : externalRosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId)) {
             statutJoueur.put(p.getBaseId() + "|" + p.getIdSkill(), Boolean.TRUE.equals(p.getOmicronApplied()));
         }
         return statutJoueur;
-    }
-
-    @Transactional
-    public void calculerEtEnregistrer(String playerId, Long idSync) {
-        PlayerOmicronProgress progress = getProgression(playerId);
-
-        for (int i = 1; i <= 4; i++) {
-            PrioriteSummary pSummary = progress.parPriorite().get(i);
-            String prioriteLabel = "P" + i;
-
-            int atteint = pSummary != null ? pSummary.atteint() : 0;
-            int total = pSummary != null ? pSummary.total() : 0;
-            Double pourcentage = pSummary != null ? pSummary.pourcentage() : null;
-
-            PlayerPdfOmicronActuel existant = playerPdfOmicronActuelRepository
-                    .findByPlayerIdAndPriorite(playerId, prioriteLabel).orElse(null);
-
-            if (existant != null) {
-                playerPdfOmicronHistoriqueRepository.save(PlayerPdfOmicronHistorique.builder()
-                        .playerId(existant.getPlayerId())
-                        .priorite(existant.getPriorite())
-                        .atteint(existant.getAtteint())
-                        .total(existant.getTotal())
-                        .pourcentage(existant.getPourcentage())
-                        .idSync(existant.getIdSync())
-                        .build());
-            } else {
-                existant = new PlayerPdfOmicronActuel();
-                existant.setPlayerId(playerId);
-                existant.setPriorite(prioriteLabel);
-            }
-
-            existant.setAtteint(atteint);
-            existant.setTotal(total);
-            existant.setPourcentage(pourcentage);
-            existant.setIdSync(idSync);
-
-            playerPdfOmicronActuelRepository.save(existant);
-        }
-    }
-
-    public Map<String, Map<String, Double>> getPourcentagesOmiPourJoueurs(List<String> playerIds) {
-        List<PlayerPdfOmicronActuel> tousLesActuels = playerPdfOmicronActuelRepository.findByPlayerIdIn(playerIds);
-
-        Map<String, Map<String, Double>> mapGlobale = new HashMap<>();
-        for (String pid : playerIds) {
-            mapGlobale.put(pid, new HashMap<>());
-        }
-
-        for (PlayerPdfOmicronActuel p : tousLesActuels) {
-            Double pct = p.getPourcentage() != null ? p.getPourcentage() : -1.0;
-            mapGlobale.get(p.getPlayerId()).put(p.getPriorite(), pct);
-        }
-
-        return mapGlobale;
-    }
-
-    @Transactional
-    public void nettoyerJoueursInactifs(List<String> joueursActifs) {
-        if (!joueursActifs.isEmpty()) {
-            playerPdfOmicronActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
-            playerPdfOmicronActuelRepository.flush();
-        }
     }
 }

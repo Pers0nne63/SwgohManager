@@ -9,6 +9,8 @@ public record PlayerResponse(
         String playerId,
         String allyCode,
         String name,
+        String guildId,
+        String guildName,
         PlayerRating playerRating,
         List<RosterUnit> rosterUnit,
         List<DatacronRaw> datacron,

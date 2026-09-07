@@ -3,9 +3,10 @@ package swgohManager.controller.dto;
 import java.time.LocalDateTime;
 
 public interface TbMSStatsProjection {
+    Long getTerritoryBattleId();
     LocalDateTime getEndTime();
-    String getPlayerName(); // Corrigé en String
-    
+    String getPlayerName();
+
     Integer getQiraT();
     Integer getQiraW();
     Integer getJkckT();

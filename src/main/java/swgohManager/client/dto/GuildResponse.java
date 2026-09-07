@@ -10,9 +10,27 @@ public record GuildResponse(Guild guild) {
     public record Guild(
             String id,
             String name,
+            GuildProfile profile,
             List<Member> member,
             List<RecentRaidResult> recentRaidResult,
             List<TerritoryBattleResult> recentTerritoryBattleResult
+    ) {
+        /**
+         * Récupère le nom de la guilde qu'il soit directement sous 'guild'
+         * ou imbriqué dans 'profile'.
+         */
+        public String getGuildName() {
+            if (name != null && !name.isBlank()) {
+                return name;
+            }
+            return profile != null ? profile.name() : null;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record GuildProfile(
+            String id,
+            String name
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)

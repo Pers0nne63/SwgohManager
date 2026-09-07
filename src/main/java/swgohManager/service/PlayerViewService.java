@@ -1,6 +1,12 @@
 package swgohManager.service;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,7 +61,9 @@ public class PlayerViewService {
             List<String> farmPlanHistoLabels,
             List<Double> farmPlanHistoValues,
             Double statQ,
-            GuildeRelicRepartitionProjection relicRepartition // AJOUT
+            GuildeRelicRepartitionProjection relicRepartition,
+            Long nbMods5,   // 👈 nouveau
+            Long nbMods6    // 👈 nouveau
     ) {}
 
     public PlayerViewModel construire(String playerId) {
@@ -76,7 +84,6 @@ public class PlayerViewService {
             
             int vitesse = (int) Math.round(m.getValeurSecondaire() / DIVISEUR);
             
-            // Conversion sécurisée du String rarity en Integer
             Integer rarete = parseRarity(m.getRarity());
 
             if (vitesse >= 0 && vitesse <= 31 && rarete != null && rarete >= 1 && rarete <= 6) {
@@ -84,23 +91,20 @@ public class PlayerViewService {
             }
         }
 
-        // Labels X : 0 à 31
         List<Integer> labels = new ArrayList<>();
         for (int v = 0; v <= 31; v++) {
             labels.add(v);
         }
 
-        // Palette de couleurs par rareté (1★ à 6★)
         Map<Integer, String> coulersRarete = Map.of(
-            1, "#95a5a6", // 1* Gris
-            2, "#2ecc71", // 2* Vert
-            3, "#3498db", // 3* Bleu
-            4, "#9b59b6", // 4* Violet
-            5, "#e67e22", // 5* Orange / Gold 5*
-            6, "#f1c40f"  // 6* Jaune / Gold 6*
+            1, "#95a5a6",
+            2, "#2ecc71",
+            3, "#3498db",
+            4, "#9b59b6",
+            5, "#e67e22",
+            6, "#f1c40f"
         );
 
-        // Construction des datasets pour Chart.js (un dataset par rareté)
         List<ModSpeedDataset> datasets = new ArrayList<>();
         for (int r = 1; r <= 6; r++) {
             List<Long> counts = new ArrayList<>();
@@ -111,7 +115,6 @@ public class PlayerViewService {
                 totalRarite += compteurs[r][v];
             }
             
-            // On n'ajoute la série que si le joueur possède au moins un mod de cette rareté
             if (totalRarite > 0) {
                 datasets.add(new ModSpeedDataset(
                     r + "★",
@@ -123,10 +126,13 @@ public class PlayerViewService {
 
         FarmPlanProgressService.PlayerFarmProgress farmPlan = farmPlanProgressService.getProgressionPersistee(playerId);
 
-        List<FarmPlanProgressService.PointProgression> historiqueFarm = farmPlanProgressService.getProgressionDansLeTempsPersistee(playerId);
+        // 👇 Agrégation : un seul point (le dernier connu) par semaine ISO, au lieu d'un point par synchro
+        List<FarmPlanProgressService.PointProgression> historiqueFarmBrut = farmPlanProgressService.getProgressionDansLeTempsPersistee(playerId);
+        List<FarmPlanProgressService.PointProgression> historiqueFarm = aggregerDernierPointParSemaine(historiqueFarmBrut);
+
         List<String> farmPlanHistoLabels = historiqueFarm.stream()
                 .map(p -> p.date() != null
-                        ? java.time.format.DateTimeFormatter.ofPattern("dd/MM").withZone(java.time.ZoneId.systemDefault()).format(p.date())
+                        ? java.time.format.DateTimeFormatter.ofPattern("dd/MM").withZone(ZoneId.systemDefault()).format(p.date())
                         : "")
                 .toList();
         List<Double> farmPlanHistoValues = historiqueFarm.stream().map(FarmPlanProgressService.PointProgression::pourcentage).toList();
@@ -136,10 +142,14 @@ public class PlayerViewService {
         
         FarmPlanIndProgressService.PlayerFarmIndProgress farmPlanInd = farmPlanIndProgressService.getProgressionPersistee(playerId);
         
-        // Récupération de la répartition des reliques du joueur
-        GuildeRelicRepartitionProjection relicRepartition = rosterUnitActuelRepository.findRepartitionRelicsJoueur(playerId); // AJOUT
+        GuildeRelicRepartitionProjection relicRepartition = rosterUnitActuelRepository.findRepartitionRelicsJoueur(playerId);
+
+        // 👇 Nouveaux indicateurs : nombre de mods 5★ et 6★ (tous secondaires confondus)
+        Long nbMods5 = rosterUnitModActuelRepository.countDistinctModsByPlayerIdAndRarity(playerId, "5");
+        Long nbMods6 = rosterUnitModActuelRepository.countDistinctModsByPlayerIdAndRarity(playerId, "6");
         
-        return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanInd, farmPlanHistoLabels, farmPlanHistoValues, statQ, relicRepartition);
+        return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanInd,
+                farmPlanHistoLabels, farmPlanHistoValues, statQ, relicRepartition, nbMods5, nbMods6);
     }
 
     private Integer parseRarity(String rarityStr) {
@@ -149,5 +159,36 @@ public class PlayerViewService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /**
+     * Ne garde qu'un point par semaine ISO (le plus récent de chaque semaine),
+     * en supposant que la liste d'entrée est déjà triée par date croissante.
+     */
+    private List<FarmPlanProgressService.PointProgression> aggregerDernierPointParSemaine(
+            List<FarmPlanProgressService.PointProgression> points) {
+
+        if (points == null || points.isEmpty()) return List.of();
+
+        WeekFields wf = WeekFields.ISO;
+        ZoneId zone = ZoneId.systemDefault();
+
+        // LinkedHashMap : la clé "année-semaine" est insérée une seule fois (à la 1ère occurrence chronologique)
+        // et sa valeur est écrasée à chaque nouveau point de la même semaine -> on garde le dernier en date,
+        // tout en conservant l'ordre chronologique des semaines.
+        Map<String, FarmPlanProgressService.PointProgression> dernierParSemaine = new LinkedHashMap<>();
+
+        for (FarmPlanProgressService.PointProgression p : points) {
+            if (p.date() == null) continue;
+            Instant instant = p.date(); // 👈 hypothèse : PointProgression.date() renvoie un Instant
+            LocalDate localDate = LocalDateTime.ofInstant(instant, zone).toLocalDate();
+            int annee = localDate.get(wf.weekBasedYear());
+            int semaine = localDate.get(wf.weekOfWeekBasedYear());
+            String cle = annee + "-W" + String.format("%02d", semaine);
+
+            dernierParSemaine.put(cle, p);
+        }
+
+        return new ArrayList<>(dernierParSemaine.values());
     }
 }

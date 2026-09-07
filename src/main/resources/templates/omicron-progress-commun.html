@@ -23,12 +23,15 @@
         <a href="/guilde" class="inline-flex items-center text-sm font-medium text-slate-400 hover:text-amber-400 mb-6 transition-colors">
             <i class="bi bi-arrow-left me-2"></i> Retour à la guilde
         </a>
-
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
-                <i class="bi bi-shield-shaded text-amber-400"></i> Suivi des Omicrons Commun
-            </h1>
-        </div>
+		    <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+		        <i class="bi bi-shield-shaded text-amber-400"></i> Suivi des Omicrons Commun
+		    </h1>
+		    <a href="/omicron-tw/commun/export"
+		       class="inline-flex items-center gap-2 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/30 px-4 py-2 rounded-lg text-sm font-bold transition-all">
+		        <i class="bi bi-file-earmark-excel"></i> Export Excel détaillé
+		    </a>
+		</div>
 
         <!-- Table des joueurs -->
         <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
@@ -49,13 +52,21 @@
 				            <th onclick="sortTable(1, 'number')" class="px-4 py-4 cursor-pointer hover:text-amber-400 transition-colors">
 				                PG <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
 				            </th>
-				            <th class="px-4 py-4 text-center">P1</th>
-				            <th class="px-4 py-4 text-center">P2</th>
-				            <th class="px-4 py-4 text-center">P3</th>
-				            <th class="px-4 py-4 text-center">P4</th>
-				            <th class="px-4 py-4 text-center w-36">Action</th>
+				            <th onclick="sortTable(2, 'number')" class="px-4 py-4 text-center cursor-pointer hover:text-amber-400 transition-colors">
+							    P1 <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+							</th>
+							<th onclick="sortTable(3, 'number')" class="px-4 py-4 text-center cursor-pointer hover:text-amber-400 transition-colors">
+							    P2 <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+							</th>
+							<th onclick="sortTable(4, 'number')" class="px-4 py-4 text-center cursor-pointer hover:text-amber-400 transition-colors">
+							    P3 <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+							</th>
+							<th onclick="sortTable(5, 'number')" class="px-4 py-4 text-center cursor-pointer hover:text-amber-400 transition-colors">
+							    P4 <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
+							</th>
 				        </tr>
 				    </thead>
+				    <div id="omicronTooltip" class="hidden fixed z-50 bg-slate-800 border border-amber-500/40 rounded-lg shadow-2xl p-4 max-w-xs text-sm text-slate-200"></div>
 				    <tbody class="divide-y divide-slate-700/60">
 				        <tr th:each="j : ${joueurs}" class="hover:bg-slate-750/50 transition-colors" 
 				            th:with="mapPrio=${pourcentages != null ? pourcentages[j.playerId] : null}">
@@ -71,16 +82,22 @@
 				            
 				            <!-- Boucle pour générer les 4 colonnes P1, P2, P3, P4 -->
 				            <th:block th:each="i : ${#numbers.sequence(1, 4)}">
-				                <td class="px-4 py-4 text-center" th:with="pct=${mapPrio != null ? mapPrio['P' + i] : null}">
-				                    
+				                 <td class="px-4 py-4 text-center" 
+							        th:with="pct=${mapPrio != null ? mapPrio['P' + i] : null}"
+							        th:data-sort="${pct != null ? pct : -1}">
+							        
 				                    <!-- Barre si donnée existante -->
-				                    <div th:if="${pct != null and pct >= 0}" class="flex flex-col items-center gap-1 w-full max-w-[80px] mx-auto">
-				                        <span class="font-bold text-amber-400 text-xs" th:text="${#numbers.formatDecimal(pct, 1, 1) + ' %'}">0%</span>
-				                        <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-700/60">
-				                            <div class="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-300"
-				                                 th:style="'width: ' + ${pct} + '%'"></div>
-				                        </div>
-				                    </div>
+				                    <div th:if="${pct != null and pct >= 0}" 
+									     class="flex flex-col items-center gap-1 w-full max-w-[80px] mx-auto cursor-pointer omicron-progress-cell hover:opacity-80 transition-opacity"
+									     th:data-player-id="${j.playerId}"
+									     th:data-priorite="${i}"
+									     th:title="'Voir le détail'">
+									    <span class="font-bold text-amber-400 text-xs" th:text="${#numbers.formatDecimal(pct, 1, 1) + ' %'}">0%</span>
+									    <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-700/60">
+									        <div class="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-300"
+									             th:style="'width: ' + ${pct} + '%'"></div>
+									    </div>
+									</div>
 				
 				                    <!-- Si pas de donnée -->
 				                    <span th:if="${pct == null or pct < 0}" class="text-xs text-slate-500 italic">
@@ -148,5 +165,60 @@
             sortTable(0, 'text');
         });
     </script>
+    <script>
+	document.addEventListener('DOMContentLoaded', () => {
+	    const tooltip = document.getElementById('omicronTooltip');
+	
+	    document.querySelectorAll('.omicron-progress-cell').forEach(cell => {
+	        cell.addEventListener('click', async (e) => {
+	            e.stopPropagation();
+	            const playerId = cell.dataset.playerId;
+	            const priorite = cell.dataset.priorite;
+	
+	            tooltip.innerHTML = '<div class="text-slate-400 italic">Chargement...</div>';
+	            positionTooltip(e.clientX, e.clientY);
+	            tooltip.classList.remove('hidden');
+	
+	            try {
+	                const res = await fetch(`/omicron-tw/api/manquants?playerId=${encodeURIComponent(playerId)}&priorite=${priorite}`);
+	                const manquants = await res.json();
+	
+	                if (manquants.length === 0) {
+	                    tooltip.innerHTML = `
+	                        <div class="flex items-center gap-2 text-emerald-400 font-semibold">
+	                            <i class="bi bi-check-circle-fill"></i> Tous les omicrons P${priorite} sont posés
+	                        </div>`;
+	                } else {
+	                    const items = manquants.map(label =>
+	                        `<li class="flex items-start gap-2 py-1">
+	                            <i class="bi bi-x-circle-fill text-red-400 mt-0.5"></i>
+	                            <span>${label}</span>
+	                        </li>`
+	                    ).join('');
+	
+	                    tooltip.innerHTML = `
+	                        <div class="font-bold text-amber-400 mb-2 flex items-center gap-2">
+	                            <i class="bi bi-exclamation-triangle-fill"></i> Manquants P${priorite}
+	                        </div>
+	                        <ul class="divide-y divide-slate-700/40">${items}</ul>`;
+	                }
+	            } catch (err) {
+	                tooltip.innerHTML = '<div class="text-red-400">Erreur de chargement</div>';
+	            }
+	        });
+	    });
+	
+	    document.addEventListener('click', (e) => {
+	        if (!tooltip.contains(e.target) && !e.target.closest('.omicron-progress-cell')) {
+	            tooltip.classList.add('hidden');
+	        }
+	    });
+	
+	    function positionTooltip(x, y) {
+	        tooltip.style.left = Math.min(x + 12, window.innerWidth - 300) + 'px';
+	        tooltip.style.top = Math.min(y + 12, window.innerHeight - 250) + 'px';
+	    }
+	});
+	</script>
 </body>
 </html>

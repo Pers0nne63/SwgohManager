@@ -40,6 +40,7 @@ public interface TbScoreJoueurRepository extends JpaRepository<TbScoreJoueur, Lo
 
     @Query(value = """
             SELECT 
+            	bt.id AS territoryBattleId,
                 bt.end_time AS endTime,
                 j.player_name AS playerName, 
                 SUM(CASE WHEN ta.map_stat_id ='covert_round_attempted_mission_tb3_mixed_phase01_conflict03_covert01' THEN 1 ELSE 0 END) AS qiraT,
@@ -67,13 +68,14 @@ public interface TbScoreJoueurRepository extends JpaRepository<TbScoreJoueur, Lo
             JOIN joueurs j ON tsj.player_id = j.player_id
             JOIN territory_battle bt ON bt.id = ta.territory_battle_id
             WHERE (:playerId IS NULL OR tsj.player_id = :playerId) AND bt.id IN (SELECT id from territory_battle ORDER BY end_time DESC LIMIT 5)
-            GROUP BY bt.end_time, j.player_name
+            GROUP BY bt.id, bt.end_time, j.player_name
             ORDER BY j.player_name, bt.end_time DESC LIMIT 5
             """, nativeQuery = true)
     List<TbMSStatsProjection> findPlayerTbMSStats(@Param("playerId") String playerId);
     
     @Query(value = """
             SELECT 
+                bt.id AS territoryBattleId,
                 bt.end_time AS endTime, 
                 SUM(CASE WHEN ta.map_stat_id ='covert_round_attempted_mission_tb3_mixed_phase01_conflict03_covert01' THEN 1 ELSE 0 END) AS qiraT,
                 SUM(CASE WHEN ta.map_stat_id ='covert_complete_mission_tb3_mixed_phase01_conflict03_covert01' THEN 1 ELSE 0 END) AS qiraW,
@@ -100,7 +102,7 @@ public interface TbScoreJoueurRepository extends JpaRepository<TbScoreJoueur, Lo
             JOIN joueurs j ON tsj.player_id = j.player_id
             JOIN territory_battle bt ON bt.id = ta.territory_battle_id
             WHERE bt.id IN (SELECT id from territory_battle ORDER BY end_time DESC LIMIT 5)
-            GROUP BY bt.end_time
+            GROUP BY bt.id, bt.end_time
             ORDER BY bt.end_time DESC LIMIT 5
             """, nativeQuery = true)
     List<TbMSStatsProjection> findGuildTbMSStats();

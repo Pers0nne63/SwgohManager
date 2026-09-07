@@ -412,11 +412,34 @@
                 </div>
             </div>
         </div>
-
+        
+       
         <!-- SECTION GRAPHIQUES : MODS -->
         <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
             <i class="bi bi-speedometer2 text-amber-400"></i> Analyse des Mods
         </h2>
+        
+        <!-- Indicateurs Mods 5★ / 6★ -->
+		<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6" th:if="${vm.joueur != null}">
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-xl flex items-center gap-3">
+		        <div class="p-2 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl">
+		            <i class="bi bi-star-fill text-lg"></i>
+		        </div>
+		        <div>
+		            <p class="text-[11px] text-slate-500 uppercase tracking-wider font-bold">Mods 5★</p>
+		            <p class="text-xl font-bold text-orange-400" th:text="${vm.nbMods5 != null ? vm.nbMods5 : 0}">0</p>
+		        </div>
+		    </div>
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-xl flex items-center gap-3">
+		        <div class="p-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-xl">
+		            <i class="bi bi-star-fill text-lg"></i>
+		        </div>
+		        <div>
+		            <p class="text-[11px] text-slate-500 uppercase tracking-wider font-bold">Mods 6★</p>
+		            <p class="text-xl font-bold text-yellow-400" th:text="${vm.nbMods6 != null ? vm.nbMods6 : 0}">0</p>
+		        </div>
+		    </div>
+		</div>
         <div class="charts-container">
             <div class="chart-card" style="grid-column: 1 / -1;">
                 <h3>Répartition de la vitesse secondaire</h3>

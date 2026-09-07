@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${vm.joueur.playerName}">Joueur externe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } } }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+
+    <div th:replace="~{fragments/fragments :: navbar}"></div>
+
+    <main class="flex-grow container mx-auto px-4 lg:px-8 py-8 max-w-7xl">
+
+        <a href="/joueur-externe" class="inline-flex items-center text-sm font-medium text-slate-400 hover:text-amber-400 mb-6 transition-colors">
+            <i class="bi bi-arrow-left me-2"></i> Scanner un autre joueur
+        </a>
+
+        <!-- EN-TÊTE -->
+        <div class="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+            <div class="flex flex-col md:flex-row md:items-center gap-4">
+                <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+                    <i class="bi bi-radar text-indigo-400"></i>
+                    <span th:text="${vm.joueur.playerName} + ' - '">Nom Joueur</span>
+                    <span th:text="${vm.joueur.guildName}">Guilde</span>
+                    <span class="text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-2 py-1 rounded-lg">Externe</span>
+                </h1>
+                <div th:if="${vm.joueur.skillRating != null}" class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-medium">
+                    <span class="text-slate-400">Skill Rating :</span>
+                    <b class="text-white font-mono" th:text="${vm.joueur.skillRating}">0</b>
+                    <span class="text-slate-500 mx-1">-</span>
+                    <span class="text-amber-400 font-semibold" th:text="${vm.joueur.leagueId + ' Div ' + vm.joueur.divisionId}">LEAGUE DIV</span>
+                </div>
+            </div>
+            <p class="text-xs text-slate-500">
+                Scanné le <span th:text="${#temporals.format(vm.joueur.dateScan, 'dd/MM/yyyy HH:mm')}">-</span>
+                — allycode <span th:text="${vm.joueur.allyCode}">-</span>
+            </p>
+        </div>
+
+        <!-- BLOCS D'INFOS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+
+            <!-- REPARTITION RELIQUES -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" th:if="${vm.relicRepartition != null}">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="p-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
+                        <i class="bi bi-gem text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Reliques</h3>
+                        <p class="text-[11px] text-slate-500">Répartition par niveau</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5 text-sm bg-slate-850 p-2.5 rounded-xl border border-slate-700/60 text-center">
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-purple-500/30">
+                        <span class="text-purple-300 block text-[10px] font-bold">R10</span>
+                        <b class="text-purple-400 text-xs font-mono" th:text="${vm.relicRepartition.relic10 != null ? vm.relicRepartition.relic10 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-red-500/30">
+                        <span class="text-red-300 block text-[10px] font-bold">R9</span>
+                        <b class="text-red-400 text-xs font-mono" th:text="${vm.relicRepartition.relic9 != null ? vm.relicRepartition.relic9 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-amber-500/30">
+                        <span class="text-amber-300 block text-[10px] font-bold">R8</span>
+                        <b class="text-amber-400 text-xs font-mono" th:text="${vm.relicRepartition.relic8 != null ? vm.relicRepartition.relic8 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-sky-500/30">
+                        <span class="text-sky-300 block text-[10px] font-bold">R6-7</span>
+                        <b class="text-sky-400 text-xs font-mono" th:text="${vm.relicRepartition.relic6Et7 != null ? vm.relicRepartition.relic6Et7 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-emerald-500/30">
+                        <span class="text-emerald-300 block text-[10px] font-bold">R0-5</span>
+                        <b class="text-emerald-400 text-xs font-mono" th:text="${vm.relicRepartition.relic0A5 != null ? vm.relicRepartition.relic0A5 : 0}">0</b>
+                    </div>
+                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-600">
+                        <span class="text-slate-400 block text-[10px] font-bold">G1-13</span>
+                        <b class="text-slate-300 text-xs font-mono" th:text="${vm.relicRepartition.sansRelic != null ? vm.relicRepartition.sansRelic : 0}">0</b>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODQ -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Qualité des Mods</h3>
+                <div class="space-y-2 text-sm">
+                    <p class="flex justify-between items-center">
+                        ModQ :
+                        <b class="text-2xl font-bold text-indigo-400"
+                           th:text="${vm.modQ != null and vm.modQ.modQ != null ? #numbers.formatDecimal(vm.modQ.modQ, 1, 2) : '-'}">-</b>
+                    </p>
+                    <p class="text-xs text-slate-500 italic" th:if="${vm.modQ == null or vm.modQ.modQ == null}">
+                        GP personnage non disponible pour ce joueur (hors guilde) — ModQ non calculable.
+                    </p>
+                    <p class="flex justify-between">Mods 25+ : <span class="text-slate-300" th:text="${vm.modQ != null ? vm.modQ.mod25Plus : '-'}">-</span></p>
+                    <p class="flex justify-between">Mods 20-24 : <span class="text-slate-300" th:text="${vm.modQ != null ? vm.modQ.mod20_24 : '-'}">-</span></p>
+                    <p class="flex justify-between">Mods 15-19 : <span class="text-slate-300" th:text="${vm.modQ != null ? vm.modQ.mod15_19 : '-'}">-</span></p>
+                </div>
+            </div>
+
+			<!-- Card unique : Plans de farm & Objectifs -->
+			<div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" 
+			     th:if="${vm.farmPlan != null or vm.omicronComparison != null or vm.datacronComparison != null}">
+			    
+			    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">
+			        Plans de farm &amp; Objectifs
+			    </h3>
+			    
+			    <div class="space-y-3 text-sm">
+			        
+				<!-- 1. Plan Global -->
+				
+				<div th:if="${vm.farmPlan != null}" class="flex justify-between items-center pb-2 border-b border-slate-700/50">
+				    <div>
+				        <span class="text-slate-300 font-medium block">Global</span>
+				        <span class="text-xs text-slate-500" th:text="${vm.farmPlan.atteint()} + ' / ' + ${vm.farmPlan.total()} + ' atteints'">0/0</span>
+				    </div>
+				    <div class="relative group cursor-pointer">
+				        <span class="text-xl font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+				              th:text="${vm.farmPlan.pourcentage() != null ? #numbers.formatDecimal(vm.farmPlan.pourcentage(), 1, 1) + ' %' : '0 %'}">0 %</span>
+				
+				        <!-- Tooltip Plan Global -->
+				        <div class="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-3 shadow-2xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50">
+				            <div class="text-[11px] font-bold text-slate-400 uppercase mb-2 border-b border-slate-700/60 pb-1 flex justify-between items-center">
+				                <span>Unités cibles</span>
+				                <span th:text="${vm.farmPlan.atteint()} + '/' + ${vm.farmPlan.total()}">0/0</span>
+				            </div>
+				            <ul class="space-y-1 text-xs max-h-48 overflow-y-auto pr-1">
+				                <li th:each="d : ${vm.farmPlan.details()}" class="flex items-center justify-between gap-2 py-1 border-b border-slate-800 last:border-0">
+				                    <span class="flex items-center gap-1.5 truncate">
+				                        <i th:class="${d.atteint()} ? 'bi bi-check-circle-fill text-emerald-400' : 'bi bi-x-circle-fill text-red-400'"></i>
+				                        <span th:text="${d.nomUnite()}" class="text-slate-200 truncate">Nom unité</span>
+				                    </span>
+				                    <span class="text-slate-400 font-mono text-[10px]"
+				                          th:text="${d.etoilesCible()} + '★ R' + ${d.relicCible()}">7★ R9</span>
+				                </li>
+				            </ul>
+				        </div>
+				    </div>
+				</div>
+			
+			        <!-- 2. Plan Omicrons -->
+			        <div th:if="${vm.omicronComparison != null}" class="flex justify-between items-center pb-2 border-b border-slate-700/50">
+			            <div>
+			                <span class="text-slate-300 font-medium block">Omicrons</span>
+			                <span class="text-xs text-slate-500" th:text="${vm.omicronComparison.atteint()} + ' / ' + ${vm.omicronComparison.total()} + ' atteints'">0/0</span>
+			            </div>
+			            <div class="relative group cursor-pointer">
+			                <span class="text-xl font-bold text-purple-400 hover:text-purple-300 transition-colors"
+			                      th:text="${vm.omicronComparison.pourcentage() != null ? #numbers.formatDecimal(vm.omicronComparison.pourcentage(), 1, 1) + ' %' : '0 %'}">0 %</span>
+			
+			                <!-- Tooltip Omicrons -->
+			                <div class="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-3 shadow-2xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50">
+			                    <div class="text-[11px] font-bold text-slate-400 uppercase mb-2 border-b border-slate-700/60 pb-1 flex justify-between items-center">
+			                        <span>Omicrons cibles</span>
+			                        <span th:text="${vm.omicronComparison.atteint()} + '/' + ${vm.omicronComparison.total()}">0/0</span>
+			                    </div>
+			                    <ul class="space-y-1 text-xs max-h-48 overflow-y-auto pr-1">
+			                        <li th:each="d : ${vm.omicronComparison.details()}" class="flex items-center justify-between gap-2 py-1 border-b border-slate-800 last:border-0">
+			                            <span class="flex items-center gap-1.5 truncate">
+			                                <i th:class="${d.atteint()} ? 'bi bi-check-circle-fill text-emerald-400' : 'bi bi-x-circle-fill text-red-400'"></i>
+			                                <span th:text="${d.label()}" class="text-slate-200 truncate">Nom compétence</span>
+			                            </span>
+			                        </li>
+			                    </ul>
+			                </div>
+			            </div>
+			        </div>
+			
+			        <!-- 3. Plan Datacrons -->
+			        <div th:if="${vm.datacronComparison != null}" class="flex justify-between items-center">
+			            <div>
+			                <span class="text-slate-300 font-medium block">Datacrons</span>
+			                <span class="text-xs text-slate-500" th:text="${vm.datacronComparison.atteint()} + ' / ' + ${vm.datacronComparison.total()} + ' atteints'">0/0</span>
+			            </div>
+			            <div class="relative group cursor-pointer">
+			                <span class="text-xl font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+			                      th:text="${vm.datacronComparison.pourcentage() != null ? #numbers.formatDecimal(vm.datacronComparison.pourcentage(), 1, 1) + ' %' : '0 %'}">0 %</span>
+			
+			                <!-- Tooltip Datacrons -->
+			                <div class="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-3 shadow-2xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50">
+			                    <div class="text-[11px] font-bold text-slate-400 uppercase mb-2 border-b border-slate-700/60 pb-1 flex justify-between items-center">
+			                        <span>Datacrons cibles</span>
+			                        <span th:text="${vm.datacronComparison.atteint()} + '/' + ${vm.datacronComparison.total()}">0/0</span>
+			                    </div>
+			                    <ul class="space-y-1 text-xs max-h-48 overflow-y-auto pr-1">
+			                        <li th:each="d : ${vm.datacronComparison.details()}" class="flex items-center justify-between gap-2 py-1 border-b border-slate-800 last:border-0">
+			                            <span class="flex items-center gap-1.5 truncate">
+			                                <i th:class="${d.atteint()} ? 'bi bi-check-circle-fill text-emerald-400' : 'bi bi-x-circle-fill text-red-400'"></i>
+			                                <span th:text="${d.nom()}" class="text-slate-200 truncate">Nom Datacron</span>
+			                            </span>
+			                            <span class="text-slate-400 font-mono text-[10px]" th:text="${d.setId()}">Set</span>
+			                        </li>
+			                    </ul>
+			                </div>
+			            </div>
+			        </div>
+			
+			    </div>
+			</div>
+        </div>
+        <!-- RAID + TB -->
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl" th:if="${vm.raid != null}">
+		        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-700 pb-2">
+		            Dernier Raid de guilde
+		        </h3>
+		        <p class="text-2xl font-bold text-amber-400" th:text="${#numbers.formatInteger(vm.raid.score, 0, 'WHITESPACE')}">0</p>
+		        <p class="text-xs text-slate-500 mt-1" th:text="${#temporals.format(vm.raid.endTime, 'dd/MM/yyyy')}">-</p>
+		    </div>
+		
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl md:col-span-2" th:if="${vm.tbSynthese != null}">
+		        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-700 pb-2">
+		            Dernière Territory Battle de guilde
+		        </h3>
+		        <div class="grid grid-cols-5 gap-2 text-center text-sm">
+		            <div><span class="text-slate-500 block text-[10px]">Date</span><b class="text-white" th:text="${#temporals.format(vm.tbSynthese.endTime(), 'dd/MM')}">-</b></div>
+		            <div><span class="text-slate-500 block text-[10px]">Vagues P3</span><b class="text-white" th:text="${vm.tbSynthese.vaguesP3()}">-</b></div>
+		            <div><span class="text-slate-500 block text-[10px]">Vagues P4</span><b class="text-white" th:text="${vm.tbSynthese.vaguesP4()}">-</b></div>
+		            <div><span class="text-slate-500 block text-[10px]">Vagues P5</span><b class="text-white" th:text="${vm.tbSynthese.vaguesP5()}">-</b></div>
+		            <div><span class="text-slate-500 block text-[10px]">Vagues P6</span><b class="text-white" th:text="${vm.tbSynthese.vaguesP6()}">-</b></div>
+		        </div>
+		        <p class="text-xs text-slate-500 mt-3">MS tentées (total) : <b class="text-slate-200" th:text="${vm.tbSynthese.msTenteesTotal()}">0</b></p>
+		    </div>
+		</div>
+		
+		<!-- MISSIONS SPÉCIALES -->
+		<div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl mb-8" th:if="${vm.tbMsStats != null}">
+		    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-700 pb-2">
+		        Missions Spéciales — Dernière TB
+		    </h3>
+		    <div class="overflow-x-auto">
+		        <table class="w-full text-sm text-center">
+		            <thead class="text-slate-500 text-xs uppercase">
+		                <tr>
+		                    <th class="px-2 py-2">Qira</th><th class="px-2 py-2">JKCK</th><th class="px-2 py-2">Saw</th>
+		                    <th class="px-2 py-2">Reva</th><th class="px-2 py-2">BKM</th><th class="px-2 py-2">Merrin</th>
+		                    <th class="px-2 py-2">Clones</th><th class="px-2 py-2">Inquis</th><th class="px-2 py-2">L337</th><th class="px-2 py-2">YHan</th>
+		                </tr>
+		            </thead>
+		            <tbody>
+		                <tr>
+		                    <td th:text="${vm.tbMsStats.qiraW() == 1 ? '✅' : (vm.tbMsStats.qiraT() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.jkckW() == 1 ? '✅' : (vm.tbMsStats.jkckT() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.sawW() == 1 ? '✅' : (vm.tbMsStats.sawT() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.revaW() == 1 ? '✅' : (vm.tbMsStats.revaT() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.bkmW() == 1 ? '✅' : (vm.tbMsStats.bkmT() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.merrinW() == 1 ? '✅' : (vm.tbMsStats.merrinT() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.clonesW() == 1 ? '✅' : (vm.tbMsStats.clonesT() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.inquisW() == 1 ? '✅' : (vm.tbMsStats.inquisT() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.l337W() == 1 ? '✅' : (vm.tbMsStats.l337T() == 1 ? '❌' : '➖')}"></td>
+		                    <td th:text="${vm.tbMsStats.yhanW() == 1 ? '✅' : (vm.tbMsStats.yhanT() == 1 ? '❌' : '➖')}"></td>
+		                </tr>
+		            </tbody>
+		        </table>
+		    </div>
+		</div>
+
+        <!-- INDICATEURS MODS 5/6★ -->
+        <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <i class="bi bi-speedometer2 text-amber-400"></i> Analyse des Mods
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-xl flex items-center gap-3">
+                <div class="p-2 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl">
+                    <i class="bi bi-star-fill text-lg"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] text-slate-500 uppercase tracking-wider font-bold">Mods 5★</p>
+                    <p class="text-xl font-bold text-orange-400" th:text="${vm.nbMods5 != null ? vm.nbMods5 : 0}">0</p>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-xl flex items-center gap-3">
+                <div class="p-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-xl">
+                    <i class="bi bi-star-fill text-lg"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] text-slate-500 uppercase tracking-wider font-bold">Mods 6★</p>
+                    <p class="text-xl font-bold text-yellow-400" th:text="${vm.nbMods6 != null ? vm.nbMods6 : 0}">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl mb-8" style="height: 320px;">
+            <h3 class="text-sm font-semibold text-white mb-3">Répartition de la vitesse secondaire</h3>
+            <div style="position: relative; height: 260px;">
+                <canvas id="vitesseChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = '#334155';
+
+        const vitesseLabels = /*[[${vm.vitesseLabels}]]*/ [];
+        const vitesseDatasets = /*[[${vm.vitesseDatasets}]]*/ [];
+
+        new Chart(document.getElementById('vitesseChart'), {
+            type: 'bar',
+            data: { labels: vitesseLabels, datasets: vitesseDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true, title: { display: true, text: 'Vitesse secondaire', color: '#94a3b8' } },
+                    y: { stacked: true, title: { display: true, text: 'Nombre de mods', color: '#94a3b8' }, beginAtZero: true }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

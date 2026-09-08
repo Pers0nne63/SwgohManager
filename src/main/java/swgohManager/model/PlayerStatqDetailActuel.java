@@ -12,7 +12,7 @@ import lombok.*;
 				}
 )
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class PlayerStatqDetailActuel {
+public class PlayerStatqDetailActuel implements StatqDetailValues {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

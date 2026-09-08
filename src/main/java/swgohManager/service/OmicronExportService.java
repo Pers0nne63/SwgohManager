@@ -35,7 +35,7 @@ public class OmicronExportService {
 
     public byte[] exportDetailXlsx() throws IOException {
         List<Joueur> joueurs = joueurRepository.findByPresentInGuildTrueOrderByPlayerNameAsc();
-        List<OmicronPlanProgressService.OmicronColonneDetail> colonnes = omicronPlanProgressService.getColonnesDetail();
+        List<OmicronPlanCalculationService.OmicronColonneDetail> colonnes = omicronPlanProgressService.getColonnesDetail();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Omicrons détail");
@@ -54,7 +54,7 @@ public class OmicronExportService {
             headerJoueur.setCellStyle(headerStyle);
 
             for (int col = 0; col < colonnes.size(); col++) {
-                OmicronPlanProgressService.OmicronColonneDetail c = colonnes.get(col);
+            	OmicronPlanCalculationService.OmicronColonneDetail c = colonnes.get(col);
                 Cell cell = headerRow.createCell(col + 1);
                 cell.setCellValue("P" + c.priorite() + " - " + c.label());
                 cell.setCellStyle(headerStyle);
@@ -71,7 +71,7 @@ public class OmicronExportService {
                 Map<String, Boolean> statuts = omicronPlanProgressService.getStatutDetailParJoueur(j.getPlayerId());
 
                 for (int col = 0; col < colonnes.size(); col++) {
-                    OmicronPlanProgressService.OmicronColonneDetail c = colonnes.get(col);
+                	OmicronPlanCalculationService.OmicronColonneDetail c = colonnes.get(col);
                     Boolean etat = statuts.get(c.cle());
                     Cell cell = row.createCell(col + 1);
 

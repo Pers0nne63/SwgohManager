@@ -1,30 +1,43 @@
 package swgohManager.service;
 
-import lombok.RequiredArgsConstructor;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
 import swgohManager.controller.dto.StatqDetailDto;
 import swgohManager.controller.dto.TeamStatqSummaryDto;
-import swgohManager.model.PlayerStatqDetailActuel;
 import swgohManager.model.StatDefinition;
+import swgohManager.model.StatqDetailValues;
 import swgohManager.model.UnitDefinition;
+import swgohManager.repository.ExternalPlayerStatqDetailActuelRepository;
 import swgohManager.repository.PlayerStatqDetailActuelRepository;
 import swgohManager.repository.StatDefinitionRepository;
 import swgohManager.repository.UnitDefinitionRepository;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class StatqDetailService {
 
     private final PlayerStatqDetailActuelRepository playerStatqDetailActuelRepository;
+    private final ExternalPlayerStatqDetailActuelRepository externalPlayerStatqDetailActuelRepository;
     private final StatDefinitionRepository statDefinitionRepository;
     private final UnitDefinitionRepository unitDefinitionRepository;
 
     public List<TeamStatqSummaryDto> getDetailParTeam(String playerId) {
-        List<PlayerStatqDetailActuel> details = playerStatqDetailActuelRepository.findByPlayerId(playerId);
+        return construire(playerStatqDetailActuelRepository.findByPlayerId(playerId));
+    }
 
+    public List<TeamStatqSummaryDto> getDetailParTeamExterne(String playerId) {
+        return construire(externalPlayerStatqDetailActuelRepository.findByPlayerId(playerId));
+    }
+
+    private List<TeamStatqSummaryDto> construire(List<? extends StatqDetailValues> details) {
         Map<Integer, String> statMap = statDefinitionRepository.findAll().stream()
                 .collect(Collectors.toMap(
                         StatDefinition::getStatId,
@@ -34,13 +47,8 @@ public class StatqDetailService {
 
         Map<String, String> unitMap = unitDefinitionRepository.findAll().stream()
                 .filter(u -> u.getBaseId() != null && u.getLibelle() != null)
-                .collect(Collectors.toMap(
-                        UnitDefinition::getBaseId,
-                        UnitDefinition::getLibelle,
-                        (v1, v2) -> v1
-                ));
+                .collect(Collectors.toMap(UnitDefinition::getBaseId, UnitDefinition::getLibelle, (v1, v2) -> v1));
 
-        // Groupement temporaire par nom de team
         Map<String, List<StatqDetailDto>> grouped = details.stream()
                 .map(d -> StatqDetailDto.builder()
                         .team(d.getTeam() != null ? d.getTeam() : "Sans équipe")
@@ -53,36 +61,23 @@ public class StatqDetailService {
                         .variation(d.getVariation())
                         .note(d.getNote())
                         .build())
-                .collect(Collectors.groupingBy(
-                        StatqDetailDto::getTeam,
-                        LinkedHashMap::new,
-                        Collectors.toList()
-                ));
+                .collect(Collectors.groupingBy(StatqDetailDto::getTeam, LinkedHashMap::new, Collectors.toList()));
 
-        // Construction du résumé par team + calculs + tri par moyenne croissante
         return grouped.entrySet().stream()
                 .map(entry -> {
                     String teamName = entry.getKey();
                     List<StatqDetailDto> teamDetails = entry.getValue();
 
                     int scoreTotal = teamDetails.stream()
-                            .map(StatqDetailDto::getNote)
-                            .filter(Objects::nonNull)
-                            .mapToInt(Integer::intValue)
-                            .sum();
+                            .map(StatqDetailDto::getNote).filter(Objects::nonNull)
+                            .mapToInt(Integer::intValue).sum();
 
                     double noteMoyenne = teamDetails.stream()
-                            .map(StatqDetailDto::getNote)
-                            .filter(Objects::nonNull)
-                            .mapToInt(Integer::intValue)
-                            .average()
-                            .orElse(0.0);
+                            .map(StatqDetailDto::getNote).filter(Objects::nonNull)
+                            .mapToInt(Integer::intValue).average().orElse(0.0);
 
                     return TeamStatqSummaryDto.builder()
-                            .team(teamName)
-                            .scoreTotal(scoreTotal)
-                            .noteMoyenne(noteMoyenne)
-                            .details(teamDetails)
+                            .team(teamName).scoreTotal(scoreTotal).noteMoyenne(noteMoyenne).details(teamDetails)
                             .build();
                 })
                 .sorted(Comparator.comparingDouble(TeamStatqSummaryDto::getNoteMoyenne))

@@ -7,4 +7,5 @@ import java.util.List;
 public interface TbPlaneteReferenceRepository extends JpaRepository<TbPlaneteReference, Long> {
     List<TbPlaneteReference> findByConflictAndBonus(Integer conflict, Boolean bonus);
     List<TbPlaneteReference> findByPlaneteNameIn(List<String> noms);
+    List<TbPlaneteReference> findAllByPlaneteIdIn(List<Integer> planeteIds);
 }

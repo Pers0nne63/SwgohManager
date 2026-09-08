@@ -2,9 +2,7 @@ package swgohManager.service;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.springframework.stereotype.Service;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -17,17 +15,17 @@ public class ExternalOmicronComparisonService {
     public record ExternalOmicronProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
 
     public ExternalOmicronProgress comparer(String playerId) {
-    	ExternalPlayerOmicronPlanProgressService.PlayerOmicronProgress progress =
+        OmicronPlanCalculationService.PlayerOmicronProgress progress =
                 externalOmicronPlanProgressService.getProgression(playerId);
 
         int totalAtteint = 0;
         int totalTotal = 0;
         List<DetailRow> details = new ArrayList<>();
 
-        for (ExternalPlayerOmicronPlanProgressService.PrioriteSummary ps : progress.parPriorite().values()) {
+        for (OmicronPlanCalculationService.PrioriteSummary ps : progress.parPriorite().values()) {
             totalAtteint += ps.atteint();
             totalTotal += ps.total();
-            for (ExternalPlayerOmicronPlanProgressService.DetailRow d : ps.details()) {
+            for (OmicronPlanCalculationService.DetailRow d : ps.details()) {
                 details.add(new DetailRow(d.baseId(), d.label(), d.atteint()));
             }
         }

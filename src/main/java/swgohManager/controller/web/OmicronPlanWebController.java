@@ -5,7 +5,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.http.MediaType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -21,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import swgohManager.model.Joueur;
 import swgohManager.repository.JoueurRepository;
 import swgohManager.service.OmicronExportService;
+import swgohManager.service.OmicronPlanCalculationService;
 import swgohManager.service.OmicronPlanProgressService;
 import swgohManager.service.OmicronPlanService;
 
@@ -92,14 +92,14 @@ public class OmicronPlanWebController {
     @GetMapping("/api/manquants")
     @ResponseBody
     public List<String> getOmicronsManquants(@RequestParam String playerId, @RequestParam int priorite) {
-        OmicronPlanProgressService.PlayerOmicronProgress progress = omicronPlanProgressService.getProgression(playerId);
-        OmicronPlanProgressService.PrioriteSummary summary = progress.parPriorite().get(priorite);
+    	OmicronPlanCalculationService.PlayerOmicronProgress progress = omicronPlanProgressService.getProgression(playerId);
+    	OmicronPlanCalculationService.PrioriteSummary summary = progress.parPriorite().get(priorite);
 
         if (summary == null) return List.of();
 
         return summary.details().stream()
                 .filter(d -> !d.atteint())
-                .map(OmicronPlanProgressService.DetailRow::label)
+                .map(OmicronPlanCalculationService.DetailRow::label)
                 .toList();
     }
 }

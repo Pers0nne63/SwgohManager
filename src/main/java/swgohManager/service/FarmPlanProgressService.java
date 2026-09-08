@@ -1,11 +1,9 @@
 package swgohManager.service;
 
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
-import swgohManager.model.FarmPlan;
 import swgohManager.model.PlayerPdfActuel;
 import swgohManager.model.PlayerPdfHistorique;
 import swgohManager.model.SyncExecution;
-import swgohManager.model.UnitDefinition;
 import swgohManager.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,19 +22,19 @@ public class FarmPlanProgressService {
     private final SyncExecutionRepository syncExecutionRepository;
     private final PlayerPdfActuelRepository playerPdfActuelRepository;
     private final PlayerPdfHistoriqueRepository playerPdfHistoriqueRepository;
-    private final UnitDefinitionRepository unitDefinitionRepository; // 👈 Ajout
+    private final FarmPlanCalculationService farmPlanCalculationService;
 
     public record DetailRow(String baseId, String nomUnite, Integer etoilesCible, Integer relicCible, Integer relicActuel, boolean atteint) {}
     public record PlayerFarmProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
     public record PointProgression(Instant date, Double pourcentage) {}
 
     public PlayerFarmProgress getProgression(String playerId) {
-        return calculer(playerId, farmPlanRepository.findAll());
+        return convertir(calculer(playerId));
     }
 
     @Transactional
     public void calculerEtEnregistrer(String playerId, Long idSync) {
-        PlayerFarmProgress progress = calculer(playerId, farmPlanRepository.findAll());
+        PlayerFarmProgress progress = convertir(calculer(playerId));
 
         PlayerPdfActuel existant = playerPdfActuelRepository.findByPlayerId(playerId).orElse(null);
 
@@ -101,40 +99,18 @@ public class FarmPlanProgressService {
                 .toList();
     }
 
-    private PlayerFarmProgress calculer(String playerId, List<FarmPlan> plans) {
-        if (plans.isEmpty()) {
-            return new PlayerFarmProgress(0, 0, null, List.of());
-        }
-
-        // Map baseId -> Libellé lisible du personnage (dédupliqué)
-        Map<String, String> unitMap = unitDefinitionRepository.findAll().stream()
-                .filter(u -> u.getBaseId() != null && u.getLibelle() != null)
-                .collect(Collectors.toMap(UnitDefinition::getBaseId, UnitDefinition::getLibelle, (v1, v2) -> v1));
-
-        Map<String, RosterBaseIdProgressProjection> parBaseId = rosterUnitActuelRepository
-                .findMaxEtoilesRelicByBaseId(playerId).stream()
-                .collect(Collectors.toMap(RosterBaseIdProgressProjection::getBaseId, p -> p));
-
-        List<DetailRow> details = new ArrayList<>();
-        int atteint = 0;
-
-        for (FarmPlan plan : plans) {
-            RosterBaseIdProgressProjection p = parBaseId.get(plan.getBaseId());
-            int etoilesActuelles = (p != null && p.getMaxEtoiles() != null) ? p.getMaxEtoiles() : 0;
-            Integer relicActuel = (p != null) ? p.getMaxRelic() : null;
-            int relicPourComparaison = (relicActuel != null) ? relicActuel : 0;
-
-            boolean ok = etoilesActuelles >= plan.getEtoilesCible() && relicPourComparaison >= plan.getRelicCible();
-            if (ok) atteint++;
-
-            String nomUnite = unitMap.getOrDefault(plan.getBaseId(), plan.getBaseId());
-            details.add(new DetailRow(plan.getBaseId(), nomUnite, plan.getEtoilesCible(), plan.getRelicCible(), relicActuel, ok));
-        }
-
-        double pourcentage = 100.0 * atteint / plans.size();
-        return new PlayerFarmProgress(atteint, plans.size(), pourcentage, details);
+    private FarmPlanCalculationService.FarmProgress calculer(String playerId) {
+        List<RosterBaseIdProgressProjection> rosterProgress = rosterUnitActuelRepository.findMaxEtoilesRelicByBaseId(playerId);
+        return farmPlanCalculationService.calculer(farmPlanRepository.findAll(), rosterProgress);
     }
-    
+
+    private PlayerFarmProgress convertir(FarmPlanCalculationService.FarmProgress p) {
+        List<DetailRow> details = p.details().stream()
+                .map(d -> new DetailRow(d.baseId(), d.nomUnite(), d.etoilesCible(), d.relicCible(), d.relicActuel(), d.atteint()))
+                .toList();
+        return new PlayerFarmProgress(p.atteint(), p.total(), p.pourcentage(), details);
+    }
+
     @Transactional
     public void nettoyerJoueursInactifs(List<String> joueursActifs) {
         if (!joueursActifs.isEmpty()) {
@@ -142,5 +118,5 @@ public class FarmPlanProgressService {
             playerPdfActuelRepository.flush();
         }
     }
-    
+
 }

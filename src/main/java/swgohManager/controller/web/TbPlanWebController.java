@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import lombok.RequiredArgsConstructor;
 import swgohManager.model.TerritoryBattle;
@@ -18,7 +19,7 @@ import swgohManager.repository.TerritoryBattleRepository;
 import swgohManager.service.TbAnalyseService;
 import swgohManager.service.TbMissionSpecialeService;
 import swgohManager.service.TbPlanService;
-import org.springframework.web.bind.annotation.ResponseBody;
+import swgohManager.service.TbImportResultatService;
 
 @Controller
 @RequestMapping("/tb-plan")
@@ -29,6 +30,7 @@ public class TbPlanWebController {
     private final TerritoryBattleRepository territoryBattleRepository;
     private final TbAnalyseService tbAnalyseService;
     private final TbMissionSpecialeService tbMissionSpecialeService;
+    private final TbImportResultatService tbResultatService;
 
     @GetMapping
     public String page(@RequestParam(defaultValue = "analyse") String tab,
@@ -54,6 +56,7 @@ public class TbPlanWebController {
             var analyseJoueurs = tbAnalyseService.analyserTb(tbId);
             model.addAttribute("analyseJoueurs", analyseJoueurs);
             model.addAttribute("syntheseRounds", tbAnalyseService.calculerSyntheseRounds(analyseJoueurs));
+            model.addAttribute("importResultats", tbResultatService.getResultatsImportForTb(tbId));
         }
 
         model.addAttribute("missionsSpeciales", TbMissionSpecialeService.MissionSpeciale.values());

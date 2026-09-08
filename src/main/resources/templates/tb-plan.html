@@ -36,6 +36,10 @@
 			        class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
 			    <i class="bi bi-crosshair text-base"></i> Mission Spéciale
 			</button>
+			<button id="btn-tab-resultats" onclick="switchTab('resultats')" 
+			        class="pb-3 flex items-center gap-2 border-b-2 border-transparent transition-colors focus:outline-none"> 
+			    <i class="bi bi-file-earmark-bar-graph text-base"></i> Résultats Détaillés 
+			</button>
             <button id="btn-tab-modeles" onclick="switchTab('modeles')" 
                     class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
                 <i class="bi bi-sliders text-base"></i> Modèles de plans
@@ -306,7 +310,116 @@
 		
 		</div>
 		
-        <!-- ONGLET 3 : MODÈLES DE PLANS -->
+		<!-- ONGLET 3 : RÉSULTATS IMPORTÉS -->
+		<div id="tab-resultats" class="hidden space-y-6"> 
+		    
+		    <!-- Sélection de la BT --> 
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl"> 
+		        <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2"> 
+		            <i class="bi bi-database-check text-amber-400"></i> Visualiser les résultats d'importation
+		        </h2> 
+		        <select onchange="if(this.value) window.location.href='/tb-plan?tab=resultats&tbId=' + this.value;" 
+		                class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500 w-full max-w-md mb-4"> 
+		            <option value="">-- Sélectionner une BT --</option> 
+		            <option th:each="tb : ${territoryBattles}" th:value="${tb.id}" 
+		                    th:selected="${tbIdSelectionnee != null and tbIdSelectionnee == tb.id}" 
+		                    th:text="${(tb.startTime != null ? #temporals.format(tb.startTime, 'dd/MM/yyyy') : tb.instanceId)}"></option> 
+		        </select> 
+		
+		        <!-- Affichage du plan associé --> 
+		        <div th:if="${tbIdSelectionnee != null}"> 
+		            <th:block th:each="tb : ${territoryBattles}" th:if="${tb.id == tbIdSelectionnee}"> 
+		                <div th:if="${tb.planId != null}" class="inline-flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm"> 
+		                    <span class="text-slate-400 text-xs uppercase font-semibold">Plan associé :</span> 
+		                    <th:block th:each="entry : ${plans}" th:if="${entry.plan.id == tb.planId}"> 
+		                        <span class="font-bold text-amber-400" th:text="${entry.plan.nom}"></span> 
+		                        <span class="text-slate-400 text-xs font-normal" th:text="'(' + ${entry.plan.etoilesCibles} + '★)'"></span> 
+		                    </th:block> 
+		                </div> 
+		                <div th:if="${tb.planId == null}" class="inline-flex items-center gap-2 bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-2 text-slate-400 text-xs"> 
+		                    <i class="bi bi-exclamation-triangle text-amber-400"></i> 
+		                    <span>Aucun plan attribué</span> 
+		                </div> 
+		            </th:block> 
+		        </div> 
+		    </div> 
+		
+		    <!-- Accordion par Round -->
+		    <div th:if="${importResultats != null and not #lists.isEmpty(importResultats)}" class="space-y-4">
+		        <details th:each="round : ${importResultats}" class="group bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+		            
+		            <!-- En-tête du Round dépliable -->
+		            <summary class="p-5 cursor-pointer hover:bg-slate-850 flex items-center justify-between text-white font-bold list-none border-b border-slate-700 transition-colors">
+		                <span class="flex items-center gap-3">
+		                    <i class="bi bi-clock-history text-amber-400 text-lg"></i>
+		                    <span class="text-lg">Round <span th:text="${round.roundNum}">1</span></span>
+		                </span>
+		                <i class="bi bi-chevron-down text-amber-400 transition-transform duration-300 group-open:rotate-180"></i>
+		            </summary>
+		
+		            <!-- Tableau avec les 6 colonnes (Joueur + 5 Planètes) -->
+		            <div class="overflow-x-auto p-4 bg-slate-900/50">
+		                <table class="w-full text-sm text-slate-300 whitespace-nowrap">
+						    <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+						        <tr>
+						            <th class="px-4 py-3 text-left sticky left-0 bg-slate-850 z-10 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Joueur</th>
+						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">LS</th>
+						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">DS</th>
+						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Mix</th>
+						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Zeffo</th>
+						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Mandalore</th>
+						        </tr>
+						    </thead>
+						    <tbody class="divide-y divide-slate-700/60">
+						        <tr th:each="joueur : ${round.joueurs}" class="hover:bg-slate-800/80 transition-colors">
+						            <!-- Colonne Joueur -->
+						            <td class="px-4 py-3 font-bold text-slate-200 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" th:text="${joueur.playerName}"></td>
+						            
+						            <!-- Colonnes Planètes (LS, DS, Mix, Zeffo, Mandalore) -->
+						            <th:block th:each="planetKey : ${ {'LS', 'DS', 'Mix', 'Zeffo', 'Mandalore'} }">
+						                <td class="px-3 py-2 border-l border-slate-700/50 align-top" th:with="stat=${joueur.planetStats.get(planetKey)}">
+						                    <!-- Affichage si les données existent pour la planète -->
+						                    <div th:if="${stat != null}" class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
+						                        <div class="flex items-center gap-1.5" title="Combats">
+						                            <i class="bi bi-crosshair text-rose-400"></i>
+						                            <span class="font-mono text-slate-200" th:text="${stat.combats}">0</span>
+						                        </div>
+						                        <div class="flex items-center gap-1.5" title="Vagues">
+						                            <i class="bi bi-water text-blue-400"></i>
+						                            <span class="font-mono text-slate-200" th:text="${stat.vagues}">0</span>
+						                        </div>
+						                        <div class="flex items-center gap-1.5" title="PG Déployée">
+						                            <i class="bi bi-shield-fill text-slate-400"></i>
+						                            <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pgDeploye, 0, 'DEFAULT')}">0</span>
+						                        </div>
+						                        <div class="flex items-center gap-1.5" title="Points de combat">
+						                            <i class="bi bi-star-fill text-amber-400"></i>
+						                            <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pointsCombat, 0, 'DEFAULT')}">0</span>
+						                        </div>
+						                    </div>
+						                    
+						                    <!-- Affichage si aucune donnée -->
+						                    <div th:if="${stat == null}" class="text-center text-slate-600 text-xs py-3">
+						                        -
+						                    </div>
+						                </td>
+						            </th:block>
+						        </tr>
+						    </tbody>
+						</table>
+		            </div>
+		        </details>
+		    </div>
+		
+		    <!-- Message si pas de données -->
+		    <div th:if="${tbIdSelectionnee != null and (importResultats == null or #lists.isEmpty(importResultats))}" class="bg-slate-800/80 border border-slate-700 border-dashed rounded-2xl p-8 text-center">
+		        <i class="bi bi-inbox text-4xl text-slate-600 mb-3 block"></i>
+		        <p class="text-slate-400 font-medium">Aucun résultat d'importation disponible pour cette Territory Battle.</p>
+		    </div>
+		
+		</div>
+		
+        <!-- ONGLET 4 : MODÈLES DE PLANS -->
         <div id="tab-modeles" class="space-y-8">
             <!-- Formulaire de création -->
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
@@ -434,7 +547,7 @@
             </div>
         </div>
 
-        <!-- ONGLET 4 : AFFECTATION AUX BT -->
+        <!-- ONGLET 5 : AFFECTATION AUX BT -->
         <div id="tab-affectations" class="hidden space-y-6">
             <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
                 <div class="p-6 border-b border-slate-700">
@@ -505,6 +618,7 @@
         	const tabs = {
         		    analyse: { div: document.getElementById('tab-analyse'), btn: document.getElementById('btn-tab-analyse') },
         		    mission: { div: document.getElementById('tab-mission'), btn: document.getElementById('btn-tab-mission') },
+        		    resultats: { div: document.getElementById('tab-resultats'), btn: document.getElementById('btn-tab-resultats') },
         		    modeles: { div: document.getElementById('tab-modeles'), btn: document.getElementById('btn-tab-modeles') },
         		    affectations: { div: document.getElementById('tab-affectations'), btn: document.getElementById('btn-tab-affectations') }
         		};

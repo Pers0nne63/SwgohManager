@@ -1,18 +1,25 @@
 package swgohManager.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import swgohManager.client.dto.PlayerResponse;
-import swgohManager.model.*;
-import swgohManager.repository.*;
-import swgohManager.util.SkillIdParser;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import swgohManager.client.dto.PlayerResponse;
+import swgohManager.dto.pivot.DatacronDTO;
+import swgohManager.model.ExternalPlayerDatacronActuel;
+import swgohManager.model.ExternalPlayerDatacronAffixActuel;
+import swgohManager.model.ExternalRosterUnitSkillActuel;
+import swgohManager.model.SkillDefinition;
+import swgohManager.repository.ExternalPlayerDatacronActuelRepository;
+import swgohManager.repository.ExternalPlayerDatacronAffixActuelRepository;
+import swgohManager.repository.ExternalRosterUnitSkillActuelRepository;
+import swgohManager.repository.SkillDefinitionRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +30,9 @@ public class ExternalPlayerSyncDataService {
     private final ExternalPlayerDatacronActuelRepository externalDatacronRepository;
     private final ExternalPlayerDatacronAffixActuelRepository externalAffixRepository;
     private final SkillDefinitionRepository skillDefinitionRepository;
+    private final UnitSkillCalculationService unitSkillCalculationService;
+    private final DatacronSyncCalculationService datacronSyncCalculationService; 
+
 
     @Transactional
     public void enregistrerSkillsEtDatacrons(String playerId, PlayerResponse response) {
@@ -41,51 +51,29 @@ public class ExternalPlayerSyncDataService {
         Map<String, SkillDefinition> definitions = skillDefinitionRepository.findAll().stream()
                 .collect(Collectors.toMap(SkillDefinition::getIdSkill, d -> d));
 
-        List<ExternalRosterUnitSkillActuel> skillsList = new ArrayList<>();
+        UnitSkillCalculationService.UnitSkillBuildResult buildResult =
+                unitSkillCalculationService.construireSkillsDto(roster, definitions);
 
-        for (PlayerResponse.RosterUnit u : roster) {
-            if (u.skill() == null) continue;
-
-            for (PlayerResponse.Skill s : u.skill()) {
-                SkillIdParser.ParsedSkillId parsed = SkillIdParser.parse(s.id());
-                SkillDefinition def = definitions.get(s.id());
-
-                Boolean skillZeta = null, skillOmicron = null, zetaApplied = null, omicronApplied = null;
-
-                if (def != null) {
-                    skillZeta = def.getSkillZeta();
-                    skillOmicron = def.getSkillOmicron();
-
-                    zetaApplied = Boolean.TRUE.equals(skillZeta)
-                            && def.getTierZetaRequis() != null
-                            && s.tier() != null
-                            && s.tier() >= def.getTierZetaRequis();
-
-                    omicronApplied = Boolean.TRUE.equals(skillOmicron)
-                            && def.getTierOmicronRequis() != null
-                            && s.tier() != null
-                            && s.tier() >= (def.getTierOmicronRequis() - 1);
-                }
-
-                skillsList.add(ExternalRosterUnitSkillActuel.builder()
+        List<ExternalRosterUnitSkillActuel> skillsList = buildResult.skills().stream()
+                .map(dto -> ExternalRosterUnitSkillActuel.builder()
                         .playerId(playerId)
-                        .idUnit(u.id())
-                        .idSkill(s.id())
-                        .tier(s.tier())
-                        .type(parsed.type())
-                        .numero(parsed.numero())
-                        .skillZeta(skillZeta)
-                        .zetaApplied(zetaApplied)
-                        .skillOmicron(skillOmicron)
-                        .omicronApplied(omicronApplied)
-                        .build());
-            }
-        }
+                        .idUnit(dto.idUnit())
+                        .idSkill(dto.idSkill())
+                        .tier(dto.tier())
+                        .type(dto.type())
+                        .numero(dto.numero())
+                        .skillZeta(dto.skillZeta())
+                        .zetaApplied(dto.zetaApplied())
+                        .skillOmicron(dto.skillOmicron())
+                        .omicronApplied(dto.omicronApplied())
+                        .build())
+                .collect(Collectors.toList());
 
         log.info(">>> AVANT saveAll skills : skillsList.size={}", skillsList.size());
         externalSkillRepository.saveAll(skillsList);
         log.info(">>> APRES saveAll skills OK pour {}", playerId);
     }
+
 
     private void sauvegarderDatacrons(String playerId, List<PlayerResponse.DatacronRaw> datacronsBruts) {
         externalDatacronRepository.deleteByPlayerId(playerId);
@@ -93,46 +81,33 @@ public class ExternalPlayerSyncDataService {
         externalDatacronRepository.flush();
         externalAffixRepository.flush();
 
-        if (datacronsBruts == null || datacronsBruts.isEmpty()) return;
+        List<DatacronDTO> datacronsDto = datacronSyncCalculationService.construireDatacronsDto(datacronsBruts);
+        if (datacronsDto.isEmpty()) return;
 
         List<ExternalPlayerDatacronActuel> datacrons = new ArrayList<>();
         List<ExternalPlayerDatacronAffixActuel> affixes = new ArrayList<>();
 
-        for (PlayerResponse.DatacronRaw d : datacronsBruts) {
+        for (DatacronDTO d : datacronsDto) {
             datacrons.add(ExternalPlayerDatacronActuel.builder()
-                    .playerId(playerId).idDatacron(d.id()).setId(d.setId()).templateId(d.templateId())
+                    .playerId(playerId).idDatacron(d.idDatacron()).setId(d.setId()).templateId(d.templateId())
                     .locked(d.locked()).rerollIndex(d.rerollIndex()).rerollCount(d.rerollCount())
                     .focused(d.focused())
                     .build());
 
-            if (d.affix() != null) {
-                int ordre = 1;
-                for (PlayerResponse.AffixRaw a : d.affix()) {
-                    affixes.add(ExternalPlayerDatacronAffixActuel.builder()
-                            .playerId(playerId).idDatacron(d.id()).ordre(ordre)
-                            .tag(a.tag() != null ? String.join(",", a.tag()) : null)
-                            .targetRule(a.targetRule()).abilityId(a.abilityId())
-                            .statType(a.statType()).statValue(parseLong(a.statValue()))
-                            .requiredUnitTier(a.requiredUnitTier()).requiredRelicTier(a.requiredRelicTier())
-                            .scopeIcon(a.scopeIcon())
-                            .build());
-                    ordre++;
-                }
+            for (DatacronDTO.AffixDTO a : d.affixes()) {
+                affixes.add(ExternalPlayerDatacronAffixActuel.builder()
+                        .playerId(playerId).idDatacron(d.idDatacron()).ordre(a.ordre())
+                        .tag(a.tag()).targetRule(a.targetRule()).abilityId(a.abilityId())
+                        .statType(a.statType()).statValue(a.statValue())
+                        .requiredUnitTier(a.requiredUnitTier()).requiredRelicTier(a.requiredRelicTier())
+                        .scopeIcon(a.scopeIcon())
+                        .build());
             }
         }
-        
-        log.info(">>> AVANT saveAll datacrons : datacrons.size={}", datacrons.size());
+
         externalDatacronRepository.saveAll(datacrons);
         externalAffixRepository.saveAll(affixes);
-        log.info(">>> APRES saveAll datacrons OK pour {}", playerId);
         log.info("{} datacron(s) externes enregistrés pour {}", datacrons.size(), playerId);
-    }
-
-    private Long parseLong(String value) {
-        if (value == null || value.isBlank()) return null;
-        try { return Long.parseLong(value); } catch (NumberFormatException e) { return null; }
-    }
-    
-    
+    }  
     
 }

@@ -4,18 +4,17 @@ import swgohManager.controller.dto.PlayerOmicronStatusProjection;
 import swgohManager.model.OmicronPlan;
 import swgohManager.model.PlayerPdfOmicronActuel;
 import swgohManager.model.PlayerPdfOmicronHistorique;
-import swgohManager.model.UnitDefinition;
 import swgohManager.repository.OmicronPlanRepository;
 import swgohManager.repository.PlayerPdfOmicronActuelRepository;
 import swgohManager.repository.PlayerPdfOmicronHistoriqueRepository;
 import swgohManager.repository.RosterUnitSkillActuelRepository;
-import swgohManager.repository.UnitDefinitionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -23,130 +22,35 @@ public class OmicronPlanProgressService {
 
     private final OmicronPlanRepository omicronPlanRepository;
     private final RosterUnitSkillActuelRepository rosterUnitSkillActuelRepository;
-    private final OmicronPlanService omicronPlanService;
     private final PlayerPdfOmicronActuelRepository playerPdfOmicronActuelRepository;
     private final PlayerPdfOmicronHistoriqueRepository playerPdfOmicronHistoriqueRepository;
-    private final UnitDefinitionRepository unitDefinitionRepository;
+    private final OmicronPlanCalculationService omicronPlanCalculationService;
 
-    public record DetailRow(String baseId, String label, boolean atteint) {}
-    public record PrioriteSummary(int priorite, int atteint, int total, Double pourcentage, List<DetailRow> details) {}
-    public record PlayerOmicronProgress(Map<Integer, PrioriteSummary> parPriorite) {}
-    public record GlobalSummary(String label, int atteint, int total, Double pourcentage) {}
-
-    // 👇 Nouveau : représente une colonne du tableau détaillé (un omicron = une colonne)
-    public record OmicronColonneDetail(String cle, String baseId, String idSkill, String label, int priorite) {}
-
-    // --- Helpers factorisés (utilisés par getProgression ET getColonnesDetail) ---
-
-    private Map<String, String> buildUnitMap() {
-        return unitDefinitionRepository.findAll().stream()
-                .filter(u -> u.getBaseId() != null && u.getLibelle() != null)
-                .collect(Collectors.toMap(UnitDefinition::getBaseId, UnitDefinition::getLibelle, (v1, v2) -> v1));
-    }
-
-    private Map<String, OmicronPlanService.Option> buildOptionsMap() {
-        Map<String, OmicronPlanService.Option> map = new HashMap<>();
-        for (OmicronPlanService.Option o : omicronPlanService.getOptionsDisponibles()) {
-            map.put(o.baseId() + "|" + o.idSkill(), o);
-        }
-        return map;
-    }
-
-    private String buildLabel(String baseId, String cle, Map<String, String> unitMap, Map<String, OmicronPlanService.Option> optionsMap) {
-        String nomUnite = unitMap.getOrDefault(baseId, baseId);
-        OmicronPlanService.Option option = optionsMap.get(cle);
-        return option != null ? option.label().replace(baseId, nomUnite) : nomUnite;
-    }
-
-    public PlayerOmicronProgress getProgression(String playerId) {
+    public OmicronPlanCalculationService.PlayerOmicronProgress getProgression(String playerId) {
         List<OmicronPlan> plans = omicronPlanRepository.findAll();
-        Map<String, String> unitMap = buildUnitMap();
-        Map<String, OmicronPlanService.Option> optionsParBaseIdSkill = buildOptionsMap();
-
-        Map<String, Boolean> statutJoueur = new HashMap<>();
-        for (PlayerOmicronStatusProjection p : rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId)) {
-            statutJoueur.put(p.getBaseId() + "|" + p.getIdSkill(), Boolean.TRUE.equals(p.getOmicronApplied()));
-        }
-
-        Map<Integer, List<OmicronPlan>> parPrioriteBrut = new TreeMap<>();
-        for (OmicronPlan plan : plans) {
-            int p = plan.getPriorite() != null ? plan.getPriorite() : 0;
-            parPrioriteBrut.computeIfAbsent(p, k -> new ArrayList<>()).add(plan);
-        }
-
-        Map<Integer, PrioriteSummary> resultat = new LinkedHashMap<>();
-        for (int priorite = 1; priorite <= 4; priorite++) {
-            List<OmicronPlan> lignes = parPrioriteBrut.getOrDefault(priorite, List.of());
-            List<DetailRow> details = new ArrayList<>();
-            int atteint = 0;
-
-            for (OmicronPlan plan : lignes) {
-                String cle = plan.getBaseId() + "|" + plan.getIdSkill();
-                boolean ok = Boolean.TRUE.equals(statutJoueur.get(cle));
-                if (ok) atteint++;
-                String label = buildLabel(plan.getBaseId(), cle, unitMap, optionsParBaseIdSkill);
-                details.add(new DetailRow(plan.getBaseId(), label, ok));
-            }
-
-            Double pourcentage = lignes.isEmpty() ? null : 100.0 * atteint / lignes.size();
-            resultat.put(priorite, new PrioriteSummary(priorite, atteint, lignes.size(), pourcentage, details));
-        }
-
-        return new PlayerOmicronProgress(resultat);
+        List<PlayerOmicronStatusProjection> statutRows = rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId);
+        return omicronPlanCalculationService.calculerProgression(plans, statutRows);
     }
 
-    public GlobalSummary getGlobalProgression(String playerId) {
-        PlayerOmicronProgress progress = getProgression(playerId);
-        int totalAtteint = 0;
-        int totalTotal = 0;
-
-        for (PrioriteSummary ps : progress.parPriorite().values()) {
-            totalAtteint += ps.atteint();
-            totalTotal += ps.total();
-        }
-
-        Double pct = totalTotal > 0 ? (100.0 * totalAtteint / totalTotal) : null;
-        return new GlobalSummary("GLOBAL", totalAtteint, totalTotal, pct);
+    public OmicronPlanCalculationService.GlobalSummary getGlobalProgression(String playerId) {
+        return omicronPlanCalculationService.calculerGlobalProgression(getProgression(playerId));
     }
 
-    // 👇 Nouveau : liste ordonnée des colonnes (un omicron par colonne), toutes priorités confondues
-    public List<OmicronColonneDetail> getColonnesDetail() {
-        List<OmicronPlan> plans = omicronPlanRepository.findAll();
-        Map<String, String> unitMap = buildUnitMap();
-        Map<String, OmicronPlanService.Option> optionsMap = buildOptionsMap();
-
-        List<OmicronColonneDetail> colonnes = new ArrayList<>();
-        for (OmicronPlan plan : plans) {
-            String cle = plan.getBaseId() + "|" + plan.getIdSkill();
-            String label = buildLabel(plan.getBaseId(), cle, unitMap, optionsMap);
-            int priorite = plan.getPriorite() != null ? plan.getPriorite() : 0;
-            colonnes.add(new OmicronColonneDetail(cle, plan.getBaseId(), plan.getIdSkill(), label, priorite));
-        }
-
-        colonnes.sort(Comparator
-                .comparing(OmicronColonneDetail::priorite)
-                .thenComparing(OmicronColonneDetail::label, String.CASE_INSENSITIVE_ORDER));
-
-        return colonnes;
+    public List<OmicronPlanCalculationService.OmicronColonneDetail> getColonnesDetail() {
+        return omicronPlanCalculationService.getColonnesDetail(omicronPlanRepository.findAll());
     }
 
-    // 👇 Nouveau : statut brut (cle -> atteint) pour un joueur, sans agrégation par priorité
-    // Si une clé est absente de la map, cela signifie que le joueur ne possède pas le personnage
-    // (ou pas ce skill) — à distinguer côté vue d'un "posé=false".
+    /** Si une clé est absente de la map, le joueur ne possède pas le personnage (ou pas ce skill). */
     public Map<String, Boolean> getStatutDetailParJoueur(String playerId) {
-        Map<String, Boolean> statutJoueur = new HashMap<>();
-        for (PlayerOmicronStatusProjection p : rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId)) {
-            statutJoueur.put(p.getBaseId() + "|" + p.getIdSkill(), Boolean.TRUE.equals(p.getOmicronApplied()));
-        }
-        return statutJoueur;
+        return omicronPlanCalculationService.statutParCle(rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId));
     }
 
     @Transactional
     public void calculerEtEnregistrer(String playerId, Long idSync) {
-        PlayerOmicronProgress progress = getProgression(playerId);
+        OmicronPlanCalculationService.PlayerOmicronProgress progress = getProgression(playerId);
 
         for (int i = 1; i <= 4; i++) {
-            PrioriteSummary pSummary = progress.parPriorite().get(i);
+            OmicronPlanCalculationService.PrioriteSummary pSummary = progress.parPriorite().get(i);
             String prioriteLabel = "P" + i;
 
             int atteint = pSummary != null ? pSummary.atteint() : 0;

@@ -7,7 +7,7 @@ import lombok.*;
 @Table(name = "external_roster_unit_mod_actuel",
         indexes = { @Index(name = "extrumaidx_playerId", columnList = "playerId") })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class ExternalRosterUnitModActuel {
+public class ExternalRosterUnitModActuel implements ModLigne {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

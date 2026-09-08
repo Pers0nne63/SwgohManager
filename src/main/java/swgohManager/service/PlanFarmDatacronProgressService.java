@@ -1,19 +1,7 @@
 package swgohManager.service;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import swgohManager.model.Joueur;
 import swgohManager.model.PlanFarmDatacron;
 import swgohManager.model.PlanFarmDatacronMecanique;
@@ -23,6 +11,10 @@ import swgohManager.repository.PlanFarmDatacronMecaniqueRepository;
 import swgohManager.repository.PlanFarmDatacronRepository;
 import swgohManager.repository.PlanFarmDatacronStatRepository;
 import swgohManager.repository.PlayerDatacronAffixActuelRepository;
+
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,32 +26,28 @@ public class PlanFarmDatacronProgressService {
     private final PlayerDatacronAffixActuelRepository playerDatacronAffixActuelRepository;
     private final JoueurRepository joueurRepository;
     private final PlanFarmDatacronOptionsService optionsService;
+    private final DatacronMatchingService datacronMatchingService;
 
-    // ---- DTOs vue "liste des sets" (inchangés) ----
     public record MecaniqueProgress(Long mecaniqueId, Integer tier, String description, int joueursAtteint, int totalJoueurs, double pourcentage) {}
     public record StatProgress(Long statId, String statLibelle, BigDecimal valeurCible, int joueursAtteint, int totalJoueurs, double pourcentage) {}
     public record DatacronProgress(Long id, String nom, List<MecaniqueProgress> mecaniques, List<StatProgress> stats, int joueursAtteint, int totalJoueurs, double pourcentage) {}
     public record SetProgress(String setId, List<DatacronProgress> datacrons, int joueursAtteint, int totalJoueurs, double pourcentage) {}
 
-    // ---- DTOs vue "détail d'un datacron" (inchangés) ----
-    public record JoueurMecaniqueStatus(Integer tier, String description, boolean atteint) {}
-    public record JoueurStatStatus(String statLibelle, BigDecimal valeurCible, BigDecimal valeurJoueur, boolean atteint) {}
-    public record JoueurDatacronStatus(String playerId, String playerName, List<JoueurMecaniqueStatus> mecaniques, List<JoueurStatStatus> stats, boolean tierMaxAtteint, boolean toutAtteint) {}
-    public record DatacronDetail(Long id, String nom, String setId, Integer tierMax, List<JoueurDatacronStatus> joueursSansTierMax, List<JoueurDatacronStatus> joueursTierMaxSeul, List<JoueurDatacronStatus> joueursConformes) {}
-
-    // ---- Index internes de calcul, reconstruits à chaque appel ----
-    private record IndexJoueurDatacrons(
-            Map<String, Set<String>> mecaniquesParDatacronPhysique,   // clé "playerId|idDatacron" -> set "tier|abilityId"
-            Map<String, Map<String, BigDecimal>> statsParDatacronPhysique, // clé "playerId|idDatacron" -> map statType->valeur
-            Map<String, Set<String>> datacronsParJoueurEtSet          // clé "playerId|setId" -> set idDatacron
-    ) {}
+    public record JoueurDatacronStatus(String playerId, String playerName,
+                                        List<DatacronMatchingService.MecaniqueStatus> mecaniques,
+                                        List<DatacronMatchingService.StatStatus> stats,
+                                        boolean tierMaxAtteint, boolean toutAtteint) {}
+    public record DatacronDetail(Long id, String nom, String setId, Integer tierMax,
+                                  List<JoueurDatacronStatus> joueursSansTierMax,
+                                  List<JoueurDatacronStatus> joueursTierMaxSeul,
+                                  List<JoueurDatacronStatus> joueursConformes) {}
 
     public List<SetProgress> construire() {
         List<Joueur> joueursActifs = joueurRepository.findAllByPresentInGuildTrue();
         int totalJoueurs = joueursActifs.size();
         if (totalJoueurs == 0) return List.of();
 
-        IndexJoueurDatacrons index = construireIndex();
+        DatacronMatchingService.IndexDatacronsPhysiques index = construireIndexGuilde();
         Map<String, String> descriptionParMecanique = new HashMap<>();
         Map<String, String> libelleParStat = new HashMap<>();
         chargerLibelles(descriptionParMecanique, libelleParStat);
@@ -79,7 +67,7 @@ public class PlanFarmDatacronProgressService {
                     for (Joueur j : joueursActifs) setConformeParJoueur.put(j.getPlayerId(), true);
 
                     for (PlanFarmDatacron datacron : entry.getValue()) {
-                        EvaluationDatacron evaluation = evaluerDatacron(datacron, joueursActifs, index, descriptionParMecanique, libelleParStat);
+                        EvaluationDatacron evaluation = evaluerDatacronPourGuilde(datacron, joueursActifs, index, descriptionParMecanique, libelleParStat);
 
                         for (Joueur j : joueursActifs) {
                             if (!evaluation.atteintParJoueur().getOrDefault(j.getPlayerId(), false)) {
@@ -106,58 +94,30 @@ public class PlanFarmDatacronProgressService {
                 .orElseThrow(() -> new IllegalArgumentException("Datacron cible introuvable : " + datacronId));
 
         List<Joueur> joueursActifs = joueurRepository.findAllByPresentInGuildTrue();
-        IndexJoueurDatacrons index = construireIndex();
+        DatacronMatchingService.IndexDatacronsPhysiques index = construireIndexGuilde();
         Map<String, String> descriptionParMecanique = new HashMap<>();
         Map<String, String> libelleParStat = new HashMap<>();
         chargerLibelles(descriptionParMecanique, libelleParStat);
 
         List<PlanFarmDatacronMecanique> mecaniques = mecaniqueRepository.findByPlanFarmDatacronId(datacronId).stream()
-                .sorted(Comparator.comparing(PlanFarmDatacronMecanique::getTier))
-                .toList();
+                .sorted(Comparator.comparing(PlanFarmDatacronMecanique::getTier)).toList();
         List<PlanFarmDatacronStat> stats = statRepository.findByPlanFarmDatacronId(datacronId);
         Integer tierMax = mecaniques.stream().mapToInt(PlanFarmDatacronMecanique::getTier).max().orElse(0);
-        PlanFarmDatacronMecanique mecTierMax = mecaniques.stream().filter(m -> m.getTier().equals(tierMax)).findFirst().orElse(null);
 
         List<JoueurDatacronStatus> sansTierMax = new ArrayList<>();
         List<JoueurDatacronStatus> tierMaxSeul = new ArrayList<>();
         List<JoueurDatacronStatus> conformes = new ArrayList<>();
 
         for (Joueur j : joueursActifs) {
-            Set<String> candidatsTmax = trouverCandidatsTmax(j.getPlayerId(), datacron.getSetId(), mecTierMax, index);
-            boolean tierMaxAtteint = !candidatsTmax.isEmpty();
-
-            List<JoueurMecaniqueStatus> statutsMecaniques = new ArrayList<>();
-            for (PlanFarmDatacronMecanique mec : mecaniques) {
-                boolean atteint = tierMaxAtteint && candidatsTmax.stream()
-                        .anyMatch(idDatacron -> index.mecaniquesParDatacronPhysique()
-                                .getOrDefault(j.getPlayerId() + "|" + idDatacron, Set.of())
-                                .contains(mec.getTier() + "|" + mec.getAbilityId()));
-                String description = descriptionParMecanique.getOrDefault(mec.getTier() + "|" + mec.getAbilityId(), mec.getAbilityId());
-                statutsMecaniques.add(new JoueurMecaniqueStatus(mec.getTier(), description, atteint));
-            }
-
-            List<JoueurStatStatus> statutsStats = new ArrayList<>();
-            for (PlanFarmDatacronStat stat : stats) {
-                if (stat.getStatValue() == null) continue;
-                BigDecimal meilleureValeur = tierMaxAtteint ? candidatsTmax.stream()
-                        .map(idDatacron -> index.statsParDatacronPhysique().getOrDefault(j.getPlayerId() + "|" + idDatacron, Map.of())
-                                .getOrDefault(stat.getStatType(), BigDecimal.ZERO))
-                        .max(BigDecimal::compareTo)
-                        .orElse(BigDecimal.ZERO) : BigDecimal.ZERO;
-                boolean atteint = meilleureValeur.compareTo(stat.getStatValue()) >= 0;
-                String statLibelle = libelleParStat.getOrDefault(stat.getStatType(), stat.getStatType());
-                statutsStats.add(new JoueurStatStatus(statLibelle, stat.getStatValue(), meilleureValeur, atteint));
-            }
-
-            boolean toutSurUnMemeDatacron = tierMaxAtteint && candidatsTmax.stream().anyMatch(idDatacron ->
-                    satisfaitTout(j.getPlayerId(), idDatacron, mecaniques, stats, index));
+            DatacronMatchingService.DatacronStatusJoueur eval = datacronMatchingService.evaluerDatacronPourJoueur(
+                    j.getPlayerId(), datacron.getSetId(), mecaniques, stats, index, descriptionParMecanique, libelleParStat);
 
             JoueurDatacronStatus statut = new JoueurDatacronStatus(
-                    j.getPlayerId(), j.getPlayerName(), statutsMecaniques, statutsStats, tierMaxAtteint, toutSurUnMemeDatacron
+                    j.getPlayerId(), j.getPlayerName(), eval.mecaniques(), eval.stats(), eval.tierMaxAtteint(), eval.toutAtteint()
             );
 
-            if (!tierMaxAtteint) sansTierMax.add(statut);
-            else if (!toutSurUnMemeDatacron) tierMaxSeul.add(statut);
+            if (!eval.tierMaxAtteint()) sansTierMax.add(statut);
+            else if (!eval.toutAtteint()) tierMaxSeul.add(statut);
             else conformes.add(statut);
         }
 
@@ -165,26 +125,16 @@ public class PlanFarmDatacronProgressService {
         return new DatacronDetail(datacron.getId(), nomAffiche, datacron.getSetId(), tierMax, sansTierMax, tierMaxSeul, conformes);
     }
 
-    // ---------------------------------------------------------------------
+    private record EvaluationDatacron(String nomAffiche, List<MecaniqueProgress> mecaniqueProgresses,
+                                       List<StatProgress> statProgresses, Map<String, Boolean> atteintParJoueur) {}
 
-    private record EvaluationDatacron(
-            String nomAffiche,
-            List<MecaniqueProgress> mecaniqueProgresses,
-            List<StatProgress> statProgresses,
-            Map<String, Boolean> atteintParJoueur
-    ) {}
-
-    private EvaluationDatacron evaluerDatacron(PlanFarmDatacron datacron,
-                                                List<Joueur> joueursActifs,
-                                                IndexJoueurDatacrons index,
-                                                Map<String, String> descriptionParMecanique,
-                                                Map<String, String> libelleParStat) {
+    private EvaluationDatacron evaluerDatacronPourGuilde(PlanFarmDatacron datacron, List<Joueur> joueursActifs,
+                                                          DatacronMatchingService.IndexDatacronsPhysiques index,
+                                                          Map<String, String> descriptionParMecanique,
+                                                          Map<String, String> libelleParStat) {
 
         List<PlanFarmDatacronMecanique> mecaniques = mecaniqueRepository.findByPlanFarmDatacronId(datacron.getId());
         List<PlanFarmDatacronStat> stats = statRepository.findByPlanFarmDatacronId(datacron.getId());
-
-        Integer tierMax = mecaniques.stream().mapToInt(PlanFarmDatacronMecanique::getTier).max().orElse(0);
-        PlanFarmDatacronMecanique mecTierMax = mecaniques.stream().filter(m -> m.getTier().equals(tierMax)).findFirst().orElse(null);
 
         Map<String, Boolean> atteintParJoueur = new HashMap<>();
         Map<Long, Integer> joueursOkParMecanique = new HashMap<>();
@@ -195,29 +145,22 @@ public class PlanFarmDatacronProgressService {
         int totalJoueurs = joueursActifs.size();
 
         for (Joueur j : joueursActifs) {
-            Set<String> candidatsTmax = trouverCandidatsTmax(j.getPlayerId(), datacron.getSetId(), mecTierMax, index);
-            boolean tierMaxAtteint = !candidatsTmax.isEmpty();
+            DatacronMatchingService.DatacronStatusJoueur eval = datacronMatchingService.evaluerDatacronPourJoueur(
+                    j.getPlayerId(), datacron.getSetId(), mecaniques, stats, index, descriptionParMecanique, libelleParStat);
 
-            for (PlanFarmDatacronMecanique mec : mecaniques) {
-                boolean atteint = tierMaxAtteint && candidatsTmax.stream()
-                        .anyMatch(idDatacron -> index.mecaniquesParDatacronPhysique()
-                                .getOrDefault(j.getPlayerId() + "|" + idDatacron, Set.of())
-                                .contains(mec.getTier() + "|" + mec.getAbilityId()));
-                if (atteint) joueursOkParMecanique.merge(mec.getId(), 1, Integer::sum);
+            for (int i = 0; i < mecaniques.size(); i++) {
+                if (eval.mecaniques().get(i).atteint()) {
+                    joueursOkParMecanique.merge(mecaniques.get(i).getId(), 1, Integer::sum);
+                }
+            }
+            List<PlanFarmDatacronStat> statsAvecValeur = stats.stream().filter(s -> s.getStatValue() != null).toList();
+            for (int i = 0; i < statsAvecValeur.size(); i++) {
+                if (eval.stats().get(i).atteint()) {
+                    joueursOkParStat.merge(statsAvecValeur.get(i).getId(), 1, Integer::sum);
+                }
             }
 
-            for (PlanFarmDatacronStat stat : stats) {
-                if (stat.getStatValue() == null) continue;
-                boolean atteint = tierMaxAtteint && candidatsTmax.stream().anyMatch(idDatacron ->
-                        index.statsParDatacronPhysique().getOrDefault(j.getPlayerId() + "|" + idDatacron, Map.of())
-                                .getOrDefault(stat.getStatType(), BigDecimal.ZERO)
-                                .compareTo(stat.getStatValue()) >= 0);
-                if (atteint) joueursOkParStat.merge(stat.getId(), 1, Integer::sum);
-            }
-
-            boolean toutSurUnMemeDatacron = tierMaxAtteint && candidatsTmax.stream()
-                    .anyMatch(idDatacron -> satisfaitTout(j.getPlayerId(), idDatacron, mecaniques, stats, index));
-            atteintParJoueur.put(j.getPlayerId(), toutSurUnMemeDatacron);
+            atteintParJoueur.put(j.getPlayerId(), eval.toutAtteint());
         }
 
         List<MecaniqueProgress> mecaniqueProgresses = mecaniques.stream()
@@ -242,62 +185,11 @@ public class PlanFarmDatacronProgressService {
         return new EvaluationDatacron(nomAffiche, mecaniqueProgresses, statProgresses, atteintParJoueur);
     }
 
-    // Un même datacron physique satisfait-il TOUTES les mécaniques ET TOUTES les stats cibles ?
-    private boolean satisfaitTout(String playerId, String idDatacron,
-                                   List<PlanFarmDatacronMecanique> mecaniques,
-                                   List<PlanFarmDatacronStat> stats,
-                                   IndexJoueurDatacrons index) {
-
-        Set<String> mecPhysique = index.mecaniquesParDatacronPhysique().getOrDefault(playerId + "|" + idDatacron, Set.of());
-        Map<String, BigDecimal> statPhysique = index.statsParDatacronPhysique().getOrDefault(playerId + "|" + idDatacron, Map.of());
-
-        boolean toutesMecOk = mecaniques.stream()
-                .allMatch(mec -> mecPhysique.contains(mec.getTier() + "|" + mec.getAbilityId()));
-
-        boolean toutesStatsOk = stats.stream()
-                .filter(s -> s.getStatValue() != null)
-                .allMatch(stat -> statPhysique.getOrDefault(stat.getStatType(), BigDecimal.ZERO).compareTo(stat.getStatValue()) >= 0);
-
-        return toutesMecOk && toutesStatsOk;
-    }
-
-    // Datacrons physiques du joueur (même set) portant la mécanique du Tier max demandé
-    private Set<String> trouverCandidatsTmax(String playerId, String setId, PlanFarmDatacronMecanique mecTierMax, IndexJoueurDatacrons index) {
-        if (mecTierMax == null) return Set.of();
-        String cleTmax = mecTierMax.getTier() + "|" + mecTierMax.getAbilityId();
-        Set<String> datacronsDuJoueur = index.datacronsParJoueurEtSet().getOrDefault(playerId + "|" + setId, Set.of());
-
-        Set<String> candidats = new HashSet<>();
-        for (String idDatacron : datacronsDuJoueur) {
-            if (index.mecaniquesParDatacronPhysique().getOrDefault(playerId + "|" + idDatacron, Set.of()).contains(cleTmax)) {
-                candidats.add(idDatacron);
-            }
-        }
-        return candidats;
-    }
-
-    private IndexJoueurDatacrons construireIndex() {
-        Map<String, Set<String>> mecaniquesParDatacronPhysique = new HashMap<>();
-        Map<String, Map<String, BigDecimal>> statsParDatacronPhysique = new HashMap<>();
-        Map<String, Set<String>> datacronsParJoueurEtSet = new HashMap<>();
-
-        playerDatacronAffixActuelRepository.findMecaniquesEquipeesParJoueur().forEach(p -> {
-            String cleDatacron = p.getPlayerId() + "|" + p.getIdDatacron();
-            mecaniquesParDatacronPhysique.computeIfAbsent(cleDatacron, k -> new HashSet<>())
-                    .add(p.getTier() + "|" + p.getAbilityId());
-            datacronsParJoueurEtSet.computeIfAbsent(p.getPlayerId() + "|" + p.getSetId(), k -> new HashSet<>())
-                    .add(p.getIdDatacron());
-        });
-
-        playerDatacronAffixActuelRepository.findSommeStatsParJoueur().forEach(p -> {
-            String cleDatacron = p.getPlayerId() + "|" + p.getIdDatacron();
-            statsParDatacronPhysique.computeIfAbsent(cleDatacron, k -> new HashMap<>())
-                    .put(p.getStatType(), p.getValue());
-            datacronsParJoueurEtSet.computeIfAbsent(p.getPlayerId() + "|" + p.getSetId(), k -> new HashSet<>())
-                    .add(p.getIdDatacron());
-        });
-
-        return new IndexJoueurDatacrons(mecaniquesParDatacronPhysique, statsParDatacronPhysique, datacronsParJoueurEtSet);
+    private DatacronMatchingService.IndexDatacronsPhysiques construireIndexGuilde() {
+        return datacronMatchingService.construireIndex(
+                playerDatacronAffixActuelRepository.findMecaniquesEquipeesParJoueur(),
+                playerDatacronAffixActuelRepository.findSommeStatsParJoueur()
+        );
     }
 
     private void chargerLibelles(Map<String, String> descriptionParMecanique, Map<String, String> libelleParStat) {

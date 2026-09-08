@@ -1,12 +1,15 @@
 package swgohManager.service;
 
-import swgohManager.model.ExternalPlayerTbScore;
-import org.springframework.stereotype.Service;
-
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.springframework.stereotype.Service;
+
+import swgohManager.model.ExternalPlayerTbScore;
 
 @Service
 public class ExternalTbStatsService {
@@ -62,8 +65,8 @@ public class ExternalTbStatsService {
             if ("strike_encounter".equals(l.getStatType()) && l.getRoundNum() != null) {
                 vaguesParRound.merge(l.getRoundNum(), score, Long::sum);
             }
-            if ("covert_attempt".equals(l.getStatType())) {
-                msTenteesTotal += score;
+            if (l.getMapStatId() != null && l.getMapStatId().contains("covert_round_attempted_mission")) {
+                msTenteesTotal++;
             }
         }
 

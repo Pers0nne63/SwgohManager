@@ -20,42 +20,31 @@ public class SkillZetaOmicronService {
 
     private final SkillDefinitionRepository skillDefinitionRepository;
     private final RosterUnitSkillActuelRepository rosterUnitSkillActuelRepository;
+    private final UnitSkillCalculationService unitSkillCalculationService;
 
     @Transactional
     public String appliquerZetaOmicron() {
         Map<String, SkillDefinition> definitions = skillDefinitionRepository.findAll().stream()
                 .collect(Collectors.toMap(SkillDefinition::getIdSkill, d -> d));
-
         List<RosterUnitSkillActuel> skills = rosterUnitSkillActuelRepository.findAll();
         int misAJour = 0;
         int nonTrouves = 0;
-
         for (RosterUnitSkillActuel skill : skills) {
             SkillDefinition def = definitions.get(skill.getIdSkill());
             if (def == null) {
                 nonTrouves++;
                 continue;
             }
+            UnitSkillCalculationService.ZetaOmicronFlags flags =
+                    unitSkillCalculationService.calculerFlagsZetaOmicron(skill.getTier(), def);
 
-            boolean zetaApplied = Boolean.TRUE.equals(def.getSkillZeta())
-                    && def.getTierZetaRequis() != null
-                    && skill.getTier() != null
-                    && skill.getTier() >= def.getTierZetaRequis()-1;
-
-            boolean omicronApplied = Boolean.TRUE.equals(def.getSkillOmicron())
-                    && def.getTierOmicronRequis() != null
-                    && skill.getTier() != null
-                    && skill.getTier() >= def.getTierOmicronRequis()-1;
-
-            skill.setSkillZeta(def.getSkillZeta());
-            skill.setSkillOmicron(def.getSkillOmicron());
-            skill.setZetaApplied(zetaApplied);
-            skill.setOmicronApplied(omicronApplied);
+            skill.setSkillZeta(flags.skillZeta());
+            skill.setSkillOmicron(flags.skillOmicron());
+            skill.setZetaApplied(flags.zetaApplied());
+            skill.setOmicronApplied(flags.omicronApplied());
             misAJour++;
         }
-
         rosterUnitSkillActuelRepository.saveAll(skills);
-
         String resultat = String.format("%d skill(s) mis à jour, %d idSkill non trouvé(s) dans le référentiel",
                 misAJour, nonTrouves);
         log.info(resultat);

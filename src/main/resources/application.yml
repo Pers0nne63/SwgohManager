@@ -37,3 +37,7 @@ swgoh:
 
 admin:
   password: ${ADMIN_PASSWORD:BaguettesEnflamées!}
+  
+app:
+  import:
+    directory: ./imports

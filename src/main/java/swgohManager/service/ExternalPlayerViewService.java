@@ -8,14 +8,19 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
+import swgohManager.controller.dto.StatQTeamProjection;
 import swgohManager.model.ExternalPlayer;
 import swgohManager.model.ExternalPlayerModQActuel;
 import swgohManager.model.ExternalPlayerRaid;
+import swgohManager.model.ExternalPlayerStatqActuel;
+import swgohManager.model.ExternalPlayerStatqDetailActuel;
 import swgohManager.model.ExternalPlayerTbScore;
 import swgohManager.model.ExternalRosterUnitModActuel;
 import swgohManager.repository.ExternalPlayerModQActuelRepository;
 import swgohManager.repository.ExternalPlayerRaidRepository;
 import swgohManager.repository.ExternalPlayerRepository;
+import swgohManager.repository.ExternalPlayerStatqActuelRepository;
+import swgohManager.repository.ExternalPlayerStatqDetailActuelRepository;
 import swgohManager.repository.ExternalPlayerTbScoreRepository;
 import swgohManager.repository.ExternalRosterUnitActuelRepository;
 import swgohManager.repository.ExternalRosterUnitModActuelRepository;
@@ -37,20 +42,24 @@ public class ExternalPlayerViewService {
     private final ExternalPlayerRaidRepository externalPlayerRaidRepository;
     private final ExternalPlayerTbScoreRepository externalPlayerTbScoreRepository;
     private final ExternalTbStatsService externalTbStatsService;
+    private final ExternalPlayerStatqActuelRepository externalPlayerStatqActuelRepository;
+    private final ExternalPlayerStatqDetailActuelRepository externalPlayerStatqDetailActuelRepository;
 
     public record ModSpeedDataset(String label, String backgroundColor, List<Long> data) {}
 
     public record ExternalPlayerViewModel(
             ExternalPlayer joueur,
             ExternalPlayerModQActuel modQ,
+            ExternalPlayerStatqActuel statQ,
+            List<StatQTeamProjection> statQDetails,
             List<Integer> vitesseLabels,
             List<ModSpeedDataset> vitesseDatasets,
             Long nbMods5,
             Long nbMods6,
             GuildeRelicRepartitionProjection relicRepartition,
-            ExternalFarmPlanComparisonService.ExternalFarmProgress farmPlan,            // 👈 Renommé pour Thymeleaf (vm.farmPlan)
-            ExternalOmicronComparisonService.ExternalOmicronProgress omicronComparison,  // 👈 Ajouté (vm.omicronComparison)
-            ExternalDatacronComparisonService.ExternalDatacronProgress datacronComparison, // 👈 Ajouté (vm.datacronComparison)
+            ExternalFarmPlanComparisonService.ExternalFarmProgress farmPlan,
+            ExternalOmicronComparisonService.ExternalOmicronProgress omicronComparison,
+            ExternalDatacronComparisonService.ExternalDatacronProgress datacronComparison,
             ExternalPlayerRaid raid,
             ExternalTbStatsService.TbSynthese tbSynthese,
             ExternalTbStatsService.MsStats tbMsStats 
@@ -115,10 +124,21 @@ public class ExternalPlayerViewService {
         List<ExternalPlayerTbScore> tbLignes = externalPlayerTbScoreRepository.findByPlayerId(playerId);
         ExternalTbStatsService.TbSynthese tbSynthese = externalTbStatsService.calculerSynthese(tbLignes);
         ExternalTbStatsService.MsStats tbMsStats = externalTbStatsService.calculerMsStats(tbLignes);
+        
+        // StatQ 
+        ExternalPlayerStatqActuel statQ = externalPlayerStatqActuelRepository
+                .findByPlayerId(playerId)
+                .orElse(null);
+
+        // StatQ Details
+        List<StatQTeamProjection> statQDetails = externalPlayerStatqDetailActuelRepository
+                .findStatQbyTeambyPlayerId(playerId);
 
         return new ExternalPlayerViewModel(
                 joueur, 
-                modQ, 
+                modQ,
+                statQ,
+                statQDetails,
                 labels, 
                 datasets, 
                 nbMods5, 

@@ -4,6 +4,7 @@ import swgohManager.controller.dto.PlayerOmicronStatusProjection;
 import swgohManager.model.OmicronPlan;
 import swgohManager.model.PlayerPdfOmicronActuel;
 import swgohManager.model.PlayerPdfOmicronHistorique;
+import swgohManager.repository.ExternalRosterUnitSkillActuelRepository;
 import swgohManager.repository.OmicronPlanRepository;
 import swgohManager.repository.PlayerPdfOmicronActuelRepository;
 import swgohManager.repository.PlayerPdfOmicronHistoriqueRepository;
@@ -12,9 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -22,18 +23,24 @@ public class OmicronPlanProgressService {
 
     private final OmicronPlanRepository omicronPlanRepository;
     private final RosterUnitSkillActuelRepository rosterUnitSkillActuelRepository;
+    private final ExternalRosterUnitSkillActuelRepository externalRosterUnitSkillActuelRepository;
     private final PlayerPdfOmicronActuelRepository playerPdfOmicronActuelRepository;
     private final PlayerPdfOmicronHistoriqueRepository playerPdfOmicronHistoriqueRepository;
     private final OmicronPlanCalculationService omicronPlanCalculationService;
 
-    public OmicronPlanCalculationService.PlayerOmicronProgress getProgression(String playerId) {
-        List<OmicronPlan> plans = omicronPlanRepository.findAll();
-        List<PlayerOmicronStatusProjection> statutRows = rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId);
-        return omicronPlanCalculationService.calculerProgression(plans, statutRows);
+    private List<PlayerOmicronStatusProjection> statutRows(String playerId, Portee portee) {
+        return portee == Portee.GUILDE
+                ? rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId)
+                : externalRosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId);
     }
 
-    public OmicronPlanCalculationService.GlobalSummary getGlobalProgression(String playerId) {
-        return omicronPlanCalculationService.calculerGlobalProgression(getProgression(playerId));
+    public OmicronPlanCalculationService.PlayerOmicronProgress getProgression(String playerId, Portee portee) {
+        List<OmicronPlan> plans = omicronPlanRepository.findAll();
+        return omicronPlanCalculationService.calculerProgression(plans, statutRows(playerId, portee));
+    }
+
+    public OmicronPlanCalculationService.GlobalSummary getGlobalProgression(String playerId, Portee portee) {
+        return omicronPlanCalculationService.calculerGlobalProgression(getProgression(playerId, portee));
     }
 
     public List<OmicronPlanCalculationService.OmicronColonneDetail> getColonnesDetail() {
@@ -41,13 +48,14 @@ public class OmicronPlanProgressService {
     }
 
     /** Si une clé est absente de la map, le joueur ne possède pas le personnage (ou pas ce skill). */
-    public Map<String, Boolean> getStatutDetailParJoueur(String playerId) {
-        return omicronPlanCalculationService.statutParCle(rosterUnitSkillActuelRepository.findStatutOmicronParJoueur(playerId));
+    public Map<String, Boolean> getStatutDetailParJoueur(String playerId, Portee portee) {
+        return omicronPlanCalculationService.statutParCle(statutRows(playerId, portee));
     }
 
+    /** Persistance avec historique — réservée à la guilde, pas d'équivalent externe pour l'instant. */
     @Transactional
     public void calculerEtEnregistrer(String playerId, Long idSync) {
-        OmicronPlanCalculationService.PlayerOmicronProgress progress = getProgression(playerId);
+        OmicronPlanCalculationService.PlayerOmicronProgress progress = getProgression(playerId, Portee.GUILDE);
 
         for (int i = 1; i <= 4; i++) {
             OmicronPlanCalculationService.PrioriteSummary pSummary = progress.parPriorite().get(i);
@@ -100,6 +108,7 @@ public class OmicronPlanProgressService {
         return mapGlobale;
     }
 
+    /** Nettoyage propre à la guilde (l'externe a sa purge dédiée). */
     @Transactional
     public void nettoyerJoueursInactifs(List<String> joueursActifs) {
         if (!joueursActifs.isEmpty()) {

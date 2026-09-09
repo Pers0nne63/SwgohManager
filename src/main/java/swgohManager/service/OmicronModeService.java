@@ -1,8 +1,8 @@
 package swgohManager.service;
 
 import swgohManager.controller.dto.OmicronModeSummaryProjection;
+import swgohManager.dto.pivot.UnitSkillDTO;
 import swgohManager.model.PlayerOmicronModeActuel;
-import swgohManager.model.RosterUnitSkillActuel;
 import swgohManager.model.SkillDefinition;
 import swgohManager.repository.PlayerOmicronModeActuelRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,6 @@ import java.util.*;
 @RequiredArgsConstructor
 public class OmicronModeService {
 
-    // Seuls ces modes intéressent la synthèse guilde (TB, TW, TT, TT3, TT5)
     private static final Set<String> MODES_SUIVIS = Set.of(
             "TERRITORY_BATTLE_BOTH_OMICRON",
             "TERRITORY_WAR_OMICRON",
@@ -27,18 +26,14 @@ public class OmicronModeService {
     private final PlayerOmicronModeActuelRepository playerOmicronModeActuelRepository;
 
     @Transactional
-    public void calculerEtEnregistrer(String playerId, List<RosterUnitSkillActuel> skillsActuels,
+    public void calculerEtEnregistrer(String playerId, List<UnitSkillDTO> skillsDto,
                                        Map<String, SkillDefinition> definitions, Long idSync) {
-
         Map<String, Integer> comptageParMode = new HashMap<>();
-
-        for (RosterUnitSkillActuel skill : skillsActuels) {
-            if (!Boolean.TRUE.equals(skill.getOmicronApplied())) continue;
-
-            SkillDefinition def = definitions.get(skill.getIdSkill());
+        for (UnitSkillDTO skill : skillsDto) {
+            if (!Boolean.TRUE.equals(skill.omicronApplied())) continue;
+            SkillDefinition def = definitions.get(skill.idSkill());
             if (def == null || def.getOmicronMode() == null) continue;
             if (!MODES_SUIVIS.contains(def.getOmicronMode())) continue;
-
             comptageParMode.merge(def.getOmicronMode(), 1, Integer::sum);
         }
 
@@ -57,7 +52,6 @@ public class OmicronModeService {
         playerOmicronModeActuelRepository.saveAll(aSauver);
     }
 
-    /** Lecture pour la carte de la page guilde — somme déjà précalculée, pas de recalcul. */
     public Map<String, Long> getSyntheseGuilde() {
         Map<String, Long> resultat = new LinkedHashMap<>();
         for (String mode : MODES_SUIVIS) {

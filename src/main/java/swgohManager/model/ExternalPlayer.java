@@ -21,9 +21,6 @@ public class ExternalPlayer {
     private Long galacticPower;
     private Long characterGalacticPower;
     private Long shipGalacticPower;
-    private String leagueId;
-    private Integer skillRating;
-    private Integer divisionId;
     @Column(nullable = false)
     private Instant dateScan; // rempli manuellement à chaque scan, sert de base pour la purge à 30j
 }

@@ -6,11 +6,7 @@ import swgohManager.model.Joueur;
 import swgohManager.model.PlanFarmDatacron;
 import swgohManager.model.PlanFarmDatacronMecanique;
 import swgohManager.model.PlanFarmDatacronStat;
-import swgohManager.repository.JoueurRepository;
-import swgohManager.repository.PlanFarmDatacronMecaniqueRepository;
-import swgohManager.repository.PlanFarmDatacronRepository;
-import swgohManager.repository.PlanFarmDatacronStatRepository;
-import swgohManager.repository.PlayerDatacronAffixActuelRepository;
+import swgohManager.repository.*;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -18,21 +14,25 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class PlanFarmDatacronProgressService {
+public class DatacronProgressService {
 
     private final PlanFarmDatacronRepository planFarmDatacronRepository;
     private final PlanFarmDatacronMecaniqueRepository mecaniqueRepository;
     private final PlanFarmDatacronStatRepository statRepository;
     private final PlayerDatacronAffixActuelRepository playerDatacronAffixActuelRepository;
+    private final ExternalPlayerDatacronAffixActuelRepository externalPlayerDatacronAffixActuelRepository;
+    private final ExternalPlayerDatacronActuelRepository externalPlayerDatacronActuelRepository;
     private final JoueurRepository joueurRepository;
     private final PlanFarmDatacronOptionsService optionsService;
     private final DatacronMatchingService datacronMatchingService;
 
+    // ---- DTOs vue "liste des sets" (guilde entière) ----
     public record MecaniqueProgress(Long mecaniqueId, Integer tier, String description, int joueursAtteint, int totalJoueurs, double pourcentage) {}
     public record StatProgress(Long statId, String statLibelle, BigDecimal valeurCible, int joueursAtteint, int totalJoueurs, double pourcentage) {}
     public record DatacronProgress(Long id, String nom, List<MecaniqueProgress> mecaniques, List<StatProgress> stats, int joueursAtteint, int totalJoueurs, double pourcentage) {}
     public record SetProgress(String setId, List<DatacronProgress> datacrons, int joueursAtteint, int totalJoueurs, double pourcentage) {}
 
+    // ---- DTOs vue "détail d'un datacron" (guilde entière) ----
     public record JoueurDatacronStatus(String playerId, String playerName,
                                         List<DatacronMatchingService.MecaniqueStatus> mecaniques,
                                         List<DatacronMatchingService.StatStatus> stats,
@@ -41,6 +41,34 @@ public class PlanFarmDatacronProgressService {
                                   List<JoueurDatacronStatus> joueursSansTierMax,
                                   List<JoueurDatacronStatus> joueursTierMaxSeul,
                                   List<JoueurDatacronStatus> joueursConformes) {}
+
+    // ---- DTOs vue "comparaison pour un joueur externe" ----
+    public record UnJoueurDatacronStatus(Long planDatacronId, String nom, String setId, Integer tierMax,
+                                          List<DatacronMatchingService.MecaniqueStatus> mecaniques,
+                                          List<DatacronMatchingService.StatStatus> stats,
+                                          boolean tierMaxAtteint, boolean toutAtteint) {}
+    public record UnJoueurSetProgress(String setId, List<UnJoueurDatacronStatus> datacrons,
+                                       int totalCibles, int ciblesAtteintes, double pourcentage) {}
+    public record UnJoueurDatacronProgress(long totalDatacronsPhysiques, List<UnJoueurSetProgress> setsProgress) {
+        public record DetailDatacron(String nom, String setId, boolean atteint) {}
+
+        public int atteint() { return setsProgress.stream().mapToInt(UnJoueurSetProgress::ciblesAtteintes).sum(); }
+        public int total() { return setsProgress.stream().mapToInt(UnJoueurSetProgress::totalCibles).sum(); }
+        public Double pourcentage() {
+            int total = total();
+            return total > 0 ? (100.0 * atteint() / total) : null;
+        }
+        public List<DetailDatacron> details() {
+            return setsProgress.stream()
+                    .flatMap(sp -> sp.datacrons().stream())
+                    .map(d -> new DetailDatacron(d.nom(), d.setId(), d.toutAtteint()))
+                    .toList();
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Vue guilde entière — inchangée
+    // ---------------------------------------------------------------------
 
     public List<SetProgress> construire() {
         List<Joueur> joueursActifs = joueurRepository.findAllByPresentInGuildTrue();
@@ -124,6 +152,67 @@ public class PlanFarmDatacronProgressService {
         String nomAffiche = (datacron.getNom() != null && !datacron.getNom().isBlank()) ? datacron.getNom() : "Datacron #" + datacron.getId();
         return new DatacronDetail(datacron.getId(), nomAffiche, datacron.getSetId(), tierMax, sansTierMax, tierMaxSeul, conformes);
     }
+
+    // ---------------------------------------------------------------------
+    // Vue pour un joueur externe uniquement (pas d'équivalent guilde utilisé aujourd'hui)
+    // ---------------------------------------------------------------------
+
+    public UnJoueurDatacronProgress comparerPourJoueurExterne(String playerId) {
+        long totalDatacronsPhysiques = externalPlayerDatacronActuelRepository.findByPlayerId(playerId).size();
+
+        DatacronMatchingService.IndexDatacronsPhysiques index = datacronMatchingService.construireIndex(
+                externalPlayerDatacronAffixActuelRepository.findMecaniquesEquipeesParJoueur(playerId),
+                externalPlayerDatacronAffixActuelRepository.findSommeStatsParJoueur(playerId));
+
+        Map<String, String> descriptionParMecanique = new HashMap<>();
+        Map<String, String> libelleParStat = new HashMap<>();
+        chargerLibelles(descriptionParMecanique, libelleParStat);
+
+        List<PlanFarmDatacron> datacronsCibles = planFarmDatacronRepository.findAll();
+        if (datacronsCibles.isEmpty() || totalDatacronsPhysiques == 0) {
+            return new UnJoueurDatacronProgress(totalDatacronsPhysiques, List.of());
+        }
+
+        Map<String, List<PlanFarmDatacron>> parSet = datacronsCibles.stream()
+                .collect(Collectors.groupingBy(PlanFarmDatacron::getSetId, LinkedHashMap::new, Collectors.toList()));
+
+        List<UnJoueurSetProgress> setsProgress = new ArrayList<>();
+
+        parSet.entrySet().stream()
+                .sorted(Map.Entry.<String, List<PlanFarmDatacron>>comparingByKey().reversed())
+                .forEach(entry -> {
+                    String setId = entry.getKey();
+                    List<UnJoueurDatacronStatus> statusDatacrons = new ArrayList<>();
+                    int ciblesAtteintes = 0;
+
+                    for (PlanFarmDatacron target : entry.getValue()) {
+                        List<PlanFarmDatacronMecanique> mecaniques = mecaniqueRepository.findByPlanFarmDatacronId(target.getId())
+                                .stream().sorted(Comparator.comparing(PlanFarmDatacronMecanique::getTier)).toList();
+                        List<PlanFarmDatacronStat> stats = statRepository.findByPlanFarmDatacronId(target.getId());
+                        Integer tierMax = mecaniques.stream().mapToInt(PlanFarmDatacronMecanique::getTier).max().orElse(0);
+
+                        DatacronMatchingService.DatacronStatusJoueur eval = datacronMatchingService.evaluerDatacronPourJoueur(
+                                playerId, target.getSetId(), mecaniques, stats, index, descriptionParMecanique, libelleParStat);
+
+                        String nomAffiche = (target.getNom() != null && !target.getNom().isBlank()) ? target.getNom() : "Datacron #" + target.getId();
+
+                        UnJoueurDatacronStatus status = new UnJoueurDatacronStatus(
+                                target.getId(), nomAffiche, target.getSetId(), tierMax,
+                                eval.mecaniques(), eval.stats(), eval.tierMaxAtteint(), eval.toutAtteint()
+                        );
+                        statusDatacrons.add(status);
+                        if (status.toutAtteint()) ciblesAtteintes++;
+                    }
+
+                    int totalCibles = statusDatacrons.size();
+                    double pct = totalCibles > 0 ? Math.round((ciblesAtteintes * 1000.0) / totalCibles) / 10.0 : 0.0;
+                    setsProgress.add(new UnJoueurSetProgress(setId, statusDatacrons, totalCibles, ciblesAtteintes, pct));
+                });
+
+        return new UnJoueurDatacronProgress(totalDatacronsPhysiques, setsProgress);
+    }
+
+    // ---------------------------------------------------------------------
 
     private record EvaluationDatacron(String nomAffiche, List<MecaniqueProgress> mecaniqueProgresses,
                                        List<StatProgress> statProgresses, Map<String, Boolean> atteintParJoueur) {}

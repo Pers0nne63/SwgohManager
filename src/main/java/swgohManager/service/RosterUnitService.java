@@ -12,10 +12,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import swgohManager.client.dto.PlayerResponse;
 import swgohManager.dto.pivot.UnitModDTO;
+import swgohManager.model.ExternalRosterUnitSkillActuel;
 import swgohManager.model.RosterUnitActuel;
 import swgohManager.model.RosterUnitModActuel;
 import swgohManager.model.RosterUnitSkillActuel;
 import swgohManager.model.SkillDefinition;
+import swgohManager.repository.ExternalRosterUnitSkillActuelRepository;
 import swgohManager.repository.RosterUnitActuelRepository;
 import swgohManager.repository.RosterUnitHistoriqueRepository;
 import swgohManager.repository.RosterUnitModActuelRepository;
@@ -30,6 +32,7 @@ public class RosterUnitService {
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
     private final RosterUnitHistoriqueRepository rosterUnitHistoriqueRepository;
     private final RosterUnitSkillActuelRepository rosterUnitSkillActuelRepository;
+    private final ExternalRosterUnitSkillActuelRepository externalRosterUnitSkillActuelRepository;
     private final RosterUnitModActuelRepository rosterUnitModActuelRepository;
     private final SkillDefinitionRepository skillDefinitionRepository;
     private final PlayerModQService playerModQService;
@@ -39,6 +42,56 @@ public class RosterUnitService {
     private final OmicronModeService omicronModeService;
     private final UnitSkillCalculationService unitSkillCalculationService;
     private final UnitModCalculationService unitModCalculationService;
+
+    public Map<String, SkillDefinition> chargerDefinitionsSkill() {
+        return skillDefinitionRepository.findAll().stream()
+                .collect(Collectors.toMap(SkillDefinition::getIdSkill, d -> d));
+    }
+
+    /**
+     * Calcule et persiste les skills (zeta/omicron) d'un joueur, interne ou externe.
+     * Portee.GUILDE : table avec idSync. Portee.EXTERNE : table "actuel" sans idSync.
+     * @return le résultat du calcul (DTO pivot), utilisable pour le comptage et l'appel à OmicronModeService.
+     */
+    @Transactional
+    public UnitSkillCalculationService.UnitSkillBuildResult enregistrerSkills(String playerId,
+            List<PlayerResponse.RosterUnit> roster, Map<String, SkillDefinition> definitions,
+            Portee portee, Long idSync) {
+
+        UnitSkillCalculationService.UnitSkillBuildResult buildResult =
+                unitSkillCalculationService.construireSkillsDto(roster, definitions);
+
+        if (portee == Portee.GUILDE) {
+            rosterUnitSkillActuelRepository.deleteByPlayerId(playerId);
+            rosterUnitSkillActuelRepository.flush();
+
+            List<RosterUnitSkillActuel> entites = buildResult.skills().stream()
+                    .map(dto -> RosterUnitSkillActuel.builder()
+                            .playerId(playerId).idUnit(dto.idUnit()).idSkill(dto.idSkill())
+                            .tier(dto.tier()).type(dto.type()).numero(dto.numero())
+                            .skillZeta(dto.skillZeta()).zetaApplied(dto.zetaApplied())
+                            .skillOmicron(dto.skillOmicron()).omicronApplied(dto.omicronApplied())
+                            .idSync(idSync)
+                            .build())
+                    .toList();
+            rosterUnitSkillActuelRepository.saveAll(entites);
+        } else {
+            externalRosterUnitSkillActuelRepository.deleteByPlayerId(playerId);
+            externalRosterUnitSkillActuelRepository.flush();
+
+            List<ExternalRosterUnitSkillActuel> entites = buildResult.skills().stream()
+                    .map(dto -> ExternalRosterUnitSkillActuel.builder()
+                            .playerId(playerId).idUnit(dto.idUnit()).idSkill(dto.idSkill())
+                            .tier(dto.tier()).type(dto.type()).numero(dto.numero())
+                            .skillZeta(dto.skillZeta()).zetaApplied(dto.zetaApplied())
+                            .skillOmicron(dto.skillOmicron()).omicronApplied(dto.omicronApplied())
+                            .build())
+                    .toList();
+            externalRosterUnitSkillActuelRepository.saveAll(entites);
+        }
+
+        return buildResult;
+    }
 
     @Transactional
     public String enregistrerRoster(PlayerResponse response, Long idSync) {
@@ -50,18 +103,12 @@ public class RosterUnitService {
             return "Aucune unité trouvée";
         }
 
-        // Référentiel zeta/omicron, chargé une fois pour toute la synchro
-        Map<String, SkillDefinition> definitions = skillDefinitionRepository.findAll().stream()
-                .collect(Collectors.toMap(SkillDefinition::getIdSkill, d -> d));
+        Map<String, SkillDefinition> definitions = chargerDefinitionsSkill();
 
-        // Suppression des anciennes données actuelles (avant de réinsérer les nouvelles)
+        // Suppression des anciennes données actuelles (unités + mods ; les skills sont gérés dans enregistrerSkills)
         rosterUnitActuelRepository.deleteByPlayerId(playerId);
-        rosterUnitSkillActuelRepository.deleteByPlayerId(playerId);
         rosterUnitModActuelRepository.deleteByPlayerId(playerId);
-
-        // FORCER Hibernate à envoyer les DELETE immédiatement à la BDD
         rosterUnitActuelRepository.flush();
-        rosterUnitSkillActuelRepository.flush();
         rosterUnitModActuelRepository.flush();
 
         List<RosterUnitActuel> unitesActuelles = new ArrayList<>();
@@ -102,30 +149,11 @@ public class RosterUnitService {
             }
         }
 
-        // Calcul des skills : une seule fois pour tout le roster, en dehors de la boucle unités
         UnitSkillCalculationService.UnitSkillBuildResult buildResult =
-                unitSkillCalculationService.construireSkillsDto(roster, definitions);
-
+                enregistrerSkills(playerId, roster, definitions, Portee.GUILDE, idSync);
         int skillsSansDefinition = buildResult.skillsSansDefinition();
 
-        List<RosterUnitSkillActuel> skillsActuels = buildResult.skills().stream()
-                .map(dto -> RosterUnitSkillActuel.builder()
-                        .playerId(playerId)
-                        .idUnit(dto.idUnit())
-                        .idSkill(dto.idSkill())
-                        .tier(dto.tier())
-                        .type(dto.type())
-                        .numero(dto.numero())
-                        .skillZeta(dto.skillZeta())
-                        .zetaApplied(dto.zetaApplied())
-                        .skillOmicron(dto.skillOmicron())
-                        .omicronApplied(dto.omicronApplied())
-                        .idSync(idSync)
-                        .build())
-                .collect(Collectors.toList());
-
         rosterUnitActuelRepository.saveAll(unitesActuelles);
-        rosterUnitSkillActuelRepository.saveAll(skillsActuels);
         rosterUnitModActuelRepository.saveAll(modsActuels);
 
         if (skillsSansDefinition > 0) {
@@ -135,20 +163,20 @@ public class RosterUnitService {
 
         String resultat = String.format(
                 "Sync #%d : %d unité(s), %d skill(s) (%d sans référentiel), %d ligne(s) de mod",
-                idSync, unitesActuelles.size(), skillsActuels.size(), skillsSansDefinition, modsActuels.size());
+                idSync, unitesActuelles.size(), buildResult.skills().size(), skillsSansDefinition, modsActuels.size());
 
         playerModQService.calculerEtEnregistrer(playerId, modsActuels, idSync);
 
         farmPlanProgressService.calculerEtEnregistrer(playerId, idSync);
         omicronPlanProgressService.calculerEtEnregistrer(playerId, idSync);
-        omicronModeService.calculerEtEnregistrer(playerId, skillsActuels, definitions, idSync);
+        omicronModeService.calculerEtEnregistrer(playerId, buildResult.skills(), definitions, idSync);
 
         String resultatStats = rosterUnitStatCalculService.calculerEtEnregistrer(playerId, unitesActuelles, modsActuels);
 
         log.info("{} | Stats: {}", resultat, resultatStats);
         return resultat;
     }
-    
+
     @Transactional
     public int historiserRosterActuel() {
         log.info("Début de la copie du roster actuel vers l'historique...");
@@ -156,23 +184,21 @@ public class RosterUnitService {
         log.info("Historisation terminée : {} unité(s) ajoutée(s) à l'historique.", nombreLignesCopiees);
         return nombreLignesCopiees;
     }
-    
+
+    /** Nettoyage propre à la guilde (l'externe a sa purge dédiée). */
     @Transactional
     public void nettoyerJoueursInactifs(List<String> joueursActifs) {
         log.info("Début du nettoyage des joueurs inactifs dans les tables '_actuel'...");
 
-        // Sécurité
         if (joueursActifs == null || joueursActifs.isEmpty()) {
             log.warn("Aucun joueur actif fourni, annulation du nettoyage par sécurité.");
             return;
         }
 
-        // Supprimer les lignes orphelines
         rosterUnitActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
         rosterUnitSkillActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
         rosterUnitModActuelRepository.deleteByPlayerIdNotIn(joueursActifs);
-        
-        // FORCER Hibernate à envoyer les DELETE
+
         rosterUnitActuelRepository.flush();
         rosterUnitSkillActuelRepository.flush();
         rosterUnitModActuelRepository.flush();

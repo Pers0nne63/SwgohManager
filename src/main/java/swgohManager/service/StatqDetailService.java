@@ -29,12 +29,11 @@ public class StatqDetailService {
     private final StatDefinitionRepository statDefinitionRepository;
     private final UnitDefinitionRepository unitDefinitionRepository;
 
-    public List<TeamStatqSummaryDto> getDetailParTeam(String playerId) {
-        return construire(playerStatqDetailActuelRepository.findByPlayerId(playerId));
-    }
-
-    public List<TeamStatqSummaryDto> getDetailParTeamExterne(String playerId) {
-        return construire(externalPlayerStatqDetailActuelRepository.findByPlayerId(playerId));
+    public List<TeamStatqSummaryDto> getDetailParTeam(String playerId, Portee portee) {
+        List<? extends StatqDetailValues> details = (portee == Portee.GUILDE)
+                ? playerStatqDetailActuelRepository.findByPlayerId(playerId)
+                : externalPlayerStatqDetailActuelRepository.findByPlayerId(playerId);
+        return construire(details);
     }
 
     private List<TeamStatqSummaryDto> construire(List<? extends StatqDetailValues> details) {

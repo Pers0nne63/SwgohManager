@@ -9,14 +9,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ExternalOmicronComparisonService {
 
-    private final ExternalPlayerOmicronPlanProgressService externalOmicronPlanProgressService;
+    private final OmicronPlanProgressService omicronPlanProgressService;
 
     public record DetailRow(String baseId, String label, boolean atteint) {}
     public record ExternalOmicronProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
 
     public ExternalOmicronProgress comparer(String playerId) {
         OmicronPlanCalculationService.PlayerOmicronProgress progress =
-                externalOmicronPlanProgressService.getProgression(playerId);
+                omicronPlanProgressService.getProgression(playerId, Portee.EXTERNE);
 
         int totalAtteint = 0;
         int totalTotal = 0;

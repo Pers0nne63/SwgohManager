@@ -68,7 +68,7 @@ public class OmicronExportService {
                 nomCell.setCellValue(j.getPlayerName());
                 nomCell.setCellStyle(playerStyle);
 
-                Map<String, Boolean> statuts = omicronPlanProgressService.getStatutDetailParJoueur(j.getPlayerId());
+                Map<String, Boolean> statuts = omicronPlanProgressService.getStatutDetailParJoueur(j.getPlayerId(), Portee.GUILDE);
 
                 for (int col = 0; col < colonnes.size(); col++) {
                 	OmicronPlanCalculationService.OmicronColonneDetail c = colonnes.get(col);

@@ -12,12 +12,14 @@ import swgohManager.controller.dto.StatQTeamProjection;
 import swgohManager.model.ExternalPlayer;
 import swgohManager.model.ExternalPlayerModQActuel;
 import swgohManager.model.ExternalPlayerRaid;
+import swgohManager.model.ExternalPlayerRatingActuel;
 import swgohManager.model.ExternalPlayerStatqActuel;
 import swgohManager.model.ExternalPlayerStatqDetailActuel;
 import swgohManager.model.ExternalPlayerTbScore;
 import swgohManager.model.ExternalRosterUnitModActuel;
 import swgohManager.repository.ExternalPlayerModQActuelRepository;
 import swgohManager.repository.ExternalPlayerRaidRepository;
+import swgohManager.repository.ExternalPlayerRatingActuelRepository;
 import swgohManager.repository.ExternalPlayerRepository;
 import swgohManager.repository.ExternalPlayerStatqActuelRepository;
 import swgohManager.repository.ExternalPlayerStatqDetailActuelRepository;
@@ -33,12 +35,13 @@ public class ExternalPlayerViewService {
     private static final double DIVISEUR = 100_000_000.0;
 
     private final ExternalPlayerRepository externalPlayerRepository;
+    private final ExternalPlayerRatingActuelRepository externalPlayerRatingActuelRepository;
     private final ExternalPlayerModQActuelRepository externalPlayerModQActuelRepository;
     private final ExternalRosterUnitActuelRepository externalRosterUnitActuelRepository;
     private final ExternalRosterUnitModActuelRepository externalRosterUnitModActuelRepository;
-    private final ExternalFarmPlanComparisonService externalFarmPlanComparisonService;
+    private final FarmPlanProgressService farmPlanProgressService;
     private final ExternalOmicronComparisonService externalOmicronComparisonService;
-    private final ExternalDatacronComparisonService externalDatacronComparisonService;
+    private final DatacronProgressService datacronProgressService;
     private final ExternalPlayerRaidRepository externalPlayerRaidRepository;
     private final ExternalPlayerTbScoreRepository externalPlayerTbScoreRepository;
     private final ExternalTbStatsService externalTbStatsService;
@@ -49,6 +52,7 @@ public class ExternalPlayerViewService {
 
     public record ExternalPlayerViewModel(
             ExternalPlayer joueur,
+            ExternalPlayerRatingActuel rating,
             ExternalPlayerModQActuel modQ,
             ExternalPlayerStatqActuel statQ,
             List<StatQTeamProjection> statQDetails,
@@ -57,9 +61,9 @@ public class ExternalPlayerViewService {
             Long nbMods5,
             Long nbMods6,
             GuildeRelicRepartitionProjection relicRepartition,
-            ExternalFarmPlanComparisonService.ExternalFarmProgress farmPlan,
+            FarmPlanProgressService.PlayerFarmProgress farmPlan,
             ExternalOmicronComparisonService.ExternalOmicronProgress omicronComparison,
-            ExternalDatacronComparisonService.ExternalDatacronProgress datacronComparison,
+            DatacronProgressService.UnJoueurDatacronProgress datacronComparison, 
             ExternalPlayerRaid raid,
             ExternalTbStatsService.TbSynthese tbSynthese,
             ExternalTbStatsService.MsStats tbMsStats 
@@ -67,6 +71,7 @@ public class ExternalPlayerViewService {
 
     public ExternalPlayerViewModel construire(String playerId) {
         ExternalPlayer joueur = externalPlayerRepository.findByPlayerId(playerId).orElse(null);
+        ExternalPlayerRatingActuel rating = externalPlayerRatingActuelRepository.findByPlayerId(playerId).orElse(null);
         ExternalPlayerModQActuel modQ = externalPlayerModQActuelRepository.findByPlayerId(playerId).orElse(null);
 
         List<ExternalRosterUnitModActuel> modsVitesse =
@@ -109,33 +114,30 @@ public class ExternalPlayerViewService {
         GuildeRelicRepartitionProjection relicRepartition =
                 externalRosterUnitActuelRepository.findRepartitionRelicsJoueur(playerId);
 
-        // Comparaisons
-        ExternalFarmPlanComparisonService.ExternalFarmProgress farmPlan =
-                externalFarmPlanComparisonService.comparer(playerId);
+        FarmPlanProgressService.PlayerFarmProgress farmPlan =
+                farmPlanProgressService.getProgression(playerId, Portee.EXTERNE);
 
         ExternalOmicronComparisonService.ExternalOmicronProgress omicronComparison =
                 externalOmicronComparisonService.comparer(playerId);
 
-        ExternalDatacronComparisonService.ExternalDatacronProgress datacronComparison =
-                externalDatacronComparisonService.comparer(playerId);
-
-        // Raids & TB
+        DatacronProgressService.UnJoueurDatacronProgress datacronComparison =
+                datacronProgressService.comparerPourJoueurExterne(playerId);
+        
         ExternalPlayerRaid raid = externalPlayerRaidRepository.findByPlayerId(playerId).orElse(null);
         List<ExternalPlayerTbScore> tbLignes = externalPlayerTbScoreRepository.findByPlayerId(playerId);
         ExternalTbStatsService.TbSynthese tbSynthese = externalTbStatsService.calculerSynthese(tbLignes);
         ExternalTbStatsService.MsStats tbMsStats = externalTbStatsService.calculerMsStats(tbLignes);
-        
-        // StatQ 
+
         ExternalPlayerStatqActuel statQ = externalPlayerStatqActuelRepository
                 .findByPlayerId(playerId)
                 .orElse(null);
 
-        // StatQ Details
         List<StatQTeamProjection> statQDetails = externalPlayerStatqDetailActuelRepository
                 .findStatQbyTeambyPlayerId(playerId);
 
         return new ExternalPlayerViewModel(
-                joueur, 
+                joueur,
+                rating,
                 modQ,
                 statQ,
                 statQDetails,

@@ -23,6 +23,7 @@ import swgohManager.service.OmicronExportService;
 import swgohManager.service.OmicronPlanCalculationService;
 import swgohManager.service.OmicronPlanProgressService;
 import swgohManager.service.OmicronPlanService;
+import swgohManager.service.Portee;
 
 @Controller
 @RequestMapping("/omicron-tw")
@@ -92,7 +93,7 @@ public class OmicronPlanWebController {
     @GetMapping("/api/manquants")
     @ResponseBody
     public List<String> getOmicronsManquants(@RequestParam String playerId, @RequestParam int priorite) {
-    	OmicronPlanCalculationService.PlayerOmicronProgress progress = omicronPlanProgressService.getProgression(playerId);
+    	OmicronPlanCalculationService.PlayerOmicronProgress progress = omicronPlanProgressService.getProgression(playerId, Portee.GUILDE);
     	OmicronPlanCalculationService.PrioriteSummary summary = progress.parPriorite().get(priorite);
 
         if (summary == null) return List.of();

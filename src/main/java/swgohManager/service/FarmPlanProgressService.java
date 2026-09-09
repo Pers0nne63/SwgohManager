@@ -19,6 +19,7 @@ public class FarmPlanProgressService {
 
     private final FarmPlanRepository farmPlanRepository;
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
+    private final ExternalRosterUnitActuelRepository externalRosterUnitActuelRepository;
     private final SyncExecutionRepository syncExecutionRepository;
     private final PlayerPdfActuelRepository playerPdfActuelRepository;
     private final PlayerPdfHistoriqueRepository playerPdfHistoriqueRepository;
@@ -28,13 +29,20 @@ public class FarmPlanProgressService {
     public record PlayerFarmProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
     public record PointProgression(Instant date, Double pourcentage) {}
 
-    public PlayerFarmProgress getProgression(String playerId) {
-        return convertir(calculer(playerId));
+    private List<RosterBaseIdProgressProjection> rosterProgress(String playerId, Portee portee) {
+        return portee == Portee.GUILDE
+                ? rosterUnitActuelRepository.findMaxEtoilesRelicByBaseId(playerId)
+                : externalRosterUnitActuelRepository.findMaxEtoilesRelicByBaseId(playerId);
     }
 
+    public PlayerFarmProgress getProgression(String playerId, Portee portee) {
+        return convertir(calculer(playerId, portee));
+    }
+
+    /** Persistance avec historique — réservée à la guilde, pas d'équivalent externe. */
     @Transactional
     public void calculerEtEnregistrer(String playerId, Long idSync) {
-        PlayerFarmProgress progress = convertir(calculer(playerId));
+        PlayerFarmProgress progress = convertir(calculer(playerId, Portee.GUILDE));
 
         PlayerPdfActuel existant = playerPdfActuelRepository.findByPlayerId(playerId).orElse(null);
 
@@ -99,9 +107,8 @@ public class FarmPlanProgressService {
                 .toList();
     }
 
-    private FarmPlanCalculationService.FarmProgress calculer(String playerId) {
-        List<RosterBaseIdProgressProjection> rosterProgress = rosterUnitActuelRepository.findMaxEtoilesRelicByBaseId(playerId);
-        return farmPlanCalculationService.calculer(farmPlanRepository.findAll(), rosterProgress);
+    private FarmPlanCalculationService.FarmProgress calculer(String playerId, Portee portee) {
+        return farmPlanCalculationService.calculer(farmPlanRepository.findAll(), rosterProgress(playerId, portee));
     }
 
     private PlayerFarmProgress convertir(FarmPlanCalculationService.FarmProgress p) {
@@ -111,6 +118,7 @@ public class FarmPlanProgressService {
         return new PlayerFarmProgress(p.atteint(), p.total(), p.pourcentage(), details);
     }
 
+    /** Nettoyage propre à la guilde (l'externe a sa purge dédiée). */
     @Transactional
     public void nettoyerJoueursInactifs(List<String> joueursActifs) {
         if (!joueursActifs.isEmpty()) {
@@ -118,5 +126,4 @@ public class FarmPlanProgressService {
             playerPdfActuelRepository.flush();
         }
     }
-
 }

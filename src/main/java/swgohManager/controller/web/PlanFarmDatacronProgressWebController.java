@@ -7,14 +7,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import lombok.RequiredArgsConstructor;
-import swgohManager.service.PlanFarmDatacronProgressService;
+import swgohManager.service.DatacronProgressService;
 
 @Controller
 @RequestMapping("/web/plan-farm-datacron/progression")
 @RequiredArgsConstructor
 public class PlanFarmDatacronProgressWebController {
 
-    private final PlanFarmDatacronProgressService progressService;
+    private final DatacronProgressService progressService;
 
     @GetMapping
     public String page(Model model) {

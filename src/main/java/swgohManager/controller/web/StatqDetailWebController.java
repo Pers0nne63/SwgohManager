@@ -1,17 +1,19 @@
 package swgohManager.controller.web;
 
-import swgohManager.model.PlayerStatqActuel;
-import swgohManager.repository.JoueurRepository;
-import swgohManager.repository.PlayerStatqActuelRepository;
-import swgohManager.service.StatqDetailService;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Objects;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-import java.util.List;
-import java.util.Objects;
+import lombok.RequiredArgsConstructor;
+import swgohManager.model.PlayerStatqActuel;
+import swgohManager.repository.JoueurRepository;
+import swgohManager.repository.PlayerStatqActuelRepository;
+import swgohManager.service.Portee;
+import swgohManager.service.StatqDetailService;
 
 @Controller
 @RequiredArgsConstructor
@@ -26,7 +28,7 @@ public class StatqDetailWebController {
     @GetMapping("/joueur/{playerId}/statq-detail")
     public String detail(@PathVariable String playerId, Model model) {
         model.addAttribute("joueur", joueurRepository.findByPlayerId(playerId).orElse(null));
-        model.addAttribute("detailParTeam", statqDetailService.getDetailParTeam(playerId));
+        model.addAttribute("detailParTeam", statqDetailService.getDetailParTeam(playerId, Portee.GUILDE));
 
         // 1. Récupération du StatQ du joueur consulté
         PlayerStatqActuel statqJoueur = playerStatqActuelRepository.findByPlayerId(playerId).orElse(null);

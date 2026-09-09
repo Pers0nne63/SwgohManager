@@ -40,13 +40,13 @@ public class PlayerSyncService {
         log.info("Appel API /player pour {}", identifier);
         PlayerResponse response = swgohApiClient.getPlayer(identifier);
 
-        PlayerRatingHistorique rating = playerRatingService.enregistrerRating(response);
+        RatingCalculationService.RatingResult rating = playerRatingService.enregistrerRating(response, Portee.GUILDE);
         String resultatRoster = rosterUnitService.enregistrerRoster(response, idSync);
 
         // Enregistrement des datacrons et des statuts d'ère
-        playerDatacronService.enregistrer(response.playerId(), response);
-        playerEraUnitStatusService.enregistrer(response.playerId(), response);
-
+        playerDatacronService.enregistrer(response.playerId(), response, Portee.GUILDE);
+        playerEraUnitStatusService.enregistrer(response.playerId(), response, Portee.GUILDE);
+        
         // Calcul et enregistrement de la progression si le joueur a au moins un objectif
         if (!planFarmIndRepository.findByPlayerId(response.playerId()).isEmpty()) {
             farmPlanIndProgressService.calculerEtEnregistrer(response.playerId(), idSync);
@@ -54,9 +54,9 @@ public class PlayerSyncService {
 
         String message = String.format("Joueur %s (%s) : skillRating=%s, ligue=%s, division=%s | %s",
                 response.name(), response.playerId(),
-                rating != null ? rating.getSkillRating() : "n/a",
-                rating != null ? rating.getLeagueId() : "n/a",
-                rating != null ? rating.getDivisionId() : "n/a",
+                rating != null ? rating.skillRating() : "n/a",
+                rating != null ? rating.leagueId() : "n/a",
+                rating != null ? rating.divisionId() : "n/a",
                 resultatRoster);
 
         log.info(message);

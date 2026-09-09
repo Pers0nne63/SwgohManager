@@ -1,7 +1,9 @@
 package swgohManager.service;
 
 import swgohManager.client.dto.PlayerResponse;
+import swgohManager.model.ExternalPlayerRatingActuel;
 import swgohManager.model.PlayerRatingHistorique;
+import swgohManager.repository.ExternalPlayerRatingActuelRepository;
 import swgohManager.repository.PlayerRatingHistoriqueRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,38 +16,45 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlayerRatingService {
 
     private final PlayerRatingHistoriqueRepository playerRatingHistoriqueRepository;
+    private final ExternalPlayerRatingActuelRepository externalPlayerRatingActuelRepository;
+    private final RatingCalculationService ratingCalculationService;
 
+    /**
+     * Enregistre le rating d'un joueur.
+     * Portee.GUILDE : ajoute une ligne à l'historique (comportement inchangé, une ligne par sync).
+     * Portee.EXTERNE : upsert dans la table "actuel" externe (pas d'historique).
+     * @return l'entité sauvegardée (PlayerRatingHistorique ou ExternalPlayerRatingActuel selon la portée), ou null si pas de donnée.
+     */
     @Transactional
-    public PlayerRatingHistorique enregistrerRating(PlayerResponse response) {
-        if (response.playerRating() == null) {
+    public RatingCalculationService.RatingResult enregistrerRating(PlayerResponse response, Portee portee) {
+        RatingCalculationService.RatingResult r = ratingCalculationService.calculer(response);
+
+        if (r == null) {
             log.warn("Aucune donnée playerRating pour le joueur {}", response.playerId());
             return null;
         }
 
-        Integer skillRating = response.playerRating().playerSkillRating() != null
-                ? response.playerRating().playerSkillRating().skillRating() : null;
+        if (portee == Portee.GUILDE) {
+            playerRatingHistoriqueRepository.save(PlayerRatingHistorique.builder()
+                    .playerId(response.playerId())
+                    .skillRating(r.skillRating())
+                    .leagueId(r.leagueId())
+                    .divisionId(r.divisionId())
+                    .build());
+            log.info("Rating enregistré pour {} : {} points, ligue {} division {}",
+                    response.playerId(), r.skillRating(), r.leagueId(), r.divisionId());
+        } else {
+            ExternalPlayerRatingActuel existant = externalPlayerRatingActuelRepository
+                    .findByPlayerId(response.playerId()).orElse(new ExternalPlayerRatingActuel());
+            existant.setPlayerId(response.playerId());
+            existant.setSkillRating(r.skillRating());
+            existant.setLeagueId(r.leagueId());
+            existant.setDivisionId(r.divisionId());
+            externalPlayerRatingActuelRepository.save(existant);
+            log.info("Rating externe enregistré pour {} : {} points, ligue {} division {}",
+                    response.playerId(), r.skillRating(), r.leagueId(), r.divisionId());
+        }
 
-        String leagueId = response.playerRating().playerRankStatus() != null
-                ? response.playerRating().playerRankStatus().leagueId() : null;
-
-        Integer divisionBrute = response.playerRating().playerRankStatus() != null
-                ? response.playerRating().playerRankStatus().divisionId() : null;
-
-        // L'API renvoie la division par tranche de 5 (5 à 25), dans l'ordre inverse du jeu.
-        // 25 -> 1, 20 -> 2, 15 -> 3, 10 -> 4, 5 -> 5.
-        Integer division = divisionBrute != null ? (30 - divisionBrute) / 5 : null;
-
-        PlayerRatingHistorique entree = PlayerRatingHistorique.builder()
-                .playerId(response.playerId())
-                .skillRating(skillRating)
-                .leagueId(leagueId)
-                .divisionId(division)
-                .build();
-
-        PlayerRatingHistorique sauvee = playerRatingHistoriqueRepository.save(entree);
-        log.info("Rating enregistré pour {} : {} points, ligue {} division {}",
-                response.playerId(), skillRating, leagueId, division);
-
-        return sauvee;
+        return r;
     }
 }

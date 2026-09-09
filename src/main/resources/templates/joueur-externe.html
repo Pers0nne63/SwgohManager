@@ -25,26 +25,61 @@
         </a>
 
         <!-- EN-TÊTE -->
-        <div class="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
-            <div class="flex flex-col md:flex-row md:items-center gap-4">
-                <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
-                    <i class="bi bi-radar text-indigo-400"></i>
-                    <span th:text="${vm.joueur.playerName} + ' - '">Nom Joueur</span>
-                    <span th:text="${vm.joueur.guildName}">Guilde</span>
-                    <span class="text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-2 py-1 rounded-lg">Externe</span>
-                </h1>
-                <div th:if="${vm.joueur.skillRating != null}" class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-medium">
-                    <span class="text-slate-400">Skill Rating :</span>
-                    <b class="text-white font-mono" th:text="${vm.joueur.skillRating}">0</b>
-                    <span class="text-slate-500 mx-1">-</span>
-                    <span class="text-amber-400 font-semibold" th:text="${vm.joueur.leagueId + ' Div ' + vm.joueur.divisionId}">LEAGUE DIV</span>
-                </div>
-            </div>
-            <p class="text-xs text-slate-500">
-                Scanné le <span th:text="${#temporals.format(vm.joueur.dateScan, 'dd/MM/yyyy HH:mm')}">-</span>
-                — allycode <span th:text="${vm.joueur.allyCode}">-</span>
-            </p>
-        </div>
+		<div class="mb-8 flex flex-col gap-4 bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 shadow-sm">
+		    
+		    <!-- LIGNE 1 : Identité & Puissance -->
+		    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+		        <h1 class="text-3xl font-extrabold text-white flex flex-wrap items-center gap-3">
+		            <i class="bi bi-radar text-indigo-400"></i>
+		            <span th:text="${vm.joueur.playerName} + ' - '">Nom Joueur</span>
+		            <span class="text-slate-300" th:text="${vm.joueur.guildName}">Guilde</span>
+		            <span class="text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-2 py-1 rounded-lg">Externe</span>
+		        </h1>
+		        
+		        <!-- Bloc Puissance Galactique mis en évidence -->
+		        <div class="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-700 shadow-inner">
+		            <i class="bi bi-shield-fill text-slate-400"></i>
+		            <span class="text-slate-400 text-sm font-medium">PG :</span>
+		            <b class="text-amber-400 font-mono text-lg tracking-wide" th:text="${#numbers.formatInteger(vm.joueur.galacticPower, 1, 'DEFAULT')}">0</b>
+		        </div>
+		    </div>
+		
+		    <!-- Séparateur discret -->
+		    <hr class="border-slate-700/50">
+		
+		    <!-- LIGNE 2 : Métriques & Actions -->
+		    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+		        
+		        <div class="flex flex-wrap items-center gap-3">
+		            <!-- Skill Rating & League -->
+		            <div th:if="${vm.rating != null and vm.rating.skillRating != null}" class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-medium">
+		                <span class="text-slate-400">Skill Rating :</span>
+		                <b class="text-white font-mono" th:text="${vm.rating.skillRating}">0</b>
+		                <span class="text-slate-500 mx-1">-</span>
+		                <span class="text-amber-400 font-semibold" th:text="${vm.rating.leagueId + ' Div ' + vm.rating.divisionId}">LEAGUE DIV</span>
+		            </div>
+		
+		            <!-- Infos de Scan & Allycode -->
+		            <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50 text-xs text-slate-400">
+		                <i class="bi bi-info-circle text-slate-500"></i>
+		                <span>Allycode : <span class="font-mono text-slate-300" th:text="${vm.joueur.allyCode}">-</span></span>
+		                <span class="text-slate-600">|</span>
+		                <span>Scanné le <span class="text-slate-300" th:text="${#temporals.format(vm.joueur.dateScan, 'dd/MM/yyyy HH:mm')}">-</span></span>
+		            </div>
+		        </div>
+		
+		        <!-- Formulaire miniature pour la resynchronisation -->
+		        <form th:action="@{/joueur-externe/scanner}" method="post" class="m-0">
+		            <input type="hidden" name="allyCode" th:value="${vm.joueur.allyCode}" />
+		            <button type="submit" 
+		                    title="Resynchroniser ce joueur"
+		                    class="w-full lg:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/30 rounded-lg text-xs font-bold transition-all shadow-sm">
+		                <i class="bi bi-arrow-clockwise"></i> Actualiser
+		            </button>
+		        </form>   
+		    </div>
+		</div>
+
 
         <!-- BLOCS D'INFOS -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

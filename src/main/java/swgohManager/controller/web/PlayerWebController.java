@@ -18,6 +18,7 @@ import swgohManager.repository.TbScoreJoueurRepository;
 import swgohManager.service.OmicronPlanProgressService;
 import swgohManager.service.PlayerDatacronViewService;
 import swgohManager.service.PlayerViewService;
+import swgohManager.service.Portee;
 import swgohManager.service.TbStatsService;
 
 @Controller
@@ -55,8 +56,8 @@ public class PlayerWebController {
         model.addAttribute("tbMsStats", msStats);
 
         // 6. Progression Omicron TW (P1 à P4 + Global)
-        model.addAttribute("progressionOmicron", omicronPlanProgressService.getProgression(playerId));
-        model.addAttribute("globalOmicron", omicronPlanProgressService.getGlobalProgression(playerId));
+        model.addAttribute("progressionOmicron", omicronPlanProgressService.getProgression(playerId, Portee.GUILDE));
+        model.addAttribute("globalOmicron", omicronPlanProgressService.getGlobalProgression(playerId,Portee.GUILDE));
 
         return "joueur";
     }

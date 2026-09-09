@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +17,13 @@ import swgohManager.dto.pivot.UnitModDTO;
 import swgohManager.model.ExternalPlayer;
 import swgohManager.model.ExternalRosterUnitActuel;
 import swgohManager.model.ExternalRosterUnitModActuel;
+import swgohManager.model.SkillDefinition;
 import swgohManager.repository.ExternalPlayerDatacronActuelRepository;
 import swgohManager.repository.ExternalPlayerDatacronAffixActuelRepository;
+import swgohManager.repository.ExternalPlayerEraUnitStatusActuelRepository;
 import swgohManager.repository.ExternalPlayerModQActuelRepository;
 import swgohManager.repository.ExternalPlayerRaidRepository;
+import swgohManager.repository.ExternalPlayerRatingActuelRepository;
 import swgohManager.repository.ExternalPlayerRepository;
 import swgohManager.repository.ExternalPlayerStatqActuelRepository;
 import swgohManager.repository.ExternalPlayerStatqDetailActuelRepository;
@@ -43,9 +47,14 @@ public class ExternalPlayerSyncService {
     private final ExternalPlayerModQService externalPlayerModQService;
     private final ExternalGuildScanService externalGuildScanService;
     private final UnitModCalculationService unitModCalculationService;
-    private final ExternalRosterUnitStatCalculService externalRosterUnitStatCalculService;
-    private final ExternalRosterUnitStatObjectifService externalRosterUnitStatObjectifService;
-    private final ExternalStatqCalculService externalStatqCalculService;
+    private final RosterUnitStatCalculService rosterUnitStatCalculService;
+    private final RosterUnitStatObjectifService rosterUnitStatObjectifService;
+    private final StatqCalculService statqCalculService;
+    private final PlayerEraUnitStatusService playerEraUnitStatusService; 
+    private final PlayerRatingService playerRatingService;
+    private final ExternalPlayerRatingActuelRepository externalPlayerRatingActuelRepository;
+    private final RosterUnitService rosterUnitService;
+    private final PlayerDatacronService playerDatacronService;
 
     // Purge
     private final ExternalPlayerRaidRepository externalPlayerRaidRepository;
@@ -57,9 +66,8 @@ public class ExternalPlayerSyncService {
     private final ExternalPlayerStatqDetailActuelRepository externalStatqDetailActuelRepository;
     private final ExternalPlayerDatacronActuelRepository externalDatacronRepository;
     private final ExternalPlayerDatacronAffixActuelRepository externalAffixRepository;
+    private final ExternalPlayerEraUnitStatusActuelRepository externalPlayerEraUnitStatusActuelRepository; 
 
-    // Service dédié aux compétences et datacrons
-    private final ExternalPlayerSyncDataService externalPlayerSyncDataService;
 
     @Transactional
     public String scanner(String allyCode) {
@@ -77,14 +85,7 @@ public class ExternalPlayerSyncService {
         externalRosterUnitModActuelRepository.flush();
         externalPlayerModQActuelRepository.flush();
         externalPlayerRepository.flush();
-
-        Integer skillRating = response.playerRating() != null && response.playerRating().playerSkillRating() != null
-                ? response.playerRating().playerSkillRating().skillRating() : null;
-        String leagueId = response.playerRating() != null && response.playerRating().playerRankStatus() != null
-                ? response.playerRating().playerRankStatus().leagueId() : null;
-        Integer divisionId = response.playerRating() != null && response.playerRating().playerRankStatus() != null
-                ? response.playerRating().playerRankStatus().divisionId() : null;
-
+        
         ExternalPlayer externalPlayer = ExternalPlayer.builder()
                 .playerId(playerId)
                 .allyCode(response.allyCode())
@@ -92,12 +93,11 @@ public class ExternalPlayerSyncService {
                 .guildId(response.guildId())
                 .guildName(response.guildName())
                 .characterGalacticPower(null)
-                .leagueId(leagueId)
-                .skillRating(skillRating)
-                .divisionId(divisionId)
                 .dateScan(Instant.now())
                 .build();
         externalPlayerRepository.save(externalPlayer);
+
+        playerRatingService.enregistrerRating(response, Portee.EXTERNE);
 
         List<ExternalRosterUnitActuel> unites = new ArrayList<>();
         List<ExternalRosterUnitModActuel> mods = new ArrayList<>();
@@ -142,9 +142,11 @@ public class ExternalPlayerSyncService {
         externalRosterUnitActuelRepository.saveAll(unites);
         externalRosterUnitModActuelRepository.saveAll(mods);
 
-        // 2. Sauvegarde des compétences (skills) et datacrons
-        externalPlayerSyncDataService.enregistrerSkillsEtDatacrons(playerId, response);
-
+     // 2. Sauvegarde des compétences (skills) et datacrons
+        Map<String, SkillDefinition> definitions = rosterUnitService.chargerDefinitionsSkill();
+        rosterUnitService.enregistrerSkills(playerId, response.rosterUnit(), definitions, Portee.EXTERNE, null);
+        playerDatacronService.enregistrer(playerId, response, Portee.EXTERNE);
+        
         // 3. Scan de guilde pour récupérer le nom et les puissances galactiques
         ExternalGuildScanService.GuildPlayerData guildData = externalGuildScanService.scannerGuildeDuJoueur(playerId, response.guildId());
         if (guildData != null) {
@@ -163,9 +165,12 @@ public class ExternalPlayerSyncService {
         );
 
         // 5. Calcul des stats actuelles, des objectifs, puis du StatQ
-        externalRosterUnitStatCalculService.calculerEtEnregistrer(playerId, unites, mods);
-        externalRosterUnitStatObjectifService.calculerEtEnregistrer(playerId, unites);
-        externalStatqCalculService.calculerEtEnregistrer(playerId);
+        rosterUnitStatCalculService.calculerEtEnregistrerExterne(playerId, unites, mods);
+        rosterUnitStatObjectifService.calculerEtEnregistrerExterne(playerId, unites);
+        statqCalculService.calculerEtEnregistrer(playerId);
+        
+        // 6. Unités d'ère
+        playerEraUnitStatusService.enregistrer(playerId, response, Portee.EXTERNE);
 
         String message = String.format("Scan externe : %s (%s) — %d unité(s), %d ligne(s) de mod",
                 response.name(), playerId, unites.size(), mods.size());
@@ -194,6 +199,8 @@ public class ExternalPlayerSyncService {
             externalStatqActuelRepository.deleteByPlayerId(playerId);
             externalStatqDetailActuelRepository.deleteByPlayerId(playerId);
             externalPlayerRepository.deleteByPlayerId(playerId);
+            externalPlayerEraUnitStatusActuelRepository.deleteByPlayerId(playerId);
+            externalPlayerRatingActuelRepository.deleteByPlayerId(playerId);
         }
         log.info("Purge des scans externes : {} joueur(s) supprimé(s)", playerIdsAPurger.size());
         return playerIdsAPurger.size();

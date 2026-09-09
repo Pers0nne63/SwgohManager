@@ -68,7 +68,6 @@ public class ExternalPlayerSyncService {
     private final ExternalPlayerDatacronAffixActuelRepository externalAffixRepository;
     private final ExternalPlayerEraUnitStatusActuelRepository externalPlayerEraUnitStatusActuelRepository; 
 
-
     @Transactional
     public String scanner(String allyCode) {
         PlayerIdentifier identifier = PlayerIdentifier.of(null, allyCode);
@@ -86,15 +85,19 @@ public class ExternalPlayerSyncService {
         externalPlayerModQActuelRepository.flush();
         externalPlayerRepository.flush();
         
+        // 1. Enregistrement du joueur avec ses GP extraits directement du PlayerResponse
         ExternalPlayer externalPlayer = ExternalPlayer.builder()
                 .playerId(playerId)
                 .allyCode(response.allyCode())
                 .playerName(response.name())
                 .guildId(response.guildId())
                 .guildName(response.guildName())
-                .characterGalacticPower(null)
+                .galacticPower(parseLongOrNull(response.getGalacticPower()))
+                .characterGalacticPower(parseLongOrNull(response.getCharacterGalacticPower()))
+                .shipGalacticPower(parseLongOrNull(response.getShipGalacticPower()))
                 .dateScan(Instant.now())
                 .build();
+        
         externalPlayerRepository.save(externalPlayer);
 
         playerRatingService.enregistrerRating(response, Portee.EXTERNE);
@@ -138,38 +141,31 @@ public class ExternalPlayerSyncService {
             }
         }
 
-        // 1. Sauvegarde des unités et des mods
+        // 2. Sauvegarde des unités et des mods
         externalRosterUnitActuelRepository.saveAll(unites);
         externalRosterUnitModActuelRepository.saveAll(mods);
 
-     // 2. Sauvegarde des compétences (skills) et datacrons
+        // 3. Sauvegarde des compétences (skills) et datacrons
         Map<String, SkillDefinition> definitions = rosterUnitService.chargerDefinitionsSkill();
         rosterUnitService.enregistrerSkills(playerId, response.rosterUnit(), definitions, Portee.EXTERNE, null);
         playerDatacronService.enregistrer(playerId, response, Portee.EXTERNE);
         
-        // 3. Scan de guilde pour récupérer le nom et les puissances galactiques
-        ExternalGuildScanService.GuildPlayerData guildData = externalGuildScanService.scannerGuildeDuJoueur(playerId, response.guildId());
-        if (guildData != null) {
-            externalPlayer.setGuildName(guildData.guildName());
-            externalPlayer.setGalacticPower(guildData.galacticPower());
-            externalPlayer.setCharacterGalacticPower(guildData.characterGalacticPower());
-            externalPlayer.setShipGalacticPower(guildData.shipGalacticPower());
-            externalPlayerRepository.save(externalPlayer);
-        }
+        // 4. Scan de guilde uniquement pour enregistrer les scores Raid et TB du joueur
+        externalGuildScanService.scannerGuildeDuJoueur(playerId, response.guildId());
 
-        // 4. Calcul du ModQ une fois characterGalacticPower disponible
+        // 5. Calcul du ModQ (characterGalacticPower est déjà présent)
         externalPlayerModQService.calculerEtEnregistrer(
                 playerId, 
                 mods, 
                 externalPlayer.getCharacterGalacticPower()
         );
 
-        // 5. Calcul des stats actuelles, des objectifs, puis du StatQ
+        // 6. Calcul des stats actuelles, des objectifs, puis du StatQ
         rosterUnitStatCalculService.calculerEtEnregistrerExterne(playerId, unites, mods);
         rosterUnitStatObjectifService.calculerEtEnregistrerExterne(playerId, unites);
         statqCalculService.calculerEtEnregistrer(playerId);
         
-        // 6. Unités d'ère
+        // 7. Unités d'ère
         playerEraUnitStatusService.enregistrer(playerId, response, Portee.EXTERNE);
 
         String message = String.format("Scan externe : %s (%s) — %d unité(s), %d ligne(s) de mod",
@@ -178,8 +174,17 @@ public class ExternalPlayerSyncService {
         return playerId;
     }
 
+    private Long parseLongOrNull(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number n) return n.longValue();
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 
-    /** Purge des scans de plus de 30 jours (joueur + roster + mods + modQ + raid + TB + skills + datacrons). */
+    /** Purge des scans de plus de 30 jours. */
     @Transactional
     public int purgerAnciensScan() {
         Instant seuil = Instant.now().minus(30, ChronoUnit.DAYS);

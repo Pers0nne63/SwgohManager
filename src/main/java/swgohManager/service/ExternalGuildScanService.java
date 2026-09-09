@@ -25,24 +25,18 @@ public class ExternalGuildScanService {
     private final SwgohApiClient swgohApiClient;
     private final ExternalPlayerRaidRepository externalPlayerRaidRepository;
     private final ExternalPlayerTbScoreRepository externalPlayerTbScoreRepository;
-    public record GuildPlayerData(
-            String guildName,
-            Long galacticPower,
-            Long characterGalacticPower,
-            Long shipGalacticPower
-    ) {}
 
     @Transactional
-    public GuildPlayerData scannerGuildeDuJoueur(String playerId, String guildId) {
-    	if (guildId == null || guildId.isBlank()) {
+    public void scannerGuildeDuJoueur(String playerId, String guildId) {
+        if (guildId == null || guildId.isBlank()) {
             log.warn("Pas de guildId disponible pour le joueur {}, scan guilde ignoré", playerId);
-            return null;
+            return;
         }
 
         GuildResponse response = swgohApiClient.getGuild(guildId);
         if (response == null || response.guild() == null) {
             log.warn("Réponse de guilde invalide pour guildId={}", guildId);
-            return null;
+            return;
         }
 
         externalPlayerRaidRepository.deleteByPlayerId(playerId);
@@ -52,30 +46,6 @@ public class ExternalGuildScanService {
 
         enregistrerRaid(response, playerId, guildId);
         enregistrerTb(response, playerId, guildId);
-
-        // 👇 Recherche du membre spécifique dans la guilde pour extraire ses GP
-        return extraireInfosMembre(response, playerId);
-    }
-    
-    private GuildPlayerData extraireInfosMembre(GuildResponse response, String playerId) {
-        // 👈 Utilisation de getGuildName() au lieu de name()
-        String guildName = response.guild().getGuildName(); 
-        List<GuildResponse.Member> members = response.guild().member();
-
-        if (members == null || members.isEmpty()) {
-            return new GuildPlayerData(guildName, null, null, null);
-        }
-
-        return members.stream()
-                .filter(m -> playerId.equals(m.playerId()))
-                .findFirst()
-                .map(m -> new GuildPlayerData(
-                        guildName,
-                        parseLongOrNull(m.galacticPower()),
-                        parseLongOrNull(m.characterGalacticPower()),
-                        parseLongOrNull(m.shipGalacticPower())
-                ))
-                .orElse(new GuildPlayerData(guildName, null, null, null));
     }
 
     private void enregistrerRaid(GuildResponse response, String playerId, String guildId) {

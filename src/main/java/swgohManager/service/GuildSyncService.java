@@ -14,10 +14,8 @@ public class GuildSyncService {
 
     private final SwgohApiClient swgohApiClient;
     private final RaidService raidService;
-    private final JoueurService joueurService;
+    private final GuildeService guildeService; // 👈 Remplacement de JoueurService par GuildeService
     private final TerritoryBattleService territoryBattleService;
-    
-    // Ajout de l'injection du service de référence
     private final TbPlaneteReferenceService tbPlaneteReferenceService;
 
     @Value("${swgoh.guild.id}")
@@ -34,14 +32,16 @@ public class GuildSyncService {
 
         // 3. Traitements de synchronisation
         int nouveauxRaids = raidService.enregistrerResultatsRaid(response);
-        String resultatJoueurs = joueurService.synchroniserJoueurs(response);
+        
+        // 👈 Appel de la nouvelle méthode du GuildeService
+        String resultatGuilde = guildeService.synchroniserGuilde(response); 
+        
         String resultatTb = territoryBattleService.synchroniserTerritoryBattle(response);
 
         // 4. Retour enrichi
-        return new GuildSyncResult(nouveauxRaids, resultatJoueurs, resultatTb, resultatRefPlanetes);
+        return new GuildSyncResult(nouveauxRaids, resultatGuilde, resultatTb, resultatRefPlanetes);
     }
 
-    // Mise à jour du record pour inclure le message du référentiel
     public record GuildSyncResult(
             int nouveauxResultatsRaid, 
             String resultatJoueurs, 

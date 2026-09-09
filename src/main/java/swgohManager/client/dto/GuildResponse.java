@@ -25,12 +25,15 @@ public record GuildResponse(Guild guild) {
             }
             return profile != null ? profile.name() : null;
         }
+        
+        
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record GuildProfile(
             String id,
-            String name
+            String name,
+            Integer guildGalacticPower
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)

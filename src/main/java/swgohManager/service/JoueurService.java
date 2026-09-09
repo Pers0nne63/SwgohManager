@@ -1,18 +1,12 @@
 package swgohManager.service;
 
-
-import swgohManager.client.dto.GuildResponse;
-import swgohManager.model.Joueur;
-import swgohManager.repository.JoueurRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import swgohManager.client.dto.PlayerResponse;
+import swgohManager.model.Joueur;
+import swgohManager.repository.JoueurRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -21,77 +15,44 @@ public class JoueurService {
 
     private final JoueurRepository joueurRepository;
 
-    @Value("${swgoh.guild.id}")
-    private String guildId;
-
     @Transactional
-    public String synchroniserJoueurs(GuildResponse response) {
+    public Joueur mettreAJourDepuisPlayer(PlayerResponse response) {
+        if (response == null || response.playerId() == null) {
+            log.warn("Tentative de mise à jour d'un joueur avec une réponse invalide.");
+            return null;
+        }
+
+        // Le joueur a normalement déjà été créé par la synchro Guilde (qui gère les allées et venues), 
+        // mais on sécurise au cas où il serait appelé indépendamment.
+        Joueur joueur = joueurRepository.findByPlayerId(response.playerId())
+                .orElseGet(() -> Joueur.builder()
+                        .playerId(response.playerId())
+                        .build());
+
+        // 1. Mise à jour des informations de base
+        joueur.setPlayerName(response.name());
         
-        if (response == null || response.guild() == null) {
-            log.warn("Réponse de guilde invalide");
-            return "Aucune donnée";
+        if (response.guildId() != null) {
+            joueur.setGuildId(response.guildId());
         }
-        List<GuildResponse.Member> membres = response.guild().member();
-
-        if (membres == null || membres.isEmpty()) {
-            log.warn("Aucun membre retourné par l'API pour la guilde {}", guildId);
-            return "Aucun membre trouvé";
+        if (response.guildName() != null) {
+            joueur.setGuildName(response.guildName());
         }
 
-        Set<String> playerIdsPresents = membres.stream()
-                .map(GuildResponse.Member::playerId)
-                .collect(Collectors.toSet());
+        // 2. Récupération des Galactic Power via les méthodes utilitaires du DTO
+        joueur.setGalacticPower(response.getGalacticPower());
+        joueur.setCharacterGalacticPower(response.getCharacterGalacticPower());
+        joueur.setShipGalacticPower(response.getShipGalacticPower());
 
-        int nouveaux = 0;
-        int misAJour = 0;
-
-        for (GuildResponse.Member m : membres) {
-            Joueur joueur = joueurRepository.findByPlayerId(m.playerId()).orElse(null);
-            boolean estNouveau = (joueur == null);
-
-            if (estNouveau) {
-                joueur = new Joueur();
-                joueur.setPlayerId(m.playerId());
-            }
-
-            joueur.setPlayerName(m.playerName());
-            joueur.setGuildId(guildId);
-            joueur.setGalacticPower(parseLong(m.galacticPower()));
-            joueur.setLeagueId(m.leagueId());
-            joueur.setShipGalacticPower(parseLong(m.shipGalacticPower()));
-            joueur.setCharacterGalacticPower(parseLong(m.characterGalacticPower()));
-            joueur.setPresentInGuild(true);
-
-            joueurRepository.save(joueur);
-
-            if (estNouveau) nouveaux++; else misAJour++;
+        // 3. Récupération de la ligue GAC
+        if (response.playerRating() != null && response.playerRating().playerRankStatus() != null) {
+            joueur.setLeagueId(response.playerRating().playerRankStatus().leagueId());
         }
 
-        // Marquer comme absents les joueurs qui étaient présents mais ne le sont plus
-        List<Joueur> devenusAbsents = joueurRepository.findAllByPresentInGuildTrue().stream()
-                .filter(j -> !playerIdsPresents.contains(j.getPlayerId()))
-                .toList();
+        // Sécurité : si on interroge son endpoint, c'est qu'il est actif (le GuildeService s'occupera de le marquer absent le cas échéant)
+        joueur.setPresentInGuild(true);
 
-        devenusAbsents.forEach(j -> j.setPresentInGuild(false));
-        joueurRepository.saveAll(devenusAbsents);
-
-        String resultat = String.format(
-                "%d nouveau(x) joueur(s), %d mis à jour, %d marqué(s) absent(s)",
-                nouveaux, misAJour, devenusAbsents.size()
-        );
-        log.info(resultat);
-        return resultat;
-    }
-
-    private Long parseLong(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException e) {
-            log.warn("Impossible de parser la valeur numérique : {}", value);
-            return null;
-        }
+        // 4. Sauvegarde en base
+        return joueurRepository.save(joueur);
     }
 }

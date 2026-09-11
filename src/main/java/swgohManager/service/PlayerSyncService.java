@@ -248,8 +248,10 @@ public class PlayerSyncService {
         return playerIdsAPurger.size();
     }
 
+    @Transactional
     private void purgerListe(List<String> playerIds) {
         for (String playerId : playerIds) {
+        	
             externalRosterUnitActuelRepository.deleteByPlayerId(playerId);
             externalRosterUnitModActuelRepository.deleteByPlayerId(playerId);
             externalPlayerModQActuelRepository.deleteByPlayerId(playerId);
@@ -279,7 +281,7 @@ public class PlayerSyncService {
             externalStatObjectifRepository.flush();
             externalStatqActuelRepository.flush();
             externalStatqDetailActuelRepository.flush();
-            externalPlayerRepository.deleteByPlayerId(playerId);
+            externalPlayerRepository.flush();
             externalPlayerEraUnitStatusActuelRepository.flush();
             externalPlayerRatingActuelRepository.flush();
         

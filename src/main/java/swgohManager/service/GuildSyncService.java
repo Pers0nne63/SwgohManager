@@ -14,7 +14,7 @@ public class GuildSyncService {
 
     private final SwgohApiClient swgohApiClient;
     private final RaidService raidService;
-    private final GuildeService guildeService; // 👈 Remplacement de JoueurService par GuildeService
+    private final GuildeService guildeService;
     private final TerritoryBattleService territoryBattleService;
     private final TbPlaneteReferenceService tbPlaneteReferenceService;
 

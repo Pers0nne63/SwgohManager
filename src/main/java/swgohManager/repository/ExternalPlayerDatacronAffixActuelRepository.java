@@ -34,4 +34,12 @@ public interface ExternalPlayerDatacronAffixActuelRepository extends JpaReposito
             GROUP BY pda.player_id, pda.id_datacron, pda.set_id, pdaa.stat_type
             """, nativeQuery = true)
     List<PlayerDatacronStatSumProjection> findSommeStatsParJoueur(@Param("playerId") String playerId);
+    
+    @Query(value = """
+    	    SELECT COUNT(DISTINCT a.id_datacron) FROM external_player_datacron_affix_actuel a
+    	    JOIN external_player_datacron_actuel d ON d.id_datacron = a.id_datacron
+    	    JOIN external_player p ON p.player_id = d.player_id
+    	    WHERE p.guild_id = :guildId AND a.ordre = 9
+    	    """, nativeQuery = true)
+    	long countDtc9ByGuildId(@Param("guildId") String guildId);
 }

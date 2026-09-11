@@ -4,10 +4,11 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import swgohManager.controller.dto.StatQTeamProjection;
 
 import swgohManager.controller.dto.RosterIdUnitProjection;
+import swgohManager.controller.dto.StatQTeamProjection;
 import swgohManager.model.ExternalPlayerStatqDetailActuel;
+import swgohManager.repository.PlayerStatqDetailActuelRepository.StatqTeamAverageProjection;
 public interface ExternalPlayerStatqDetailActuelRepository extends JpaRepository<ExternalPlayerStatqDetailActuel, Long> {
     List<ExternalPlayerStatqDetailActuel> findByPlayerId(String playerId);
     void deleteByPlayerId(String playerId);
@@ -28,4 +29,13 @@ public interface ExternalPlayerStatqDetailActuelRepository extends JpaRepository
             ORDER BY AVG(sd.note) DESC
             """, nativeQuery = true)
     List<StatQTeamProjection> findStatQbyTeambyPlayerId(@Param("playerId") String playerId);
+    
+    @Query(value = """
+    	    SELECT d.team AS team, AVG(d.note) AS moyenneNote
+    	    FROM external_player_statq_detail_actuel d
+    	    JOIN external_player p ON p.player_id = d.player_id
+    	    WHERE p.guild_id = :guildId
+    	    GROUP BY d.team ORDER BY d.team
+    	    """, nativeQuery = true)
+    	List<StatqTeamAverageProjection> findMoyenneNoteParTeamByGuildId(@Param("guildId") String guildId);
 }

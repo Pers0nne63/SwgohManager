@@ -45,6 +45,8 @@ public class GuildeService {
         guilde.setName(response.guild().profile().name()); 
         guilde.setMemberCount(membres.size());
         guilde.setGP(response.guild().profile().guildGalacticPower());
+        guildeRepository.deleteByGuildId(guildId);
+        guildeRepository.flush();
         guildeRepository.save(guilde);
 
         // 2. Mettre à jour la présence des joueurs

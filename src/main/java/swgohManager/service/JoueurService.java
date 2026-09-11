@@ -34,8 +34,6 @@ public class JoueurService {
         
         if (response.guildId() != null) {
             joueur.setGuildId(response.guildId());
-        }
-        if (response.guildName() != null) {
             joueur.setGuildName(response.guildName());
         }
 

@@ -1,7 +1,9 @@
 package swgohManager.client.dto;
 
 import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record PlayerResponse(
@@ -9,7 +11,7 @@ public record PlayerResponse(
         String allyCode,
         String name,
         String guildId,
-        String guildName,
+        @JsonProperty("guildName") String guildName,
         List<ProfileStatEntry> profileStat,
         List<Stat> stat,
         PlayerRating playerRating,

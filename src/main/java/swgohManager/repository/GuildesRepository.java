@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface GuildesRepository extends JpaRepository<Guildes, Long> {
     Optional<Guildes> findByGuildId(String guildId);
+    void deleteByGuildId(String guildId);
 }

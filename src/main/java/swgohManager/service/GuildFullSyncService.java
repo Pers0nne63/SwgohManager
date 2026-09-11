@@ -4,14 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import swgohManager.model.Joueur;
 import swgohManager.model.SyncExecution;
+import swgohManager.repository.GuildBilanActuelRepository;
 import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.SyncExecutionRepository;
 
@@ -24,6 +27,10 @@ public class GuildFullSyncService {
     private final JoueurRepository joueurRepository;
     private final PlayerSyncService playerSyncService;
     private final SyncExecutionRepository syncExecutionRepository;
+    private final SyncProgressService progressService;
+    private final GuildBilanService guildBilanService;
+    private final GuildBilanActuelRepository guildBilanActuelRepository;
+    
 
     // Services à nettoyer après la synchronisation
     private final RosterUnitService rosterUnitService;
@@ -36,19 +43,36 @@ public class GuildFullSyncService {
 
     @Qualifier("playerSyncExecutor")
     private final ExecutorService playerSyncExecutor;
+    
+    @Value("${swgoh.guild.id}")
+    private String guildId;
 
-    public GuildFullSyncResult synchroniserGuildeComplete() {
+    public GuildFullSyncResult synchroniserGuildeComplete(boolean withProgress) {
         GuildSyncService.GuildSyncResult guildResult = guildSyncService.synchroniserGuilde();
 
         // Un seul idSync pour l'ensemble des joueurs de ce lot
         Long idSync = syncExecutionRepository.save(new SyncExecution()).getIdSync();
 
         List<Joueur> joueursPresents = joueurRepository.findAllByPresentInGuildTrue();
+        int totalJoueurs = joueursPresents.size();
         log.info("Synchronisation de {} joueur(s) sous idSync={}, 10 en parallèle", joueursPresents.size(), idSync);
 
+        AtomicInteger jouersTraites = new AtomicInteger(0);
+        
         List<CompletableFuture<SyncOutcome>> futures = joueursPresents.stream()
-                .map(joueur -> CompletableFuture.supplyAsync(
-                        () -> synchroniserUnJoueur(joueur, idSync), playerSyncExecutor))
+        		.map(joueur -> CompletableFuture.supplyAsync(
+                        () -> synchroniserUnJoueur(joueur, idSync), playerSyncExecutor)
+                        .thenApply(outcome -> {
+                            int traites = jouersTraites.incrementAndGet();
+                            if (withProgress && totalJoueurs > 0) {
+                                // Plage de 0% à 60% pour la synchro des joueurs
+                                int percent = (int) ((traites / (double) totalJoueurs) * 60);
+                                String step = String.format("Joueurs (%d/%d)", traites, totalJoueurs);
+                                String msg = String.format("Joueur %s synchronisé", joueur.getPlayerName());
+                                progressService.notifyProgress("guild", percent, step, msg);
+                            }
+                            return outcome;
+                        }))
                 .toList();
 
         List<String> succes = new ArrayList<>();
@@ -85,6 +109,14 @@ public class GuildFullSyncService {
             }
         } catch (Exception e) {
             log.error("Erreur lors du nettoyage des joueurs inactifs : {}", e.getMessage(), e);
+        }
+        
+        try {
+        	guildBilanActuelRepository.deleteByGuildId(guildId);
+        	guildBilanActuelRepository.flush();
+        	guildBilanService.rafraichir();
+        } catch (Exception e) {
+            log.error("Échec du rafraîchissement du bilan de guilde : {}", e.getMessage(), e);
         }
 
         String resume = String.format("%d joueur(s) synchronisé(s) avec succès, %d échec(s) (idSync=%d)",

@@ -9,10 +9,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import swgohManager.model.ExternalPlayerModQActuel;
+import swgohManager.model.ExternalRosterUnitModActuel;
 import swgohManager.model.Joueur;
 import swgohManager.model.PlayerModQActuel;
 import swgohManager.model.PlayerModQHistorique;
 import swgohManager.model.RosterUnitModActuel;
+import swgohManager.repository.ExternalPlayerModQActuelRepository;
 import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.PlayerModQActuelRepository;
 import swgohManager.repository.PlayerModQHistoriqueRepository;
@@ -24,9 +27,11 @@ public class PlayerModQService {
 
     private final PlayerModQActuelRepository playerModQActuelRepository;
     private final PlayerModQHistoriqueRepository playerModQHistoriqueRepository;
+    private final ExternalPlayerModQActuelRepository externalPlayerModQActuelRepository;
     private final JoueurRepository joueurRepository;
-    private final ModQCalculationService modQCalculationService; // NOUVELLE dépendance
+    private final ModQCalculationService modQCalculationService;
 
+    /** Portée guilde : historise l'ancienne valeur avant d'écraser, GP récupéré depuis Joueur. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void calculerEtEnregistrer(String playerId, List<RosterUnitModActuel> modsActuels, Long idSync) {
 
@@ -68,7 +73,35 @@ public class PlayerModQService {
         log.info("ModQ calculé pour {} : {} (25+={}, 20-24={}, 15-19={}, 10-14={})",
                 playerId, modQ, counts.mod25Plus(), counts.mod20_24(), counts.mod15_19(), counts.mod10_14());
     }
-    
+
+    /** Portée externe : pas d'historique, GP transmis directement (déjà connu via PlayerResponse). */
+    @Transactional
+    public void calculerEtEnregistrerExterne(String playerId, List<ExternalRosterUnitModActuel> modsActuels, Long gpChar) {
+
+        List<ModQCalculationService.ModSecondaryValue> valeurs = modsActuels.stream()
+                .map(m -> new ModQCalculationService.ModSecondaryValue(m.getIdSecondaire(), m.getValeurSecondaire()))
+                .collect(Collectors.toList());
+
+        ModQCalculationService.ModSpeedCounts counts = modQCalculationService.calculerRepartitionVitesse(valeurs);
+        Double modQ = modQCalculationService.calculerModQ(counts, gpChar);
+
+        externalPlayerModQActuelRepository.deleteByPlayerId(playerId);
+        externalPlayerModQActuelRepository.flush();
+
+        ExternalPlayerModQActuel entite = ExternalPlayerModQActuel.builder()
+                .playerId(playerId)
+                .mod25Plus(counts.mod25Plus())
+                .mod20_24(counts.mod20_24())
+                .mod15_19(counts.mod15_19())
+                .mod10_14(counts.mod10_14())
+                .modQ(modQ)
+                .build();
+
+        externalPlayerModQActuelRepository.save(entite);
+        log.info("ModQ externe calculé pour {} : {}", playerId, modQ);
+    }
+
+    /** Nettoyage propre à la guilde (l'externe a sa purge dédiée). */
     @Transactional
     public void nettoyerJoueursInactifs(List<String> joueursActifs) {
         if (!joueursActifs.isEmpty()) {

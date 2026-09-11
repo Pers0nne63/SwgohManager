@@ -98,4 +98,12 @@ public interface PlayerDatacronAffixActuelRepository extends JpaRepository<Playe
     	    GROUP BY pda.player_id, pda.id_datacron, pda.set_id, pdaa.stat_type
     	    """, nativeQuery = true)
     	List<PlayerDatacronStatSumProjection> findSommeStatsParJoueur();
+    	
+    	@Query(value = """
+    		    SELECT COUNT(DISTINCT a.id_datacron) FROM player_datacron_affix_actuel a
+    		    JOIN player_datacron_actuel d ON d.id_datacron = a.id_datacron
+    		    JOIN joueurs j ON j.player_id = d.player_id
+    		    WHERE j.present_in_guild = true AND a.ordre = 9
+    		    """, nativeQuery = true)
+    		long countDtc9Guilde();
 }

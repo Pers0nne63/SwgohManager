@@ -30,7 +30,7 @@ public class GuildFullSyncService {
     private final SyncProgressService progressService;
     private final GuildBilanService guildBilanService;
     private final GuildBilanActuelRepository guildBilanActuelRepository;
-    
+    private final GuildSyncReferentialService guildSyncReferentialService;
 
     // Services à nettoyer après la synchronisation
     private final RosterUnitService rosterUnitService;
@@ -53,6 +53,11 @@ public class GuildFullSyncService {
         // Un seul idSync pour l'ensemble des joueurs de ce lot
         Long idSync = syncExecutionRepository.save(new SyncExecution()).getIdSync();
 
+        log.info("Chargement du référentiel commun pour la synchro de guilde...");
+        long t0 = System.currentTimeMillis();
+        GuildSyncReferentialCache cache = guildSyncReferentialService.charger();
+        log.info("Référentiel commun chargé en {} ms", System.currentTimeMillis() - t0);
+
         List<Joueur> joueursPresents = joueurRepository.findAllByPresentInGuildTrue();
         int totalJoueurs = joueursPresents.size();
         log.info("Synchronisation de {} joueur(s) sous idSync={}, 10 en parallèle", joueursPresents.size(), idSync);
@@ -61,14 +66,14 @@ public class GuildFullSyncService {
         
         List<CompletableFuture<SyncOutcome>> futures = joueursPresents.stream()
         		.map(joueur -> CompletableFuture.supplyAsync(
-                        () -> synchroniserUnJoueur(joueur, idSync), playerSyncExecutor)
+                        () -> synchroniserUnJoueur(joueur, idSync, cache), playerSyncExecutor)
                         .thenApply(outcome -> {
                             int traites = jouersTraites.incrementAndGet();
                             if (withProgress && totalJoueurs > 0) {
-                                // Plage de 0% à 60% pour la synchro des joueurs
-                                int percent = (int) ((traites / (double) totalJoueurs) * 60);
+                                // Progression jusqu'à 95% vu que STATQ et Objectifs sont dedans
+                                int percent = (int) ((traites / (double) totalJoueurs) * 95);
                                 String step = String.format("Joueurs (%d/%d)", traites, totalJoueurs);
-                                String msg = String.format("Joueur %s synchronisé", joueur.getPlayerName());
+                                String msg = String.format("Joueur %s synchronisé (Stats & STATQ inclus)", joueur.getPlayerName());
                                 progressService.notifyProgress("guild", percent, step, msg);
                             }
                             return outcome;
@@ -89,6 +94,8 @@ public class GuildFullSyncService {
 
         // Nettoyage global des données des anciens joueurs
         log.info("Lancement du nettoyage des tables '_actuel' pour les joueurs inactifs...");
+        if (withProgress) progressService.notifyProgress("guild", 96, "Nettoyage", "Nettoyage des joueurs inactifs...");
+        
         try {
             List<String> joueursActifs = joueursPresents.stream()
                     .map(Joueur::getPlayerId)
@@ -112,6 +119,7 @@ public class GuildFullSyncService {
         }
         
         try {
+            if (withProgress) progressService.notifyProgress("guild", 98, "Bilan de guilde", "Rafraîchissement du bilan global...");
         	guildBilanActuelRepository.deleteByGuildId(guildId);
         	guildBilanActuelRepository.flush();
         	guildBilanService.rafraichir();
@@ -126,10 +134,10 @@ public class GuildFullSyncService {
         return new GuildFullSyncResult(guildResult, succes.size(), echecs, resume);
     }
 
-    private SyncOutcome synchroniserUnJoueur(Joueur joueur, Long idSync) {
+    private SyncOutcome synchroniserUnJoueur(Joueur joueur, Long idSync, GuildSyncReferentialCache cache) {
         try {
             PlayerIdentifier identifier = PlayerIdentifier.of(joueur.getPlayerId(), null);
-            playerSyncService.synchroniserJoueur(identifier, idSync);
+            playerSyncService.synchroniserJoueur(identifier, idSync, cache);
             return new SyncOutcome(joueur.getPlayerId(), true);
         } catch (Exception e) {
             log.error("Échec de synchronisation du joueur {} ({}) : {}",

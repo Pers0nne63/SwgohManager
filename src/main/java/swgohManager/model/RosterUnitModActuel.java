@@ -14,9 +14,10 @@ import lombok.*;
 )
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RosterUnitModActuel implements ModLigne {
-	
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roster_unit_mod_actuel_seq")
+    @SequenceGenerator(name = "roster_unit_mod_actuel_seq", sequenceName = "roster_unit_mod_actuel_seq", allocationSize = 50)
     private Long id;
 
     private String playerId;

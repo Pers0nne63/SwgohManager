@@ -7,7 +7,8 @@ indexes = { @Index(name = "erusoidx_playerId", columnList = "playerId"), @Index(
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ExternalRosterUnitStatObjectif implements UnitStatValues {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "external_roster_unit_stat_objectif_seq")
+    @SequenceGenerator(name = "external_roster_unit_stat_objectif_seq", sequenceName = "external_roster_unit_stat_objectif_seq", allocationSize = 50)
     private Long id;
     private String playerId;
     private String idUnit;

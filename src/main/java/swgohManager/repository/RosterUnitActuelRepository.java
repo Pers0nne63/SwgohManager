@@ -3,6 +3,7 @@ package swgohManager.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,8 +15,14 @@ import swgohManager.model.RosterUnitActuel;
 
 public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActuel, Long> {
     List<RosterUnitActuel> findByPlayerId(String playerId);
-    void deleteByPlayerId(String playerId);
-    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
+    
+    @Modifying
+    @Query("DELETE FROM RosterUnitActuel r WHERE r.playerId = :playerId")
+    void deleteByPlayerId(@Param("playerId") String playerId);
+
+    @Modifying
+    @Query("DELETE FROM RosterUnitActuel r WHERE r.playerId NOT IN :activePlayerIds")
+    void deleteByPlayerIdNotIn(@Param("activePlayerIds") List<String> activePlayerIds);
     
     @Query(value = """
     	    SELECT ud.base_id AS baseId, MAX(ru.etoiles) AS maxEtoiles, MAX(ru.relic) AS maxRelic

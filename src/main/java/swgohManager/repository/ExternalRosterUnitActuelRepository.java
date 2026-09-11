@@ -2,6 +2,7 @@ package swgohManager.repository;
 
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
@@ -12,7 +13,10 @@ import swgohManager.model.ExternalRosterUnitActuel;
 public interface ExternalRosterUnitActuelRepository extends JpaRepository<ExternalRosterUnitActuel, Long> {
 
     List<ExternalRosterUnitActuel> findByPlayerId(String playerId);
-    void deleteByPlayerId(String playerId);
+    
+    @Modifying
+    @Query("DELETE FROM ExternalRosterUnitActuel r WHERE r.playerId = :playerId")
+    void deleteByPlayerId(@Param("playerId") String playerId);
 
     @Query(value = """
             SELECT ud.base_id AS baseId, MAX(ru.etoiles) AS maxEtoiles, MAX(ru.relic) AS maxRelic

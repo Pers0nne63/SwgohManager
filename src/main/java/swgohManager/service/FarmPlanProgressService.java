@@ -1,6 +1,7 @@
 package swgohManager.service;
 
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
+import swgohManager.model.FarmPlan;
 import swgohManager.model.PlayerPdfActuel;
 import swgohManager.model.PlayerPdfHistorique;
 import swgohManager.model.SyncExecution;
@@ -43,7 +44,19 @@ public class FarmPlanProgressService {
     @Transactional
     public void calculerEtEnregistrer(String playerId, Long idSync) {
         PlayerFarmProgress progress = convertir(calculer(playerId, Portee.GUILDE));
+        persister(playerId, idSync, progress);
+    }
 
+    /** Variante rapide pour la synchro de masse : plans et unitMap déjà chargés une fois pour tout le lot. */
+    @Transactional
+    public void calculerEtEnregistrer(String playerId, Long idSync, List<FarmPlan> plans, Map<String, String> unitMap) {
+        FarmPlanCalculationService.FarmProgress raw =
+                farmPlanCalculationService.calculer(plans, rosterProgress(playerId, Portee.GUILDE), unitMap);
+        PlayerFarmProgress progress = convertir(raw);
+        persister(playerId, idSync, progress);
+    }
+
+    private void persister(String playerId, Long idSync, PlayerFarmProgress progress) {
         PlayerPdfActuel existant = playerPdfActuelRepository.findByPlayerId(playerId).orElse(null);
 
         if (existant != null) {

@@ -13,7 +13,8 @@ indexes = {
 public class RosterUnitStatObjectif implements UnitStatValues{
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roster_unit_stat_objectif_seq")
+    @SequenceGenerator(name = "roster_unit_stat_objectif_seq", sequenceName = "roster_unit_stat_objectif_seq", allocationSize = 50)
     private Long id;
 
     private String playerId;

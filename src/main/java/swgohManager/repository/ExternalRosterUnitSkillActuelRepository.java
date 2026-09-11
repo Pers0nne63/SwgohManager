@@ -3,6 +3,7 @@ package swgohManager.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,7 +13,10 @@ import swgohManager.model.ExternalRosterUnitSkillActuel;
 
 public interface ExternalRosterUnitSkillActuelRepository extends JpaRepository<ExternalRosterUnitSkillActuel, Long> {
 
-    void deleteByPlayerId(String playerId);
+    @Modifying
+    @Query("DELETE FROM ExternalRosterUnitSkillActuel r WHERE r.playerId = :playerId")
+    void deleteByPlayerId(@Param("playerId") String playerId);
+    
     List<ExternalRosterUnitSkillActuel> findByPlayerIdAndOmicronAppliedTrue(String playerId);
 
     @Query(value = """

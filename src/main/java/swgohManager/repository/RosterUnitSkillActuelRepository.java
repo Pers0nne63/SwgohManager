@@ -3,6 +3,7 @@ package swgohManager.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,8 +13,14 @@ import swgohManager.model.RosterUnitSkillActuel;
 
 public interface RosterUnitSkillActuelRepository extends JpaRepository<RosterUnitSkillActuel, Long> {
     List<RosterUnitSkillActuel> findByPlayerId(String playerId);
-    void deleteByPlayerId(String playerId);
-    void deleteByPlayerIdNotIn(List<String> activePlayerIds);
+    
+    @Modifying
+    @Query("DELETE FROM RosterUnitSkillActuel r WHERE r.playerId = :playerId")
+    void deleteByPlayerId(@Param("playerId") String playerId);
+
+    @Modifying
+    @Query("DELETE FROM RosterUnitSkillActuel r WHERE r.playerId NOT IN :activePlayerIds")
+    void deleteByPlayerIdNotIn(@Param("activePlayerIds") List<String> activePlayerIds);
     
     @Query(value = """
     	    SELECT DISTINCT ud.base_id AS baseId, rus.id_skill AS idSkill, rus.type AS type, rus.numero AS numero, ud.libelle AS libelle

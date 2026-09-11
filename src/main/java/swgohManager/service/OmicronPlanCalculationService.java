@@ -59,8 +59,12 @@ public class OmicronPlanCalculationService {
 
     /** Progression par priorité (1 à 4) pour un joueur, à partir des plans cibles et de son statut omicron. */
     public PlayerOmicronProgress calculerProgression(List<OmicronPlan> plans, List<PlayerOmicronStatusProjection> statutRows) {
-        Map<String, String> unitMap = buildUnitMap();
-        Map<String, OmicronPlanService.Option> optionsMap = buildOptionsMap();
+        return calculerProgression(plans, statutRows, buildUnitMap(), buildOptionsMap());
+    }
+
+    /** Variante rapide : unitMap/optionsMap déjà chargés une fois pour tout le lot (synchro de masse). */
+    public PlayerOmicronProgress calculerProgression(List<OmicronPlan> plans, List<PlayerOmicronStatusProjection> statutRows,
+            Map<String, String> unitMap, Map<String, OmicronPlanService.Option> optionsMap) {
         Map<String, Boolean> statutJoueur = statutParCle(statutRows);
 
         Map<Integer, List<OmicronPlan>> parPrioriteBrut = new TreeMap<>();

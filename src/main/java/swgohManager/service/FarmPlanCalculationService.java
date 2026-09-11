@@ -25,13 +25,14 @@ public class FarmPlanCalculationService {
     public record FarmProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
 
     public FarmProgress calculer(List<FarmPlan> plans, List<RosterBaseIdProgressProjection> rosterProgress) {
+        return calculer(plans, rosterProgress, chargerUnitMap());
+    }
+
+    /** Variante rapide : unitMap déjà chargé une fois pour tout le lot (synchro de masse). */
+    public FarmProgress calculer(List<FarmPlan> plans, List<RosterBaseIdProgressProjection> rosterProgress, Map<String, String> unitMap) {
         if (plans.isEmpty()) {
             return new FarmProgress(0, 0, null, List.of());
         }
-
-        Map<String, String> unitMap = unitDefinitionRepository.findAll().stream()
-                .filter(u -> u.getBaseId() != null && u.getLibelle() != null)
-                .collect(Collectors.toMap(UnitDefinition::getBaseId, UnitDefinition::getLibelle, (v1, v2) -> v1));
 
         Map<String, RosterBaseIdProgressProjection> parBaseId = rosterProgress.stream()
                 .collect(Collectors.toMap(RosterBaseIdProgressProjection::getBaseId, p -> p));
@@ -54,5 +55,11 @@ public class FarmPlanCalculationService {
 
         double pourcentage = 100.0 * atteint / plans.size();
         return new FarmProgress(atteint, plans.size(), pourcentage, details);
+    }
+
+    private Map<String, String> chargerUnitMap() {
+        return unitDefinitionRepository.findAll().stream()
+                .filter(u -> u.getBaseId() != null && u.getLibelle() != null)
+                .collect(Collectors.toMap(UnitDefinition::getBaseId, UnitDefinition::getLibelle, (v1, v2) -> v1));
     }
 }

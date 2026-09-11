@@ -37,7 +37,6 @@ import swgohManager.repository.ExternalRosterUnitStatObjectifRepository;
 import swgohManager.repository.PlanFarmIndRepository;
 import swgohManager.repository.SyncExecutionRepository;
 
-import swgohManager.service.JoueurService;
 
 @Service
 @RequiredArgsConstructor
@@ -56,6 +55,7 @@ public class PlayerSyncService {
     private final RosterUnitStatObjectifService rosterUnitStatObjectifService;
     private final StatqCalculService statqCalculService;
     private final UnitModCalculationService unitModCalculationService;
+    private final GuildSyncReferentialService guildSyncReferentialService;
 
     // ---- Spécifique guilde ----
     private final PlanFarmIndRepository planFarmIndRepository;
@@ -85,21 +85,23 @@ public class PlayerSyncService {
     // GUILDE
     // =========================================================================
 
-    /** Appel isolé (un seul joueur) : crée son propre idSync. */
     public PlayerSyncResult synchroniserJoueur(PlayerIdentifier identifier) {
         Long idSync = syncExecutionRepository.save(new SyncExecution()).getIdSync();
         return synchroniserJoueur(identifier, idSync);
     }
 
-    /** Appel groupé : reçoit un idSync déjà créé par l'orchestrateur, partagé entre tous les joueurs du lot. */
     public PlayerSyncResult synchroniserJoueur(PlayerIdentifier identifier, Long idSync) {
+        return synchroniserJoueur(identifier, idSync, guildSyncReferentialService.charger());
+    }
+
+    public PlayerSyncResult synchroniserJoueur(PlayerIdentifier identifier, Long idSync, GuildSyncReferentialCache cache) {
         log.info("Appel API /player pour {}", identifier);
         PlayerResponse response = swgohApiClient.getPlayer(identifier);
 
         joueurService.mettreAJourDepuisPlayer(response);
         
         RatingCalculationService.RatingResult rating = playerRatingService.enregistrerRating(response, Portee.GUILDE);
-        String resultatRoster = rosterUnitService.enregistrerRoster(response, idSync);
+        String resultatRoster = rosterUnitService.enregistrerRoster(response, idSync, cache);
 
         playerDatacronService.enregistrer(response.playerId(), response, Portee.GUILDE);
         playerEraUnitStatusService.enregistrer(response.playerId(), response, Portee.GUILDE);
@@ -107,6 +109,12 @@ public class PlayerSyncService {
         if (!planFarmIndRepository.findByPlayerId(response.playerId()).isEmpty()) {
             farmPlanIndProgressService.calculerEtEnregistrer(response.playerId(), idSync);
         }
+
+        // --- NOUVEAU : Intégration des calculs Objectifs et STATQ au niveau du joueur ---
+        // (À adapter si la méthode prend idSync ou la liste des unités en paramètre dans ton service)
+        rosterUnitStatObjectifService.calculerEtEnregistrer(response.playerId());
+        statqCalculService.calculerEtEnregistrer(response.playerId());
+        // ---------------------------------------------------------------------------------
 
         String message = String.format("Joueur %s (%s) : skillRating=%s, ligue=%s, division=%s | %s",
                 response.name(), response.playerId(),
@@ -125,13 +133,6 @@ public class PlayerSyncService {
     // EXTERNE
     // =========================================================================
 
-    /**
-     * Scanne un joueur externe (hors guilde) par ally code.
-     * Depuis que characterGalacticPower/galacticPower/shipGalacticPower sont extraits
-     * directement de PlayerResponse (sans dépendre d'un appel /guild), le flux suit le même
-     * ordre logique que la synchro guilde : le scan de guilde annexe ne sert plus qu'à
-     * récupérer les scores raid/TB du joueur, pas à débloquer le calcul de ModQ/stats.
-     */
     @Transactional
     public String scannerExterneParPlayerId(String playerId) {
         return scannerExterne(PlayerIdentifier.of(playerId, null));
@@ -142,13 +143,9 @@ public class PlayerSyncService {
         PlayerResponse response = swgohApiClient.getPlayer(identifier);
         String playerId = response.playerId();
         
-        //On nettoie d'abord les tables existantes si le joueur avait déjà été scanné
-        
         purgerListe(List.of(playerId));
         externalPlayerRepository.flush();
         
-        //on scanne le joueur
-
         ExternalPlayer externalPlayer = ExternalPlayer.builder()
                 .playerId(playerId)
                 .allyCode(response.allyCode())
@@ -233,8 +230,6 @@ public class PlayerSyncService {
             return null;
         }
     }
-
-    /** Purge des scans externes de plus de 30 jours (joueur + roster + mods + modQ + raid + TB + skills + datacrons + stats). */
     
     @Transactional
     public int purgerParGuildId(String guildId) {
@@ -270,6 +265,24 @@ public class PlayerSyncService {
             externalPlayerRepository.deleteByPlayerId(playerId);
             externalPlayerEraUnitStatusActuelRepository.deleteByPlayerId(playerId);
             externalPlayerRatingActuelRepository.deleteByPlayerId(playerId);
+            
+
+            externalRosterUnitActuelRepository.flush();
+            externalRosterUnitModActuelRepository.flush();
+            externalPlayerModQActuelRepository.flush();
+            externalPlayerRaidRepository.flush();
+            externalPlayerTbScoreRepository.flush();
+            externalSkillRepository.flush();
+            externalAffixRepository.flush();
+            externalDatacronRepository.flush();
+            externalStatActuelRepository.flush();
+            externalStatObjectifRepository.flush();
+            externalStatqActuelRepository.flush();
+            externalStatqDetailActuelRepository.flush();
+            externalPlayerRepository.deleteByPlayerId(playerId);
+            externalPlayerEraUnitStatusActuelRepository.flush();
+            externalPlayerRatingActuelRepository.flush();
+        
         }
     }
 }

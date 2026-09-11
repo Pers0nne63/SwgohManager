@@ -16,7 +16,8 @@ import lombok.*;
 public class RosterUnitSkillActuel {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roster_unit_skill_actuel_seq")
+    @SequenceGenerator(name = "roster_unit_skill_actuel_seq", sequenceName = "roster_unit_skill_actuel_seq", allocationSize = 50)
     private Long id;
 
     private String playerId;

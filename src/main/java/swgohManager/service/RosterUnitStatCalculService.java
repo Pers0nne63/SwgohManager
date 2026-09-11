@@ -34,8 +34,19 @@ public class RosterUnitStatCalculService {
     private final RosterUnitStatActuelRepository rosterUnitStatActuelRepository;
     private final ExternalRosterUnitStatActuelRepository externalRosterUnitStatActuelRepository;
 
+    /**
+     * Surcharge à 3 arguments pour conserver la compatibilité (ex: appels depuis d'autres services).
+     */
     @Transactional
     public String calculerEtEnregistrer(String playerId, List<RosterUnitActuel> unites, List<RosterUnitModActuel> mods) {
+        return calculerEtEnregistrer(playerId, unites, mods, null);
+    }
+
+    /**
+     * Méthode principale à 4 arguments exploitant le cache s'il est fourni (venant de RosterUnitService).
+     */
+    @Transactional
+    public String calculerEtEnregistrer(String playerId, List<RosterUnitActuel> unites, List<RosterUnitModActuel> mods, UnitStatReferentiel cacheRef) {
         List<UniteStatInput> input = unites.stream()
                 .map(u -> new UniteStatInput(u.getIdUnit(), u.getDefinitionId(), u.getNiveau(), u.getGear(), u.getRelic()))
                 .toList();
@@ -44,7 +55,8 @@ public class RosterUnitStatCalculService {
                 .collect(Collectors.groupingBy(RosterUnitModActuel::getIdUnit,
                         Collectors.mapping(m -> (ModLigne) m, Collectors.toList())));
 
-        UnitStatReferentiel ref = unitStatReferentialService.charger(
+        // Utilisation du cache partagé s'il est fourni, sinon chargement ciblé en base
+        UnitStatReferentiel ref = (cacheRef != null) ? cacheRef : unitStatReferentialService.charger(
                 input.stream().map(UniteStatInput::definitionId).distinct().toList());
 
         List<UnitCalculResult> resultats = unitStatCalculationService.calculerPourUnites(input, ref,
@@ -91,7 +103,7 @@ public class RosterUnitStatCalculService {
     private String logEtRetour(String playerId, int total, int calculees, String suffixe) {
         int ignorees = total - calculees;
         String resultat = String.format("%d unité(s) calculée(s), %d ignorée(s) (vaisseaux/données manquantes)", calculees, ignorees);
-        log.info("Stats{} calculées pour {} : {}", suffixe, playerId, resultat);
+        log.debug("Stats{} calculées pour {} : {}", suffixe, playerId, resultat);
         return resultat;
     }
 

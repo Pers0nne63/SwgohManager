@@ -56,7 +56,19 @@ public class OmicronPlanProgressService {
     @Transactional
     public void calculerEtEnregistrer(String playerId, Long idSync) {
         OmicronPlanCalculationService.PlayerOmicronProgress progress = getProgression(playerId, Portee.GUILDE);
+        persister(playerId, idSync, progress);
+    }
 
+    /** Variante rapide : plans/unitMap/optionsMap déjà chargés une fois pour tout le lot (synchro de masse). */
+    @Transactional
+    public void calculerEtEnregistrer(String playerId, Long idSync, List<OmicronPlan> plans,
+            Map<String, String> unitMap, Map<String, OmicronPlanService.Option> optionsMap) {
+        OmicronPlanCalculationService.PlayerOmicronProgress progress = omicronPlanCalculationService.calculerProgression(
+                plans, statutRows(playerId, Portee.GUILDE), unitMap, optionsMap);
+        persister(playerId, idSync, progress);
+    }
+
+    private void persister(String playerId, Long idSync, OmicronPlanCalculationService.PlayerOmicronProgress progress) {
         for (int i = 1; i <= 4; i++) {
             OmicronPlanCalculationService.PrioriteSummary pSummary = progress.parPriorite().get(i);
             String prioriteLabel = "P" + i;

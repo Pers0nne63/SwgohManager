@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,7 @@ public class RosterUnitService {
     private final OmicronModeService omicronModeService;
     private final UnitSkillCalculationService unitSkillCalculationService;
     private final UnitModCalculationService unitModCalculationService;
+    private final GuildSyncReferentialService guildSyncReferentialService;
 
     public Map<String, SkillDefinition> chargerDefinitionsSkill() {
         return skillDefinitionRepository.findAll().stream()
@@ -95,6 +97,12 @@ public class RosterUnitService {
 
     @Transactional
     public String enregistrerRoster(PlayerResponse response, Long idSync) {
+        return enregistrerRoster(response, idSync, guildSyncReferentialService.charger());
+    }
+
+    /** Variante rapide pour la synchro de masse : référentiel commun déjà chargé une fois pour tout le lot. */
+    @Transactional
+    public String enregistrerRoster(PlayerResponse response, Long idSync, GuildSyncReferentialCache cache) {
         String playerId = response.playerId();
         List<PlayerResponse.RosterUnit> roster = response.rosterUnit();
 
@@ -103,14 +111,20 @@ public class RosterUnitService {
             return "Aucune unité trouvée";
         }
 
-        Map<String, SkillDefinition> definitions = chargerDefinitionsSkill();
+        StopWatch stopWatch = new StopWatch("Enregistrement Roster - Joueur " + playerId);
 
-        // Suppression des anciennes données actuelles (unités + mods ; les skills sont gérés dans enregistrerSkills)
+        stopWatch.start("Récupération référentiel (cache)");
+        Map<String, SkillDefinition> definitions = cache.skillDefinitions();
+        stopWatch.stop();
+
+        stopWatch.start("Suppression DB (anciennes données)");
         rosterUnitActuelRepository.deleteByPlayerId(playerId);
         rosterUnitModActuelRepository.deleteByPlayerId(playerId);
         rosterUnitActuelRepository.flush();
         rosterUnitModActuelRepository.flush();
+        stopWatch.stop();
 
+        stopWatch.start("Mapping objets en mémoire");
         List<RosterUnitActuel> unitesActuelles = new ArrayList<>();
         List<RosterUnitModActuel> modsActuels = new ArrayList<>();
 
@@ -148,13 +162,18 @@ public class RosterUnitService {
                 }
             }
         }
+        stopWatch.stop();
 
+        stopWatch.start("Enregistrement Skills");
         UnitSkillCalculationService.UnitSkillBuildResult buildResult =
                 enregistrerSkills(playerId, roster, definitions, Portee.GUILDE, idSync);
         int skillsSansDefinition = buildResult.skillsSansDefinition();
+        stopWatch.stop();
 
+        stopWatch.start("SaveAll DB (Unités & Mods)");
         rosterUnitActuelRepository.saveAll(unitesActuelles);
         rosterUnitModActuelRepository.saveAll(modsActuels);
+        stopWatch.stop();
 
         if (skillsSansDefinition > 0) {
             log.warn("{} skill(s) sans correspondance dans skill_definition (référentiel pas encore synchronisé ?)",
@@ -165,15 +184,26 @@ public class RosterUnitService {
                 "Sync #%d : %d unité(s), %d skill(s) (%d sans référentiel), %d ligne(s) de mod",
                 idSync, unitesActuelles.size(), buildResult.skills().size(), skillsSansDefinition, modsActuels.size());
 
+        stopWatch.start("playerModQService");
         playerModQService.calculerEtEnregistrer(playerId, modsActuels, idSync);
+        stopWatch.stop();
 
-        farmPlanProgressService.calculerEtEnregistrer(playerId, idSync);
-        omicronPlanProgressService.calculerEtEnregistrer(playerId, idSync);
+        stopWatch.start("farmPlanProgressService");
+        farmPlanProgressService.calculerEtEnregistrer(playerId, idSync, cache.farmPlans(), cache.unitLibelleByBaseId());
+        stopWatch.stop();
+
+        stopWatch.start("Services Omicron");
+        omicronPlanProgressService.calculerEtEnregistrer(playerId, idSync, cache.omicronPlans(), cache.unitLibelleByBaseId(), cache.omicronOptionsByCle());
         omicronModeService.calculerEtEnregistrer(playerId, buildResult.skills(), definitions, idSync);
+        stopWatch.stop();
 
-        String resultatStats = rosterUnitStatCalculService.calculerEtEnregistrer(playerId, unitesActuelles, modsActuels);
+        stopWatch.start("rosterUnitStatCalculService");
+        String resultatStats = rosterUnitStatCalculService.calculerEtEnregistrer(playerId, unitesActuelles, modsActuels, cache.statReferentiel());
+        stopWatch.stop();
 
         log.info("{} | Stats: {}", resultat, resultatStats);
+        log.info("Bilan de performance :\n{}", stopWatch.prettyPrint());
+
         return resultat;
     }
 

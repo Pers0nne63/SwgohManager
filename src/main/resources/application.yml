@@ -3,7 +3,7 @@ spring:
     name: swgoh
 
   datasource:
-    url: jdbc:${DB_URL}
+    url: jdbc:${DB_URL}?reWriteBatchedInserts=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     hikari:
@@ -12,10 +12,15 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
   web:
     locale: fr_FR
     locale-resolver: fixed
@@ -37,7 +42,7 @@ swgoh:
 
 admin:
   password: ${ADMIN_PASSWORD:BaguettesEnflamées!}
-  
+
 app:
   import:
     directory: ./imports

@@ -2,6 +2,7 @@ package swgohManager.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,7 +12,11 @@ import swgohManager.model.ExternalPlayerStatqDetailActuel;
 import swgohManager.repository.PlayerStatqDetailActuelRepository.StatqTeamAverageProjection;
 public interface ExternalPlayerStatqDetailActuelRepository extends JpaRepository<ExternalPlayerStatqDetailActuel, Long> {
     List<ExternalPlayerStatqDetailActuel> findByPlayerId(String playerId);
-    void deleteByPlayerId(String playerId);
+
+    @Modifying
+    @Query("DELETE FROM ExternalPlayerStatqDetailActuel r WHERE r.playerId = :playerId")
+    void deleteByPlayerId(@Param("playerId") String playerId);
+
     
     @Query(value = """
             SELECT ru.player_id AS playerId, ud.base_id AS baseId, ru.id_unit AS idUnit

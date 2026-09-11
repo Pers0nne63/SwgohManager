@@ -63,6 +63,37 @@ public class RosterUnitStatObjectifService {
         log.info(resultat);
         return resultat;
     }
+    
+    
+    @Transactional
+    public String calculerEtEnregistrer(String playerId) {
+        List<RosterUnitActuel> unites = rosterUnitActuelRepository.findByPlayerId(playerId);
+
+        List<UniteStatInput> input = unites.stream()
+                .map(u -> new UniteStatInput(u.getIdUnit(), u.getDefinitionId(), u.getNiveau(), u.getGear(), u.getRelic()))
+                .toList();
+
+        // On ne charge le référentiel que pour les unités que possède le joueur
+        List<String> definitionIds = input.stream().map(UniteStatInput::definitionId).distinct().toList();
+        UnitStatReferentiel ref = unitStatReferentialService.charger(definitionIds);
+        Map<String, LeaderboardModMoy> modMoyByBaseId = chargerModMoy();
+
+        List<UnitCalculResult> resultats = calculerAvecModMoy(input, ref, modMoyByBaseId);
+
+        rosterUnitStatObjectifRepository.deleteByPlayerId(playerId);
+        rosterUnitStatObjectifRepository.flush();
+
+        List<RosterUnitStatObjectif> entites = resultats.stream()
+                .map(r -> mapVersObjectif(playerId, r.idUnit(), r.stats()))
+                .toList();
+        rosterUnitStatObjectifRepository.saveAll(entites);
+
+        int ignorees = unites.size() - entites.size();
+        String resultat = String.format("%d unité(s) calculée(s), %d ignorée(s) (données manquantes ou sans référence leaderboard)",
+                entites.size(), ignorees);
+        log.debug("Objectifs calculés pour {} : {}", playerId, resultat);
+        return resultat;
+    }
 
     /** Portée externe : calcul pour un seul joueur, déclenché au moment du scan. */
     @Transactional

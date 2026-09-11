@@ -35,7 +35,7 @@ public class GuildOverviewService {
     private final PlayerRatingHistoriqueRepository playerRatingHistoriqueRepository;
     private final PlayerStatqActuelRepository playerStatqActuelRepository;
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
-    
+
     public record PlayerRow(
             String playerId,
             String playerName,
@@ -58,21 +58,27 @@ public class GuildOverviewService {
         // Requêtes "Batch" (1 seule requête SQL par sujet)
         Map<String, Double> farmPlanPourcentages = farmPlanProgressService.getPourcentagesPourJoueurs(playerIds);
         Map<String, Map<String, Double>> omicronPourcentages = omicronPlanProgressService.getPourcentagesOmiPourJoueurs(playerIds);
+
+        // .filter(... != null) nécessaire : Collectors.toMap() lève une NullPointerException
+        // dès qu'une valeur est null (via HashMap.merge en interne), pas seulement en cas de doublon de clé.
         Map<String, Double> modQMap = playerModQActuelRepository.findByPlayerIdIn(playerIds).stream()
+                .filter(m -> m.getModQ() != null)
                 .collect(Collectors.toMap(PlayerModQActuel::getPlayerId, PlayerModQActuel::getModQ, (m1, m2) -> m1));
 
         Map<String, Integer> ratingsMap = playerRatingHistoriqueRepository
                 .findDernierRatingPourJoueurs(playerIds)
                 .stream()
+                .filter(r -> r.getRating() != null)
                 .collect(Collectors.toMap(
                         PlayerRatingHistoriqueRepository.DernierRatingProjection::getPlayerId,
                         PlayerRatingHistoriqueRepository.DernierRatingProjection::getRating,
                         (r1, r2) -> r1
                 ));
-        
+
         Map<String, Double> statQMap = playerStatqActuelRepository.findByPlayerIdIn(playerIds).stream()
+                .filter(s -> s.getStatq() != null)
                 .collect(Collectors.toMap(PlayerStatqActuel::getPlayerId, PlayerStatqActuel::getStatq, (a, b) -> a));
-        
+
         return joueurs.stream()
                 .sorted(Comparator.comparing(Joueur::getGalacticPower, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(j -> new PlayerRow(
@@ -98,7 +104,7 @@ public class GuildOverviewService {
                 })
                 .orElse(null);
     }
-    
+
     public GuildeRelicRepartitionProjection getRepartitionRelics() {
         return rosterUnitActuelRepository.findRepartitionRelicsGuilde();
     }

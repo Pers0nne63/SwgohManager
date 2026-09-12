@@ -14,7 +14,7 @@ public class RosterUnitStatObjectif implements UnitStatValues{
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "roster_unit_stat_objectif_seq")
-    @SequenceGenerator(name = "roster_unit_stat_objectif_seq", sequenceName = "roster_unit_stat_objectif_seq", allocationSize = 50)
+    @SequenceGenerator(name = "roster_unit_stat_objectif_seq", sequenceName = "roster_unit_stat_objectif_seq", allocationSize = 500)
     private Long id;
 
     private String playerId;

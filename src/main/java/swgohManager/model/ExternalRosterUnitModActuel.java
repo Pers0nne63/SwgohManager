@@ -10,7 +10,7 @@ import lombok.*;
 public class ExternalRosterUnitModActuel implements ModLigne {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "external_roster_unit_mod_actuel_seq")
-    @SequenceGenerator(name = "external_roster_unit_mod_actuel_seq", sequenceName = "external_roster_unit_mod_actuel_seq", allocationSize = 50)
+    @SequenceGenerator(name = "external_roster_unit_mod_actuel_seq", sequenceName = "external_roster_unit_mod_actuel_seq", allocationSize = 500)
     private Long id;
     private String playerId;
     private String idUnit;

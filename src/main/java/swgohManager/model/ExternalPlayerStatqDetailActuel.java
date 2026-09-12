@@ -7,7 +7,7 @@ import lombok.*;
 public class ExternalPlayerStatqDetailActuel implements StatqDetailValues {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "external_player_statq_detail_actuel_seq")
-    @SequenceGenerator(name = "external_player_statq_detail_actuel_seq", sequenceName = "external_player_statq_detail_actuel_seq", allocationSize = 50)
+    @SequenceGenerator(name = "external_player_statq_detail_actuel_seq", sequenceName = "external_player_statq_detail_actuel_seq", allocationSize = 500)
     private Long id;
     private String playerId;
     private String baseId;

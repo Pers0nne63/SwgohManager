@@ -16,7 +16,7 @@ public class PlayerStatqDetailActuel implements StatqDetailValues {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "player_statq_detail_actuel_seq")
-    @SequenceGenerator(name = "player_statq_detail_actuel_seq", sequenceName = "player_statq_detail_actuel_seq", allocationSize = 50)
+    @SequenceGenerator(name = "player_statq_detail_actuel_seq", sequenceName = "player_statq_detail_actuel_seq", allocationSize = 500)
     private Long id;
 
     private String playerId;

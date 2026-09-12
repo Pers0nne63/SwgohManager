@@ -73,7 +73,7 @@ public class GuildFullSyncService {
                                 // Progression jusqu'à 95% vu que STATQ et Objectifs sont dedans
                                 int percent = (int) ((traites / (double) totalJoueurs) * 95);
                                 String step = String.format("Joueurs (%d/%d)", traites, totalJoueurs);
-                                String msg = String.format("Joueur %s synchronisé (Stats & STATQ inclus)", joueur.getPlayerName());
+                                String msg = String.format("Joueur %s synchronisé", joueur.getPlayerName());
                                 progressService.notifyProgress("guild", percent, step, msg);
                             }
                             return outcome;

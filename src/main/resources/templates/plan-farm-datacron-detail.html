@@ -64,7 +64,41 @@
                 <span>Retour au suivi</span>
             </a>
         </div>
-
+        
+		<!-- DÉFINITION DU PLAN DE FARM -->
+		<div class="mb-8">
+		    <h2 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+		        <i class="bi bi-clipboard-data text-sky-400"></i> Ce qui est demandé par le plan de farm
+		    </h2>
+		
+		    <div th:if="${#lists.isEmpty(detail.mecaniquesRequises) && #lists.isEmpty(detail.statsRequises)}"
+		         class="text-slate-500 text-sm">
+		        Aucune exigence définie pour ce datacron.
+		    </div>
+		
+		    <div class="flex flex-wrap gap-3">
+		        <!-- Cards mécaniques -->
+		        <div th:each="mec : ${detail.mecaniquesRequises}"
+		             class="bg-slate-800 border border-sky-500/30 rounded-xl px-4 py-3 min-w-[180px] max-w-[240px] flex-1">
+		            <div class="flex items-center gap-2 mb-1.5">
+		                <span class="inline-flex items-center justify-center w-8 h-6 rounded-md bg-sky-500/10 border border-sky-500/30 text-sky-400 text-[11px] font-bold shrink-0"
+		                      th:text="'T' + ${mec.tier}"></span>
+		                <i class="bi bi-gear-fill text-sky-400 text-xs"></i>
+		            </div>
+		            <p class="text-sm text-slate-200 leading-snug" th:text="${mec.description}"></p>
+		        </div>
+		
+		        <!-- Cards stats -->
+		        <div th:each="stat : ${detail.statsRequises}"
+		             class="bg-slate-800 border border-emerald-500/30 rounded-xl px-4 py-3 min-w-[180px] max-w-[240px] flex-1">
+		            <div class="flex items-center gap-2 mb-1.5">
+		                <i class="bi bi-graph-up-arrow text-emerald-400 text-xs"></i>
+		                <span class="text-xs text-slate-400 uppercase tracking-wider" th:text="${stat.statLibelle}"></span>
+		            </div>
+		            <p class="text-lg font-mono font-bold text-emerald-400" th:text="${#numbers.formatDecimal(stat.valeurCible, 1, 2)}"></p>
+		        </div>
+		    </div>
+		</div>
         <!-- Résumé -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div class="bg-slate-800 border border-red-500/30 rounded-2xl p-4">

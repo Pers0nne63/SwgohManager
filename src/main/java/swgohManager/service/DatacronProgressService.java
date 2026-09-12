@@ -37,7 +37,12 @@ public class DatacronProgressService {
                                         List<DatacronMatchingService.MecaniqueStatus> mecaniques,
                                         List<DatacronMatchingService.StatStatus> stats,
                                         boolean tierMaxAtteint, boolean toutAtteint) {}
+    public record MecaniqueDefinition(Integer tier, String abilityId, String description) {}
+    public record StatDefinition(String statType, String statLibelle, BigDecimal valeurCible) {}
+
     public record DatacronDetail(Long id, String nom, String setId, Integer tierMax,
+                                  List<MecaniqueDefinition> mecaniquesRequises,
+                                  List<StatDefinition> statsRequises,
                                   List<JoueurDatacronStatus> joueursSansTierMax,
                                   List<JoueurDatacronStatus> joueursTierMaxSeul,
                                   List<JoueurDatacronStatus> joueursConformes) {}
@@ -65,9 +70,11 @@ public class DatacronProgressService {
                     .toList();
         }
     }
+    
+    
 
     // ---------------------------------------------------------------------
-    // Vue guilde entière — inchangée
+    // Vue guilde entière
     // ---------------------------------------------------------------------
 
     public List<SetProgress> construire() {
@@ -132,6 +139,25 @@ public class DatacronProgressService {
         List<PlanFarmDatacronStat> stats = statRepository.findByPlanFarmDatacronId(datacronId);
         Integer tierMax = mecaniques.stream().mapToInt(PlanFarmDatacronMecanique::getTier).max().orElse(0);
 
+        // --- Nouvelles définitions "cibles" du plan de farm ---
+        List<MecaniqueDefinition> mecaniquesRequises = mecaniques.stream()
+                .map(m -> new MecaniqueDefinition(
+                        m.getTier(),
+                        m.getAbilityId(),
+                        descriptionParMecanique.getOrDefault(m.getTier() + "|" + m.getAbilityId(), m.getAbilityId())
+                ))
+                .toList();
+
+        List<StatDefinition> statsRequises = stats.stream()
+                .filter(s -> s.getStatValue() != null)
+                .map(s -> new StatDefinition(
+                        s.getStatType(),
+                        libelleParStat.getOrDefault(s.getStatType(), s.getStatType()),
+                        s.getStatValue()
+                ))
+                .toList();
+        // --------------------------------------------------------
+
         List<JoueurDatacronStatus> sansTierMax = new ArrayList<>();
         List<JoueurDatacronStatus> tierMaxSeul = new ArrayList<>();
         List<JoueurDatacronStatus> conformes = new ArrayList<>();
@@ -150,7 +176,9 @@ public class DatacronProgressService {
         }
 
         String nomAffiche = (datacron.getNom() != null && !datacron.getNom().isBlank()) ? datacron.getNom() : "Datacron #" + datacron.getId();
-        return new DatacronDetail(datacron.getId(), nomAffiche, datacron.getSetId(), tierMax, sansTierMax, tierMaxSeul, conformes);
+        return new DatacronDetail(datacron.getId(), nomAffiche, datacron.getSetId(), tierMax,
+                mecaniquesRequises, statsRequises,
+                sansTierMax, tierMaxSeul, conformes);
     }
 
     // ---------------------------------------------------------------------

@@ -173,6 +173,8 @@ public class RosterUnitService {
         stopWatch.start("SaveAll DB (Unités & Mods)");
         rosterUnitActuelRepository.saveAll(unitesActuelles);
         rosterUnitModActuelRepository.saveAll(modsActuels);
+        rosterUnitActuelRepository.flush();
+        rosterUnitModActuelRepository.flush();
         stopWatch.stop();
 
         if (skillsSansDefinition > 0) {

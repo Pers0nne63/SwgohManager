@@ -149,7 +149,75 @@
             </details>
 
         </div>
-
+        <h2 class="text-xl font-extrabold text-white mt-10 mb-4 flex items-center gap-2">
+		    <i class="bi bi-people-fill text-amber-400"></i>
+		    <span>Progression par joueur</span>
+		</h2>
+		
+		<div th:if="${#lists.isEmpty(joueursProgress)}" class="text-center py-20 text-slate-500">
+		    <i class="bi bi-inbox text-4xl mb-3 block"></i>
+		    Aucun joueur actif ou aucun objectif de datacron défini.
+		</div>
+		
+		<div th:if="${!#lists.isEmpty(joueursProgress)}" class="space-y-4">
+		
+		    <details th:each="jp : ${joueursProgress}" class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+		        <summary class="flex items-center justify-between px-5 py-4 hover:bg-slate-700/30 transition-colors">
+		            <div class="flex items-center gap-3">
+		                <i class="bi bi-chevron-right chevron text-slate-400"></i>
+		                <span class="text-base font-bold text-white" th:text="${jp.playerName}"></span>
+		                <span class="text-xs text-slate-500"
+		                      th:text="${jp.datacronsAtteints} + ' / ' + ${jp.datacronsTotal} + ' datacrons conformes'"></span>
+		            </div>
+		            <span class="badge-pct"
+		                  th:classappend="${jp.pourcentage >= 80} ? 'high' : (${jp.pourcentage >= 50} ? 'mid' : 'low')"
+		                  th:text="${#numbers.formatDecimal(jp.pourcentage, 1, 1)} + ' %'"></span>
+		        </summary>
+		
+		        <div class="border-t border-slate-700 px-5 py-4 space-y-3">
+		
+		            <details th:each="sp : ${jp.sets}" class="bg-slate-850 border border-slate-700/60 rounded-xl overflow-hidden">
+		                <summary class="flex items-center justify-between px-4 py-3 hover:bg-slate-700/20 transition-colors">
+		                    <div class="flex items-center gap-2">
+		                        <i class="bi bi-chevron-right chevron text-slate-500 text-sm"></i>
+		                        <span class="text-sm font-semibold text-slate-200" th:text="'SET ' + ${sp.setId}"></span>
+		                        <span class="text-[11px] text-slate-500"
+		                              th:text="${sp.datacronsAtteints} + ' / ' + ${sp.datacronsTotal}"></span>
+		                    </div>
+		                    <span class="badge-pct text-xs"
+		                          th:classappend="${sp.pourcentage >= 80} ? 'high' : (${sp.pourcentage >= 50} ? 'mid' : 'low')"
+		                          th:text="${#numbers.formatDecimal(sp.pourcentage, 1, 1)} + ' %'"></span>
+		                </summary>
+		
+		                <div class="border-t border-slate-700/60 px-4 py-3 space-y-2">
+		                    <div th:each="dtc : ${sp.datacrons}" class="bg-slate-900/40 border border-slate-700/40 rounded-lg p-3">
+		                        <div class="flex items-center justify-between mb-2">
+		                            <span class="text-xs font-semibold text-slate-200" th:text="${dtc.nom}"></span>
+		                            <i th:class="${dtc.toutAtteint} ? 'bi bi-check-circle-fill text-emerald-400' : 'bi bi-x-circle-fill text-red-400'"></i>
+		                        </div>
+		
+		                        <div th:if="${!#lists.isEmpty(dtc.mecaniques)}" class="space-y-1 mb-2">
+		                            <div th:each="mec : ${dtc.mecaniques}" class="flex items-center justify-between gap-2 text-[11px]">
+		                                <span class="text-slate-400 truncate" th:text="'[T' + ${mec.tier} + '] ' + ${mec.description}"></span>
+		                                <i th:class="${mec.atteint} ? 'bi bi-check-lg text-emerald-400' : 'bi bi-x-lg text-red-400'"></i>
+		                            </div>
+		                        </div>
+		
+		                        <div th:if="${!#lists.isEmpty(dtc.stats)}" class="space-y-1">
+		                            <div th:each="stat : ${dtc.stats}" class="flex items-center justify-between gap-2 text-[11px]">
+		                                <span class="text-slate-400 truncate"
+		                                      th:text="${stat.statLibelle} + ' (≥ ' + ${#numbers.formatDecimal(stat.valeurCible, 1, 2)} + ') — ' + ${#numbers.formatDecimal(stat.valeurJoueur, 1, 2)}"></span>
+		                                <i th:class="${stat.atteint} ? 'bi bi-check-lg text-emerald-400' : 'bi bi-x-lg text-red-400'"></i>
+		                            </div>
+		                        </div>
+		                    </div>
+		                </div>
+		            </details>
+		
+		        </div>
+		    </details>
+		
+		</div>
     </main>
 
 </body>

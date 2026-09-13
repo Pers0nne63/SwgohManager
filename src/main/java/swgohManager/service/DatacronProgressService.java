@@ -301,6 +301,93 @@ public class DatacronProgressService {
         String nomAffiche = (datacron.getNom() != null && !datacron.getNom().isBlank()) ? datacron.getNom() : "Datacron #" + datacron.getId();
         return new EvaluationDatacron(nomAffiche, mecaniqueProgresses, statProgresses, atteintParJoueur);
     }
+    
+    
+ // ---- DTOs vue "par joueur" ----
+    public record JoueurDatacronCible(Long datacronId, String nom,
+                                       List<DatacronMatchingService.MecaniqueStatus> mecaniques,
+                                       List<DatacronMatchingService.StatStatus> stats,
+                                       boolean toutAtteint, int nbCiblesAtteintes, int nbCiblesTotal) {}
+    public record JoueurSetProgress(String setId, List<JoueurDatacronCible> datacrons,
+                                     int datacronsAtteints, int datacronsTotal, double pourcentage) {}
+    public record JoueurProgress(String playerId, String playerName, List<JoueurSetProgress> sets,
+                                  int datacronsAtteints, int datacronsTotal, double pourcentage) {}
+
+    public List<JoueurProgress> construireParJoueur() {
+        List<Joueur> joueursActifs = joueurRepository.findAllByPresentInGuildTrue();
+        if (joueursActifs.isEmpty()) return List.of();
+
+        DatacronMatchingService.IndexDatacronsPhysiques index = construireIndexGuilde();
+        Map<String, String> descriptionParMecanique = new HashMap<>();
+        Map<String, String> libelleParStat = new HashMap<>();
+        chargerLibelles(descriptionParMecanique, libelleParStat);
+
+        List<PlanFarmDatacron> datacronsCibles = planFarmDatacronRepository.findAll();
+        Map<String, List<PlanFarmDatacron>> parSet = datacronsCibles.stream()
+                .collect(Collectors.groupingBy(PlanFarmDatacron::getSetId, LinkedHashMap::new, Collectors.toList()));
+
+        // Ordre des sets fixé une seule fois (décroissant), réutilisé pour chaque joueur
+        List<Map.Entry<String, List<PlanFarmDatacron>>> setsTries = parSet.entrySet().stream()
+                .sorted(Map.Entry.<String, List<PlanFarmDatacron>>comparingByKey().reversed())
+                .toList();
+
+        // Évite de re-requêter mécaniques/stats à chaque joueur pour chaque datacron
+        Map<Long, List<PlanFarmDatacronMecanique>> mecaniquesParDatacronId = new HashMap<>();
+        Map<Long, List<PlanFarmDatacronStat>> statsParDatacronId = new HashMap<>();
+        for (PlanFarmDatacron d : datacronsCibles) {
+            mecaniquesParDatacronId.put(d.getId(), mecaniqueRepository.findByPlanFarmDatacronId(d.getId()));
+            statsParDatacronId.put(d.getId(), statRepository.findByPlanFarmDatacronId(d.getId()));
+        }
+
+        List<JoueurProgress> resultat = new ArrayList<>();
+
+        for (Joueur j : joueursActifs) {
+            List<JoueurSetProgress> setsProgress = new ArrayList<>();
+            int totalAtteintJoueur = 0;
+            int totalCiblesJoueur = 0;
+
+            for (var entry : setsTries) {
+                String setId = entry.getKey();
+                List<JoueurDatacronCible> datacronCibles = new ArrayList<>();
+
+                for (PlanFarmDatacron datacron : entry.getValue()) {
+                    List<PlanFarmDatacronMecanique> mecaniques = mecaniquesParDatacronId.get(datacron.getId());
+                    List<PlanFarmDatacronStat> stats = statsParDatacronId.get(datacron.getId());
+
+                    DatacronMatchingService.DatacronStatusJoueur eval = datacronMatchingService.evaluerDatacronPourJoueur(
+                            j.getPlayerId(), datacron.getSetId(), mecaniques, stats, index, descriptionParMecanique, libelleParStat);
+
+                    int nbAtteint = (int) eval.mecaniques().stream().filter(DatacronMatchingService.MecaniqueStatus::atteint).count()
+                            + (int) eval.stats().stream().filter(DatacronMatchingService.StatStatus::atteint).count();
+                    int nbTotal = eval.mecaniques().size() + eval.stats().size();
+
+                    String nomAffiche = (datacron.getNom() != null && !datacron.getNom().isBlank())
+                            ? datacron.getNom() : "Datacron #" + datacron.getId();
+
+                    datacronCibles.add(new JoueurDatacronCible(
+                            datacron.getId(), nomAffiche, eval.mecaniques(), eval.stats(),
+                            eval.toutAtteint(), nbAtteint, nbTotal));
+                }
+
+                // Tri croissant : les moins conformes en premier
+                datacronCibles.sort(Comparator.comparingInt(JoueurDatacronCible::nbCiblesAtteintes));
+
+                int atteintsSet = (int) datacronCibles.stream().filter(JoueurDatacronCible::toutAtteint).count();
+                int totalSet = datacronCibles.size();
+                totalAtteintJoueur += atteintsSet;
+                totalCiblesJoueur += totalSet;
+
+                setsProgress.add(new JoueurSetProgress(setId, datacronCibles, atteintsSet, totalSet, pourcentage(atteintsSet, totalSet)));
+            }
+
+            resultat.add(new JoueurProgress(j.getPlayerId(), j.getPlayerName(), setsProgress,
+                    totalAtteintJoueur, totalCiblesJoueur, pourcentage(totalAtteintJoueur, totalCiblesJoueur)));
+        }
+
+        // Tri croissant des joueurs par % global
+        resultat.sort(Comparator.comparingDouble(JoueurProgress::pourcentage));
+        return resultat;
+    }
 
     private DatacronMatchingService.IndexDatacronsPhysiques construireIndexGuilde() {
         return datacronMatchingService.construireIndex(

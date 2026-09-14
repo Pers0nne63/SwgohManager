@@ -1,16 +1,31 @@
 package swgohManager.service;
 
-import lombok.RequiredArgsConstructor;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
 import swgohManager.model.Joueur;
 import swgohManager.model.PlanFarmDatacron;
 import swgohManager.model.PlanFarmDatacronMecanique;
 import swgohManager.model.PlanFarmDatacronStat;
-import swgohManager.repository.*;
-
-import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
+import swgohManager.repository.ExternalPlayerDatacronActuelRepository;
+import swgohManager.repository.ExternalPlayerDatacronAffixActuelRepository;
+import swgohManager.repository.JoueurRepository;
+import swgohManager.repository.PlanFarmDatacronMecaniqueRepository;
+import swgohManager.repository.PlanFarmDatacronRepository;
+import swgohManager.repository.PlanFarmDatacronStatRepository;
+import swgohManager.repository.PlayerDatacronAffixActuelRepository;
+import swgohManager.service.DatacronProgressService.JoueurDatacronCible;
+import swgohManager.service.DatacronProgressService.JoueurSetProgress;
 
 @Service
 @RequiredArgsConstructor
@@ -304,6 +319,7 @@ public class DatacronProgressService {
     
     
  // ---- DTOs vue "par joueur" ----
+    // ---- DTOs vue "par joueur" (détail d'un set) ----
     public record JoueurDatacronCible(Long datacronId, String nom,
                                        List<DatacronMatchingService.MecaniqueStatus> mecaniques,
                                        List<DatacronMatchingService.StatStatus> stats,
@@ -387,6 +403,167 @@ public class DatacronProgressService {
         // Tri croissant des joueurs par % global
         resultat.sort(Comparator.comparingDouble(JoueurProgress::pourcentage));
         return resultat;
+    }
+    
+
+    // ---- DTOs vue "onglets par set" ----
+    public record JoueurSetDetail(String playerId, String playerName, JoueurSetProgress detail) {}
+    public record SetTab(String setId, SetProgress synthese, List<JoueurSetDetail> joueurs) {}
+    public record ProgressionComplete(List<SetProgress> synthese, List<JoueurProgress> parJoueur) {}
+
+    /**
+     * Calcule en un seul passage la synthèse guilde (par set) ET le détail par joueur.
+     * Chaque couple (joueur, datacron) n'est évalué qu'une fois via DatacronMatchingService,
+     * les deux vues sont alimentées à partir du même résultat d'évaluation.
+     */
+    public ProgressionComplete construireProgressionComplete() {
+        List<Joueur> joueursActifs = joueurRepository.findAllByPresentInGuildTrue();
+        int totalJoueurs = joueursActifs.size();
+        if (totalJoueurs == 0) return new ProgressionComplete(List.of(), List.of());
+
+        DatacronMatchingService.IndexDatacronsPhysiques index = construireIndexGuilde();
+        Map<String, String> descriptionParMecanique = new HashMap<>();
+        Map<String, String> libelleParStat = new HashMap<>();
+        chargerLibelles(descriptionParMecanique, libelleParStat);
+
+        List<PlanFarmDatacron> datacronsCibles = planFarmDatacronRepository.findAll();
+        Map<String, List<PlanFarmDatacron>> parSet = datacronsCibles.stream()
+                .collect(Collectors.groupingBy(PlanFarmDatacron::getSetId, LinkedHashMap::new, Collectors.toList()));
+
+        List<Map.Entry<String, List<PlanFarmDatacron>>> setsTries = parSet.entrySet().stream()
+                .sorted(Map.Entry.<String, List<PlanFarmDatacron>>comparingByKey().reversed())
+                .toList();
+
+        List<SetProgress> synthese = new ArrayList<>();
+
+        Map<String, List<JoueurSetProgress>> setsParJoueur = new LinkedHashMap<>();
+        Map<String, int[]> totauxParJoueur = new HashMap<>(); // [atteint, total]
+        for (Joueur j : joueursActifs) {
+            setsParJoueur.put(j.getPlayerId(), new ArrayList<>());
+            totauxParJoueur.put(j.getPlayerId(), new int[2]);
+        }
+
+        for (var entry : setsTries) {
+            String setId = entry.getKey();
+            List<DatacronProgress> datacronProgressesSet = new ArrayList<>();
+            Map<String, Boolean> setConformeParJoueur = new HashMap<>();
+            for (Joueur j : joueursActifs) setConformeParJoueur.put(j.getPlayerId(), true);
+
+            Map<String, List<JoueurDatacronCible>> datacronsParJoueurPourCeSet = new HashMap<>();
+            for (Joueur j : joueursActifs) datacronsParJoueurPourCeSet.put(j.getPlayerId(), new ArrayList<>());
+
+            for (PlanFarmDatacron datacron : entry.getValue()) {
+                List<PlanFarmDatacronMecanique> mecaniques = mecaniqueRepository.findByPlanFarmDatacronId(datacron.getId());
+                List<PlanFarmDatacronStat> stats = statRepository.findByPlanFarmDatacronId(datacron.getId());
+                List<PlanFarmDatacronStat> statsAvecValeur = stats.stream().filter(s -> s.getStatValue() != null).toList();
+
+                Map<Long, Integer> joueursOkParMecanique = new HashMap<>();
+                Map<Long, Integer> joueursOkParStat = new HashMap<>();
+                for (PlanFarmDatacronMecanique mec : mecaniques) joueursOkParMecanique.put(mec.getId(), 0);
+                for (PlanFarmDatacronStat stat : statsAvecValeur) joueursOkParStat.put(stat.getId(), 0);
+
+                int joueursConformesDatacron = 0;
+                String nomAffiche = (datacron.getNom() != null && !datacron.getNom().isBlank())
+                        ? datacron.getNom() : "Datacron #" + datacron.getId();
+
+                for (Joueur j : joueursActifs) {
+                    DatacronMatchingService.DatacronStatusJoueur eval = datacronMatchingService.evaluerDatacronPourJoueur(
+                            j.getPlayerId(), datacron.getSetId(), mecaniques, stats, index, descriptionParMecanique, libelleParStat);
+
+                    for (int i = 0; i < mecaniques.size(); i++) {
+                        if (eval.mecaniques().get(i).atteint()) {
+                            joueursOkParMecanique.merge(mecaniques.get(i).getId(), 1, Integer::sum);
+                        }
+                    }
+                    for (int i = 0; i < statsAvecValeur.size(); i++) {
+                        if (eval.stats().get(i).atteint()) {
+                            joueursOkParStat.merge(statsAvecValeur.get(i).getId(), 1, Integer::sum);
+                        }
+                    }
+
+                    if (!eval.toutAtteint()) setConformeParJoueur.put(j.getPlayerId(), false);
+                    else joueursConformesDatacron++;
+
+                    int nbAtteint = (int) eval.mecaniques().stream().filter(DatacronMatchingService.MecaniqueStatus::atteint).count()
+                            + (int) eval.stats().stream().filter(DatacronMatchingService.StatStatus::atteint).count();
+                    int nbTotal = eval.mecaniques().size() + eval.stats().size();
+
+                    datacronsParJoueurPourCeSet.get(j.getPlayerId()).add(new JoueurDatacronCible(
+                            datacron.getId(), nomAffiche, eval.mecaniques(), eval.stats(),
+                            eval.toutAtteint(), nbAtteint, nbTotal));
+                }
+
+                List<MecaniqueProgress> mecaniqueProgresses = mecaniques.stream()
+                        .map(mec -> new MecaniqueProgress(
+                                mec.getId(), mec.getTier(),
+                                descriptionParMecanique.getOrDefault(mec.getTier() + "|" + mec.getAbilityId(), mec.getAbilityId()),
+                                joueursOkParMecanique.get(mec.getId()), totalJoueurs,
+                                pourcentage(joueursOkParMecanique.get(mec.getId()), totalJoueurs)
+                        ))
+                        .toList();
+
+                List<StatProgress> statProgresses = statsAvecValeur.stream()
+                        .map(stat -> new StatProgress(
+                                stat.getId(), libelleParStat.getOrDefault(stat.getStatType(), stat.getStatType()), stat.getStatValue(),
+                                joueursOkParStat.get(stat.getId()), totalJoueurs,
+                                pourcentage(joueursOkParStat.get(stat.getId()), totalJoueurs)
+                        ))
+                        .toList();
+
+                datacronProgressesSet.add(new DatacronProgress(
+                        datacron.getId(), nomAffiche, mecaniqueProgresses, statProgresses,
+                        joueursConformesDatacron, totalJoueurs, pourcentage(joueursConformesDatacron, totalJoueurs)
+                ));
+            }
+
+            long joueursConformesSet = setConformeParJoueur.values().stream().filter(Boolean::booleanValue).count();
+            synthese.add(new SetProgress(setId, datacronProgressesSet, (int) joueursConformesSet, totalJoueurs,
+                    pourcentage((int) joueursConformesSet, totalJoueurs)));
+
+            for (Joueur j : joueursActifs) {
+                List<JoueurDatacronCible> datacronsJoueur = datacronsParJoueurPourCeSet.get(j.getPlayerId());
+                // tri croissant : datacrons les moins conformes en premier
+                datacronsJoueur.sort(Comparator.comparingInt(JoueurDatacronCible::nbCiblesAtteintes));
+
+                int atteintsSet = (int) datacronsJoueur.stream().filter(JoueurDatacronCible::toutAtteint).count();
+                int totalSet = datacronsJoueur.size();
+
+                setsParJoueur.get(j.getPlayerId()).add(new JoueurSetProgress(setId, datacronsJoueur, atteintsSet, totalSet, pourcentage(atteintsSet, totalSet)));
+
+                int[] totaux = totauxParJoueur.get(j.getPlayerId());
+                totaux[0] += atteintsSet;
+                totaux[1] += totalSet;
+            }
+        }
+
+        List<JoueurProgress> parJoueur = new ArrayList<>();
+        for (Joueur j : joueursActifs) {
+            int[] totaux = totauxParJoueur.get(j.getPlayerId());
+            parJoueur.add(new JoueurProgress(j.getPlayerId(), j.getPlayerName(), setsParJoueur.get(j.getPlayerId()),
+                    totaux[0], totaux[1], pourcentage(totaux[0], totaux[1])));
+        }
+        // tri croissant des joueurs sur le % global (utilisé sur l'onglet Synthèse si besoin)
+        parJoueur.sort(Comparator.comparingDouble(JoueurProgress::pourcentage));
+
+        return new ProgressionComplete(synthese, parJoueur);
+    }
+
+    /** Assemble les onglets par set : synthèse du set + détail joueurs triés croissant sur le % de CE set. */
+    public List<SetTab> construireOnglets(ProgressionComplete pc) {
+        return pc.synthese().stream()
+                .map(sp -> {
+                    List<JoueurSetDetail> joueurs = pc.parJoueur().stream()
+                            .map(jp -> jp.sets().stream()
+                                    .filter(s -> s.setId().equals(sp.setId()))
+                                    .findFirst()
+                                    .map(detailSet -> new JoueurSetDetail(jp.playerId(), jp.playerName(), detailSet))
+                                    .orElse(null))
+                            .filter(Objects::nonNull)
+                            .sorted(Comparator.comparingDouble(jd -> jd.detail().pourcentage()))
+                            .toList();
+                    return new SetTab(sp.setId(), sp, joueurs);
+                })
+                .toList();
     }
 
     private DatacronMatchingService.IndexDatacronsPhysiques construireIndexGuilde() {

@@ -44,6 +44,24 @@
             height: 6px;
         }
         .bar-fill { height: 100%; border-radius: 9999px; }
+
+        .tab-btn {
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 10px 10px 0 0;
+            color: #94a3b8;
+            border: 1px solid transparent;
+        }
+        .tab-btn:hover { color: #e2e8f0; }
+        .tab-btn.active {
+            color: #fbbf24;
+            background-color: rgba(30, 41, 59, 1);
+            border-color: rgb(51 65 85);
+            border-bottom-color: transparent;
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
@@ -52,7 +70,7 @@
 
     <main class="flex-grow container mx-auto px-4 lg:px-8 py-8 max-w-5xl">
 
-        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
+        <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
             <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
                 <i class="bi bi-bar-chart-fill text-amber-400"></i>
                 <span>Suivi Plan de Farm Datacron</span>
@@ -69,156 +87,107 @@
             Aucun objectif de datacron défini, ou aucun joueur actif dans la guilde.
         </div>
 
-        <div th:if="${!#lists.isEmpty(sets)}" class="space-y-4">
+        <div th:if="${!#lists.isEmpty(sets)}">
 
-            <details th:each="set : ${sets}" class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-                <summary class="flex items-center justify-between px-5 py-4 hover:bg-slate-700/30 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <i class="bi bi-chevron-right chevron text-slate-400"></i>
-                        <span class="text-base font-bold text-white" th:text="'SET ' + ${set.setId}"></span>
-                        <span class="text-xs text-slate-500" th:text="${set.joueursAtteint} + ' / ' + ${set.totalJoueurs} + ' joueurs conformes'"></span>
-                    </div>
-                    <span class="badge-pct"
-                          th:classappend="${set.pourcentage >= 80} ? 'high' : (${set.pourcentage >= 50} ? 'mid' : 'low')"
-                          th:text="${#numbers.formatDecimal(set.pourcentage, 1, 1)} + ' %'"></span>
-                </summary>
+            <!-- NAVIGATION ONGLETS -->
+            <div class="flex flex-wrap gap-1 border-b border-slate-700 mb-0">
+                <button type="button" class="tab-btn active" data-tab-target="tab-synthese">
+                    <i class="bi bi-grid-1x2 me-1"></i> Synthèse
+                </button>
+                <button type="button" th:each="onglet : ${onglets}"
+                        class="tab-btn" th:data-tab-target="'tab-set-' + ${onglet.setId}"
+                        th:text="'SET ' + ${onglet.setId}"></button>
+            </div>
 
-                <div class="border-t border-slate-700 px-5 py-4 space-y-3">
-                    <div th:if="${#lists.isEmpty(set.datacrons)}" class="text-slate-500 text-sm">
-                        Aucun datacron cible pour ce set.
-                    </div>
+			<!-- ONGLET SYNTHESE (page d'origine) -->
+			<div id="tab-synthese" class="tab-panel active pt-4">
+			    <div class="space-y-4">
+			        <th:block th:each="set : ${sets}">
+			            <details th:replace="~{fragments/plan-farm-datacron-fragments :: setSynthese(${set})}"></details>
+			        </th:block>
+			    </div>
+			</div>
 
-                    <details th:each="dtc : ${set.datacrons}" class="bg-slate-850 border border-slate-700/60 rounded-xl overflow-hidden">
-                        <summary class="flex items-center justify-between px-4 py-3 hover:bg-slate-700/20 transition-colors">
-                            <div class="flex items-center gap-2">
-                                <i class="bi bi-chevron-right chevron text-slate-500 text-sm"></i>
-                                <span class="text-sm font-semibold text-slate-200" th:text="${dtc.nom}"></span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <a th:href="@{/web/plan-farm-datacron/progression/datacron/{id}(id=${dtc.id})}"
-                                   class="text-xs text-amber-400 hover:underline flex items-center gap-1"
-                                   onclick="event.stopPropagation();">
-                                    <i class="bi bi-people"></i> Détail joueurs
-                                </a>
-                                <span class="badge-pct text-xs"
-                                      th:classappend="${dtc.pourcentage >= 80} ? 'high' : (${dtc.pourcentage >= 50} ? 'mid' : 'low')"
-                                      th:text="${#numbers.formatDecimal(dtc.pourcentage, 1, 1)} + ' %'"></span>
-                            </div>
-                        </summary>
+            <!-- UN ONGLET PAR SET -->
+            <div th:each="onglet : ${onglets}"
+                 th:id="'tab-set-' + ${onglet.setId}" class="tab-panel pt-4 space-y-5">
 
-                        <div class="border-t border-slate-700/60 px-4 py-3 space-y-4">
-
-                            <div th:if="${!#lists.isEmpty(dtc.mecaniques)}">
-                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Mécaniques</h4>
-                                <div class="space-y-2">
-                                    <div th:each="mec : ${dtc.mecaniques}" class="flex items-center gap-3">
-                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px] shrink-0"
-                                              th:text="${mec.tier}"></span>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-xs text-slate-300 truncate" th:text="${mec.description}" th:title="${mec.description}"></p>
-                                            <div class="bar-bg mt-1">
-                                                <div class="bar-fill"
-                                                     th:style="'width:' + ${mec.pourcentage} + '%; background-color:' + (${mec.pourcentage >= 80} ? '#4ade80' : (${mec.pourcentage >= 50} ? '#fbbf24' : '#f87171'))"></div>
-                                            </div>
-                                        </div>
-                                        <span class="text-xs font-mono text-slate-400 shrink-0" th:text="${#numbers.formatDecimal(mec.pourcentage, 1, 1)} + ' %'"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div th:if="${!#lists.isEmpty(dtc.stats)}">
-                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Statistiques</h4>
-                                <div class="space-y-2">
-                                    <div th:each="stat : ${dtc.stats}" class="flex items-center gap-3">
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-xs text-slate-300 truncate"
-                                               th:text="${stat.statLibelle} + ' (≥ ' + ${#numbers.formatDecimal(stat.valeurCible, 1, 2)} + ')'"></p>
-                                            <div class="bar-bg mt-1">
-                                                <div class="bar-fill"
-                                                     th:style="'width:' + ${stat.pourcentage} + '%; background-color:' + (${stat.pourcentage >= 80} ? '#4ade80' : (${stat.pourcentage >= 50} ? '#fbbf24' : '#f87171'))"></div>
-                                            </div>
-                                        </div>
-                                        <span class="text-xs font-mono text-slate-400 shrink-0" th:text="${#numbers.formatDecimal(stat.pourcentage, 1, 1)} + ' %'"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </details>
+                <!-- Tableau de synthèse du set -->
+                <div>
+                    <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <i class="bi bi-bar-chart-line text-amber-400"></i> Synthèse du set
+                    </h3>
+                    <details th:replace="~{fragments/plan-farm-datacron-fragments :: setSynthese(${onglet.synthese})}"></details>
                 </div>
-            </details>
+
+                <!-- Détail par joueur pour ce set -->
+                <div>
+                    <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <i class="bi bi-people-fill text-amber-400"></i> Détail par joueur
+                        <span class="text-slate-600 normal-case font-normal">(du moins au plus conforme)</span>
+                    </h3>
+
+                    <div th:if="${#lists.isEmpty(onglet.joueurs)}" class="text-slate-500 text-sm py-6 text-center">
+                        Aucun joueur avec des datacrons trackés pour ce set.
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(onglet.joueurs)}" class="space-y-3">
+                        <details th:each="jd : ${onglet.joueurs}" class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                            <summary class="flex items-center justify-between px-5 py-3.5 hover:bg-slate-700/30 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <i class="bi bi-chevron-right chevron text-slate-400"></i>
+                                    <span class="text-sm font-bold text-white" th:text="${jd.playerName}"></span>
+                                    <span class="text-xs text-slate-500"
+                                          th:text="${jd.detail.datacronsAtteints} + ' / ' + ${jd.detail.datacronsTotal} + ' conformes'"></span>
+                                </div>
+                                <span class="badge-pct"
+                                      th:classappend="${jd.detail.pourcentage >= 80} ? 'high' : (${jd.detail.pourcentage >= 50} ? 'mid' : 'low')"
+                                      th:text="${#numbers.formatDecimal(jd.detail.pourcentage, 1, 1)} + ' %'"></span>
+                            </summary>
+
+                            <div class="border-t border-slate-700 px-5 py-4 space-y-2">
+                                <div th:each="dtc : ${jd.detail.datacrons}"
+                                     class="bg-slate-850 border border-slate-700/60 rounded-xl p-3.5">
+                                    <div class="flex items-center justify-between mb-2.5">
+                                        <span class="text-sm font-semibold text-slate-200" th:text="${dtc.nom}"></span>
+                                        <i th:class="${dtc.toutAtteint} ? 'bi bi-check-circle-fill text-emerald-400' : 'bi bi-x-circle-fill text-red-400'"></i>
+                                    </div>
+
+                                    <div th:if="${!#lists.isEmpty(dtc.mecaniques)}" class="space-y-1.5 mb-2">
+                                        <div th:each="mec : ${dtc.mecaniques}" class="flex items-center justify-between gap-3 text-xs">
+                                            <span class="text-slate-400 truncate" th:text="'[T' + ${mec.tier} + '] ' + ${mec.description}"></span>
+                                            <i th:class="${mec.atteint} ? 'bi bi-check-lg text-emerald-400 shrink-0' : 'bi bi-x-lg text-red-400 shrink-0'"></i>
+                                        </div>
+                                    </div>
+
+                                    <div th:if="${!#lists.isEmpty(dtc.stats)}" class="space-y-1.5">
+                                        <div th:each="stat : ${dtc.stats}" class="flex items-center justify-between gap-3 text-xs">
+                                            <span class="text-slate-400 truncate"
+                                                  th:text="${stat.statLibelle} + ' (≥ ' + ${#numbers.formatDecimal(stat.valeurCible, 1, 2)} + ') — ' + ${#numbers.formatDecimal(stat.valeurJoueur, 1, 2)}"></span>
+                                            <i th:class="${stat.atteint} ? 'bi bi-check-lg text-emerald-400 shrink-0' : 'bi bi-x-lg text-red-400 shrink-0'"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
 
         </div>
-        <h2 class="text-xl font-extrabold text-white mt-10 mb-4 flex items-center gap-2">
-		    <i class="bi bi-people-fill text-amber-400"></i>
-		    <span>Progression par joueur</span>
-		</h2>
-		
-		<div th:if="${#lists.isEmpty(joueursProgress)}" class="text-center py-20 text-slate-500">
-		    <i class="bi bi-inbox text-4xl mb-3 block"></i>
-		    Aucun joueur actif ou aucun objectif de datacron défini.
-		</div>
-		
-		<div th:if="${!#lists.isEmpty(joueursProgress)}" class="space-y-4">
-		
-		    <details th:each="jp : ${joueursProgress}" class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-		        <summary class="flex items-center justify-between px-5 py-4 hover:bg-slate-700/30 transition-colors">
-		            <div class="flex items-center gap-3">
-		                <i class="bi bi-chevron-right chevron text-slate-400"></i>
-		                <span class="text-base font-bold text-white" th:text="${jp.playerName}"></span>
-		                <span class="text-xs text-slate-500"
-		                      th:text="${jp.datacronsAtteints} + ' / ' + ${jp.datacronsTotal} + ' datacrons conformes'"></span>
-		            </div>
-		            <span class="badge-pct"
-		                  th:classappend="${jp.pourcentage >= 80} ? 'high' : (${jp.pourcentage >= 50} ? 'mid' : 'low')"
-		                  th:text="${#numbers.formatDecimal(jp.pourcentage, 1, 1)} + ' %'"></span>
-		        </summary>
-		
-		        <div class="border-t border-slate-700 px-5 py-4 space-y-3">
-		
-		            <details th:each="sp : ${jp.sets}" class="bg-slate-850 border border-slate-700/60 rounded-xl overflow-hidden">
-		                <summary class="flex items-center justify-between px-4 py-3 hover:bg-slate-700/20 transition-colors">
-		                    <div class="flex items-center gap-2">
-		                        <i class="bi bi-chevron-right chevron text-slate-500 text-sm"></i>
-		                        <span class="text-sm font-semibold text-slate-200" th:text="'SET ' + ${sp.setId}"></span>
-		                        <span class="text-[11px] text-slate-500"
-		                              th:text="${sp.datacronsAtteints} + ' / ' + ${sp.datacronsTotal}"></span>
-		                    </div>
-		                    <span class="badge-pct text-xs"
-		                          th:classappend="${sp.pourcentage >= 80} ? 'high' : (${sp.pourcentage >= 50} ? 'mid' : 'low')"
-		                          th:text="${#numbers.formatDecimal(sp.pourcentage, 1, 1)} + ' %'"></span>
-		                </summary>
-		
-		                <div class="border-t border-slate-700/60 px-4 py-3 space-y-2">
-		                    <div th:each="dtc : ${sp.datacrons}" class="bg-slate-900/40 border border-slate-700/40 rounded-lg p-3">
-		                        <div class="flex items-center justify-between mb-2">
-		                            <span class="text-xs font-semibold text-slate-200" th:text="${dtc.nom}"></span>
-		                            <i th:class="${dtc.toutAtteint} ? 'bi bi-check-circle-fill text-emerald-400' : 'bi bi-x-circle-fill text-red-400'"></i>
-		                        </div>
-		
-		                        <div th:if="${!#lists.isEmpty(dtc.mecaniques)}" class="space-y-1 mb-2">
-		                            <div th:each="mec : ${dtc.mecaniques}" class="flex items-center justify-between gap-2 text-[11px]">
-		                                <span class="text-slate-400 truncate" th:text="'[T' + ${mec.tier} + '] ' + ${mec.description}"></span>
-		                                <i th:class="${mec.atteint} ? 'bi bi-check-lg text-emerald-400' : 'bi bi-x-lg text-red-400'"></i>
-		                            </div>
-		                        </div>
-		
-		                        <div th:if="${!#lists.isEmpty(dtc.stats)}" class="space-y-1">
-		                            <div th:each="stat : ${dtc.stats}" class="flex items-center justify-between gap-2 text-[11px]">
-		                                <span class="text-slate-400 truncate"
-		                                      th:text="${stat.statLibelle} + ' (≥ ' + ${#numbers.formatDecimal(stat.valeurCible, 1, 2)} + ') — ' + ${#numbers.formatDecimal(stat.valeurJoueur, 1, 2)}"></span>
-		                                <i th:class="${stat.atteint} ? 'bi bi-check-lg text-emerald-400' : 'bi bi-x-lg text-red-400'"></i>
-		                            </div>
-		                        </div>
-		                    </div>
-		                </div>
-		            </details>
-		
-		        </div>
-		    </details>
-		
-		</div>
+
     </main>
+
+    <script>
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tabTarget).classList.add('active');
+            });
+        });
+    </script>
 
 </body>
 </html>

@@ -18,8 +18,9 @@ public class PlanFarmDatacronProgressWebController {
 
     @GetMapping
     public String page(Model model) {
-        model.addAttribute("sets", progressService.construire());
-        model.addAttribute("joueursProgress", progressService.construireParJoueur());
+        DatacronProgressService.ProgressionComplete pc = progressService.construireProgressionComplete();
+        model.addAttribute("sets", pc.synthese());
+        model.addAttribute("onglets", progressService.construireOnglets(pc));
         return "plan-farm-datacron-progression";
     }
 
@@ -28,5 +29,7 @@ public class PlanFarmDatacronProgressWebController {
         model.addAttribute("detail", progressService.construireDetail(id));
         return "plan-farm-datacron-detail";
     }
+    
+    
     
 }

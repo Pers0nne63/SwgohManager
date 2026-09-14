@@ -44,7 +44,7 @@ public class SyncScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 3 * * ?")
+    @Scheduled(cron = "0 0 * * * ?")
     public void syncGuildFull() {
         log.info("--- [CRON] Début synchronisation Guilde Full ---");
         try {

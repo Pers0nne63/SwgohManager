@@ -87,8 +87,6 @@ public class TerritoryWarService {
             if (estNouveau) nouveaux++; else misAJour++;
         }
 
-        purgerAnciennesTw();
-
         String resultat = String.format(
                 "TW : %d nouvelle(s), %d mise(s) à jour, %d scan(s) adversaire évité(s), %d scan(s) effectué(s)",
                 nouveaux, misAJour, scansEvites, scansEffectues);
@@ -96,12 +94,6 @@ public class TerritoryWarService {
         return resultat;
     }
 
-    private void purgerAnciennesTw() {
-        List<TwHistorique> toutes = twHistoriqueRepository.findByGuildIdOrderByEndTimeDesc(guildId);
-        if (toutes.size() > NB_TW_A_CONSERVER) {
-            twHistoriqueRepository.deleteAll(toutes.subList(NB_TW_A_CONSERVER, toutes.size()));
-        }
-    }
     
     
 

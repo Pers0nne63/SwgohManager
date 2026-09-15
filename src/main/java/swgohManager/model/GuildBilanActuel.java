@@ -39,6 +39,14 @@ public class GuildBilanActuel {
     private Long nbDtc9;
     private Long nbOmicronTb;
     private Long nbOmicronTw;
+    
+    private Long twNombreAnalysees;
+    private Double twPgInscriteMoyenne;
+    private Double twScoreMoyen;
+    private Double twScoreAdversaireMoyen;
+    private Long twVictoires;
+    private Long twDefaites;
+    private Double twEcartMoyen;
 
     @Column(columnDefinition = "TEXT")
     private String statQParTeamJson;

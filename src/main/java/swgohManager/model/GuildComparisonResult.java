@@ -36,6 +36,13 @@ public class GuildComparisonResult {
     private Long nbDtc9A;
     private Long nbOmicronTbA;
     private Long nbOmicronTwA;
+    private Long twNombreAnalyseesA;
+    private Double twPgInscriteMoyenneA;
+    private Double twScoreMoyenA;
+    private Double twScoreAdversaireMoyenA;
+    private Long twVictoiresA;
+    private Long twDefaitesA;
+    private Double twEcartMoyenA;
 
     private String guildIdB;
     private String guildNomB;
@@ -58,6 +65,13 @@ public class GuildComparisonResult {
     private Long nbDtc9B;
     private Long nbOmicronTbB;
     private Long nbOmicronTwB;
+    private Double twPgInscriteMoyenneB;
+    private Double twScoreMoyenB;
+    private Double twScoreAdversaireMoyenB;
+    private Long twVictoiresB;
+    private Long twDefaitesB;
+    private Double twEcartMoyenB;
+    private Integer twNombreAnalyseesB;
 
     @Column(columnDefinition = "TEXT")
     private String statQParTeamJsonA;

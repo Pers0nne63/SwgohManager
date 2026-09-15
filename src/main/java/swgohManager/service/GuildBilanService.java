@@ -1,15 +1,28 @@
 package swgohManager.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import swgohManager.model.*;
-import swgohManager.repository.*;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import swgohManager.model.GuildBilanActuel;
+import swgohManager.model.Joueur;
+import swgohManager.model.TerritoryBattle;
+import swgohManager.repository.GuildBilanActuelRepository;
+import swgohManager.repository.JoueurRepository;
+import swgohManager.repository.PlayerDatacronActuelRepository;
+import swgohManager.repository.PlayerDatacronAffixActuelRepository;
+import swgohManager.repository.PlayerModQActuelRepository;
+import swgohManager.repository.PlayerStatqActuelRepository;
+import swgohManager.repository.PlayerStatqDetailActuelRepository;
+import swgohManager.repository.RaidHistoriqueRepository;
+import swgohManager.repository.TerritoryBattleRepository;
+import swgohManager.repository.TwHistoriqueRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -30,14 +43,19 @@ public class GuildBilanService {
     private final RaidHistoriqueRepository raidHistoriqueRepository;
     private final GuildBilanActuelRepository guildBilanActuelRepository;
     private final ObjectMapper objectMapper;
+    private final TwHistoriqueRepository twHistoriqueRepository;
+
 
     @Transactional
     public GuildBilanActuel rafraichir() {
         List<Joueur> joueurs = joueurRepository.findAllByPresentInGuildTrue();
-
+        String guildId = joueurs.isEmpty() ? null : joueurs.get(0).getGuildId();
         var modq = playerModQActuelRepository.findAggregatGuilde();
         var relics = guildOverviewService.getRepartitionRelics();
         var statqTeams = playerStatqDetailActuelRepository.findMoyenneNoteParTeam();
+        var twStats = guildId != null
+                ? twHistoriqueRepository.findStatsAgregeesByGuildId(guildId)
+                : null;
 
         Map<String, Long> omicronParMode = omicronModeService.getSyntheseGuilde();
         long omicronTb = omicronParMode.getOrDefault(MODE_TB, 0L);
@@ -50,10 +68,12 @@ public class GuildBilanService {
                 .map(dernier -> raidHistoriqueRepository.findByEndTime(dernier.getEndTime()).stream()
                         .mapToLong(r -> r.getScore() != null ? r.getScore() : 0L).sum())
                 .orElse(null);
+        
+       
 
         GuildBilanActuel bilan = GuildBilanActuel.builder()
                 .dateCalcul(Instant.now())
-                .guildId(joueurs.isEmpty() ? null : joueurs.get(0).getGuildId())
+                .guildId(guildId)
                 .guildNom(joueurs.isEmpty() ? null : joueurs.get(0).getGuildName())
                 .nbMembres(joueurs.size())
                 .galacticPowerTotal(joueurRepository.sumGalacticPowerGuilde())
@@ -75,6 +95,13 @@ public class GuildBilanService {
                 .nbOmicronTb(omicronTb)
                 .nbOmicronTw(omicronTw)
                 .statQParTeamJson(serialiser(statqTeams))
+                .twNombreAnalysees(twStats != null ? twStats.getNombre() : 0L)
+                .twPgInscriteMoyenne(twStats != null ? twStats.getPgInscriteMoyenne() : null)
+                .twScoreMoyen(twStats != null ? twStats.getScoreMoyen() : null)
+                .twScoreAdversaireMoyen(twStats != null ? twStats.getScoreAdversaireMoyen() : null)
+                .twVictoires(twStats != null ? twStats.getVictoires() : 0L)
+                .twDefaites(twStats != null ? twStats.getDefaites() : 0L)
+                .twEcartMoyen(twStats != null ? twStats.getEcartMoyen() : null)
                 .build();
 
         guildBilanActuelRepository.deleteAll();

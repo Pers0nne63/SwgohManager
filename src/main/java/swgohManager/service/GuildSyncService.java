@@ -16,36 +16,32 @@ public class GuildSyncService {
     private final RaidService raidService;
     private final GuildeService guildeService;
     private final TerritoryBattleService territoryBattleService;
+    private final TerritoryWarService territoryWarService;
     private final TbPlaneteReferenceService tbPlaneteReferenceService;
 
     @Value("${swgoh.guild.id}")
     private String guildId;
 
     public GuildSyncResult synchroniserGuilde() {
-        // 1. Mise à jour / Vérification du référentiel des planètes TB avant le reste
         String resultatRefPlanetes = tbPlaneteReferenceService.seedDonnees();
         log.info("Référentiel TB : {}", resultatRefPlanetes);
 
-        // 2. Appel API pour la guilde
         log.info("Appel unique à l'API SWGOH pour la guilde {}", guildId);
         GuildResponse response = swgohApiClient.getGuild(guildId);
 
-        // 3. Traitements de synchronisation
         int nouveauxRaids = raidService.enregistrerResultatsRaid(response);
-        
-        // 👈 Appel de la nouvelle méthode du GuildeService
-        String resultatGuilde = guildeService.synchroniserGuilde(response); 
-        
+        String resultatGuilde = guildeService.synchroniserGuilde(response);
         String resultatTb = territoryBattleService.synchroniserTerritoryBattle(response);
+        String resultatTw = territoryWarService.synchroniserTerritoryWar(response);
 
-        // 4. Retour enrichi
-        return new GuildSyncResult(nouveauxRaids, resultatGuilde, resultatTb, resultatRefPlanetes);
+        return new GuildSyncResult(nouveauxRaids, resultatGuilde, resultatTb, resultatTw, resultatRefPlanetes);
     }
 
     public record GuildSyncResult(
-            int nouveauxResultatsRaid, 
-            String resultatJoueurs, 
+            int nouveauxResultatsRaid,
+            String resultatJoueurs,
             String resultatTerritoryBattle,
+            String resultatTerritoryWar, 
             String resultatRefPlanetes
     ) {}
 }

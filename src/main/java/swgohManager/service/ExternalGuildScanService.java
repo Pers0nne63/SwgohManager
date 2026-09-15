@@ -1,8 +1,11 @@
 package swgohManager.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,6 +49,7 @@ public class ExternalGuildScanService {
     private final PlayerSyncService playerSyncService;
     private final GuildBilanService guildBilanService;
     private final SyncProgressService progressService;
+    private final TerritoryWarService territoryWarService;
 
     private final ExternalPlayerRepository externalPlayerRepository;
     private final ExternalPlayerModQActuelRepository externalPlayerModQActuelRepository;
@@ -143,6 +147,8 @@ public class ExternalGuildScanService {
         var modq = externalPlayerModQActuelRepository.findAggregatByGuildId(guildId);
         var relics = externalRosterUnitActuelRepository.findRepartitionRelicsByGuildId(guildId);
         var statqTeams = externalPlayerStatqDetailActuelRepository.findMoyenneNoteParTeamByGuildId(guildId);
+        var twStats = calculerStatsTw(guildId, guilde.recentTerritoryWarResult()); 
+
 
         long omicronTb = 0, omicronTw = 0;
         for (var p : externalRosterUnitSkillActuelRepository.sommeParModeByGuildId(guildId, List.of(MODE_TB, MODE_TW))) {
@@ -177,6 +183,13 @@ public class ExternalGuildScanService {
                 .nbOmicronTbA(bilanA.getNbOmicronTb())
                 .nbOmicronTwA(bilanA.getNbOmicronTw())
                 .statQParTeamJsonA(bilanA.getStatQParTeamJson())
+                .twNombreAnalyseesA(bilanA.getTwNombreAnalysees())
+                .twPgInscriteMoyenneA(bilanA.getTwPgInscriteMoyenne())
+                .twScoreMoyenA(bilanA.getTwScoreMoyen())
+                .twScoreAdversaireMoyenA(bilanA.getTwScoreAdversaireMoyen())
+                .twVictoiresA(bilanA.getTwVictoires())
+                .twDefaitesA(bilanA.getTwDefaites())
+                .twEcartMoyenA(bilanA.getTwEcartMoyen())
                 .guildIdB(guildId)
                 .guildNomB(guildNom)
                 .nbMembresB(guilde.member().size())
@@ -199,6 +212,13 @@ public class ExternalGuildScanService {
                 .nbOmicronTbB(omicronTb)
                 .nbOmicronTwB(omicronTw)
                 .statQParTeamJsonB(serialiser(statqTeams))
+                .twPgInscriteMoyenneB(twStats.pgInscriteMoyenne())     
+                .twScoreMoyenB(twStats.scoreMoyen())                   
+                .twScoreAdversaireMoyenB(twStats.scoreAdversaireMoyen())
+                .twVictoiresB(twStats.victoires())
+                .twDefaitesB(twStats.defaites())
+                .twEcartMoyenB(twStats.ecartMoyen()) 
+                .twNombreAnalyseesB(twStats.nombreAnalysees())
                 .build();
     }
 
@@ -217,6 +237,56 @@ public class ExternalGuildScanService {
                 .map(raid -> raid.raidMember().stream().mapToLong(GuildResponse.RaidMember::memberProgress).sum())
                 .orElse(null);
     }
+    
+    private record TwStats(Double pgInscriteMoyenne, Double scoreMoyen, Double scoreAdversaireMoyen,
+            Long victoires, Long defaites, Double ecartMoyen, int nombreAnalysees) {}
+
+	private TwStats calculerStatsTw(String guildId, List<GuildResponse.TerritoryWarResult> twResults) {
+		if (twResults == null || twResults.isEmpty()) {
+			return new TwStats(null, null, null, 0L, 0L, null,0);
+		}	
+	
+		List<Long> pgInscrites = new ArrayList<>();
+		List<Long> scores = new ArrayList<>();
+		List<Long> scoresAdversaire = new ArrayList<>();
+		List<Long> ecarts = new ArrayList<>();
+		long victoires = 0, defaites = 0;
+	
+		// Évite de rescanner deux fois le même adversaire pour la même occurrence de TW
+		Map<String, Long> cachePg = new HashMap<>();
+	
+		for (GuildResponse.TerritoryWarResult tw : twResults) {
+			Long score = parseLongOrNull(tw.score());
+			Long scoreAdversaire = parseLongOrNull(tw.opponentScore());
+	
+			if (score != null) scores.add(score);
+			if (scoreAdversaire != null) scoresAdversaire.add(scoreAdversaire);
+			if (score != null && scoreAdversaire != null) {
+				ecarts.add(score - scoreAdversaire);
+				if (score > scoreAdversaire) victoires++;
+				else if (score < scoreAdversaire) defaites++;
+			}
+	
+			if (tw.opponentGuildProfile() != null) {
+				String cleCache = tw.opponentGuildProfile().id() + "_" + tw.startTime() + "_" + tw.endTimeSeconds();
+				Long pg = cachePg.computeIfAbsent(cleCache, k -> territoryWarService.resoudrePgInscrite(tw, guildId));
+				if (pg != null) pgInscrites.add(pg);
+			}
+		}
+	
+		return new TwStats(
+				moyenne(pgInscrites), moyenne(scores), moyenne(scoresAdversaire),
+				victoires, defaites, moyenne(ecarts),twResults.size());
+		}
+	
+	private Double moyenne(List<Long> valeurs) {
+		return valeurs.isEmpty() ? null : valeurs.stream().mapToLong(Long::longValue).average().orElse(0);
+	}
+	
+	private Long parseLongOrNull(String value) {
+		if (value == null || value.isBlank()) return null;
+		try { return Long.parseLong(value); } catch (NumberFormatException e) { return null; }
+	}
 
     private String serialiser(Object o) {
         try { return objectMapper.writeValueAsString(o); } catch (Exception e) { return "[]"; }

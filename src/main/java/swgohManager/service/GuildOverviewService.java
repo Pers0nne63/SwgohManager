@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import swgohManager.repository.PlayerStatqActuelRepository;
 import swgohManager.repository.RaidHistoriqueRepository;
 import swgohManager.repository.RosterUnitActuelRepository;
 import swgohManager.repository.TerritoryBattleRepository;
+import swgohManager.repository.TwHistoriqueRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +37,10 @@ public class GuildOverviewService {
     private final PlayerRatingHistoriqueRepository playerRatingHistoriqueRepository;
     private final PlayerStatqActuelRepository playerStatqActuelRepository;
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
+    private final TwHistoriqueRepository twHistoriqueRepository;
+    
+    @Value("${swgoh.guild.id}")
+    private String guildId;  
 
     public record PlayerRow(
             String playerId,
@@ -50,6 +56,18 @@ public class GuildOverviewService {
 
     public record RaidSummary(Instant endTime, long totalScore, int nbParticipants) {}
     public record TbSummary(String definitionId, Instant endTime, Integer totalStars) {}
+    
+    public record TwSummary(
+            long nombreAnalysees, Long victoires, Long defaites,
+            Double pgInscriteMoyenne, Double scoreMoyen, Double scoreAdversaireMoyen, Double ecartMoyen
+    ) {}
+
+    public record TwRow(
+            Instant startTime, Instant endTime, String opponentGuildName,
+            Long notreScore, Long scoreAdversaire,
+            Long pgInscriteNous, Long pgInscriteAdversaire,
+            boolean victoire
+    ) {}
 
     public List<PlayerRow> getJoueurs() {
         List<Joueur> joueurs = joueurRepository.findAllByPresentInGuildTrue();
@@ -113,5 +131,25 @@ public class GuildOverviewService {
         return territoryBattleRepository.findTopByOrderByEndTimeDesc()
                 .map(tb -> new TbSummary(tb.getDefinitionId(), tb.getEndTime(), tb.getTotalStars()))
                 .orElse(null);
+    }
+    
+    public TwSummary getSyntheseTw() {
+        var stats = twHistoriqueRepository.findStatsAgregeesByGuildId(guildId);
+        if (stats == null || stats.getNombre() == null || stats.getNombre() == 0) return null;
+        return new TwSummary(
+                stats.getNombre(), stats.getVictoires(), stats.getDefaites(),
+                stats.getPgInscriteMoyenne(), stats.getScoreMoyen(), stats.getScoreAdversaireMoyen(),
+                stats.getEcartMoyen());
+    }
+
+    public List<TwRow> getDernieresTw() {
+        return twHistoriqueRepository.findTop8ByGuildIdOrderByEndTimeDesc(guildId).stream()
+                .map(tw -> new TwRow(
+                        tw.getStartTime(), tw.getEndTime(), tw.getOpponentGuildName(),
+                        tw.getNotreScore(), tw.getScoreAdversaire(),
+                        tw.getPgInscriteNous(), tw.getPgInscriteAdversaire(),
+                        tw.getNotreScore() != null && tw.getScoreAdversaire() != null
+                                && tw.getNotreScore() > tw.getScoreAdversaire()))
+                .toList();
     }
 }

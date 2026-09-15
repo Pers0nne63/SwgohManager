@@ -17,6 +17,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import swgohManager.model.GuildComparisonResult;
 import swgohManager.repository.GuildComparisonResultRepository;
+import swgohManager.service.GuildComparisonViewService.GuildeInfo;
+import swgohManager.service.GuildComparisonViewService.MetricRow;
+import swgohManager.service.GuildComparisonViewService.RelicTier;
+import swgohManager.service.GuildComparisonViewService.StatqTeamRow;
+import swgohManager.service.GuildComparisonViewService.TwAnalyse;
 
 @Service
 @RequiredArgsConstructor
@@ -31,8 +36,14 @@ public class GuildComparisonViewService {
     public record StatqTeamRow(String team, String valueA, String valueB, String winner) {}
     public record GuildComparisonVM(
             GuildeInfo guildeA, GuildeInfo guildeB, Instant dateComparaison,
-            List<MetricRow> metrics, List<List<RelicTier>> relicCotes, List<StatqTeamRow> statQParTeam
+            List<MetricRow> metrics, List<List<RelicTier>> relicCotes, List<StatqTeamRow> statQParTeam,
+            TwAnalyse twAnalyse
     ) {}
+    
+    public record TwAnalyse(Long nombreAnalyseesA, Integer nombreAnalyseesB, List<TwMetricRow> rows) {}    
+    public record TwMetricRow(String label, String icon, String valueA, String valueB, String winner) {}
+    
+
     
     @Transactional(readOnly = true)
     public GuildComparisonVM construire(String guildIdB) {
@@ -58,11 +69,47 @@ public class GuildComparisonViewService {
         
         List<StatqTeamRow> statQParTeam = fusionnerStatqTeams(r.getStatQParTeamJsonA(), r.getStatQParTeamJsonB());
 
+        TwAnalyse twAnalyse = construireTwAnalyse(r);
+        
+        
         return new GuildComparisonVM(
                 new GuildeInfo(r.getGuildIdA(), r.getGuildNomA(), r.getNbMembresA(), formatPg(r.getGalacticPowerTotalA())),
                 new GuildeInfo(r.getGuildIdB(), r.getGuildNomB(), r.getNbMembresB(), formatPg(r.getGalacticPowerTotalB())),
-                r.getDateComparaison(), metrics, relicCotes, statQParTeam
+                r.getDateComparaison(), metrics, relicCotes, statQParTeam, twAnalyse
         );
+    }
+    
+    private TwAnalyse construireTwAnalyse(GuildComparisonResult r) {
+        long nbA = r.getTwNombreAnalyseesA() != null ? r.getTwNombreAnalyseesA() : 0;
+        int nbB = r.getTwNombreAnalyseesB() != null ? r.getTwNombreAnalyseesB() : 0;
+        if (nbA == 0 && nbB == 0) return null;
+
+        List<TwMetricRow> rows = List.of(
+                new TwMetricRow("Victoires", "bi-trophy-fill",
+                        txt(r.getTwVictoiresA()), txt(r.getTwVictoiresB()),
+                        comparerNumbers(r.getTwVictoiresA(), r.getTwVictoiresB())),
+                new TwMetricRow("PG inscrite moyenne", "bi-shield-fill",
+                        txtMoyenne(r.getTwPgInscriteMoyenneA()), txtMoyenne(r.getTwPgInscriteMoyenneB()),
+                        comparerNumbers(r.getTwPgInscriteMoyenneA(), r.getTwPgInscriteMoyenneB())),
+                new TwMetricRow("Score moyen", "bi-bar-chart-fill",
+                        txtMoyenne(r.getTwScoreMoyenA()), txtMoyenne(r.getTwScoreMoyenB()),
+                        comparerNumbers(r.getTwScoreMoyenA(), r.getTwScoreMoyenB())),
+                new TwMetricRow("Écart moyen", "bi-arrow-left-right",
+                        formatEcart(r.getTwEcartMoyenA()), formatEcart(r.getTwEcartMoyenB()),
+                        comparerNumbers(r.getTwEcartMoyenA(), r.getTwEcartMoyenB()))
+        );
+
+        return new TwAnalyse(nbA, nbB, rows);
+    }
+
+    private String txtMoyenne(Double d) {
+        return d != null ? String.format("%,.0f", d).replace(',', ' ') : "-";
+    }
+
+    private String formatEcart(Double ecart) {
+        if (ecart == null) return "-";
+        String signe = ecart >= 0 ? "+" : "";
+        return signe + String.format("%,.0f", ecart).replace(',', ' ');
     }
     
     private String formatPg(Long pg) {

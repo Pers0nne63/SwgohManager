@@ -30,6 +30,9 @@ public class GuildWebController {
         model.addAttribute("tbMsSynthese", tbScoreJoueurRepository.findGuildTbMSStats());
         model.addAttribute("omicronModeSynthese", omicronModeService.getSyntheseGuilde());
         model.addAttribute("relicRepartition", guildOverviewService.getRepartitionRelics());
+        model.addAttribute("twSynthese", guildOverviewService.getSyntheseTw());
+        model.addAttribute("twRows", guildOverviewService.getDernieresTw());
+
 
         return "guilde";
     }

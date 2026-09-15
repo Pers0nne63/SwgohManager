@@ -1,7 +1,12 @@
 package swgohManager.client.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import swgohManager.client.dto.GuildResponse.GuildProfile;
+import swgohManager.client.dto.GuildResponse.RecentRaidResult;
+import swgohManager.client.dto.GuildResponse.TerritoryBattleResult;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record GuildResponse(Guild guild) {
@@ -13,7 +18,9 @@ public record GuildResponse(Guild guild) {
             GuildProfile profile,
             List<Member> member,
             List<RecentRaidResult> recentRaidResult,
-            List<TerritoryBattleResult> recentTerritoryBattleResult
+            List<TerritoryBattleResult> recentTerritoryBattleResult,
+            List<TerritoryWarResult> recentTerritoryWarResult
+
     ) {
         /**
          * Récupère le nom de la guilde qu'il soit directement sous 'guild'
@@ -63,4 +70,22 @@ public record GuildResponse(Guild guild) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record PlayerStat(String memberId, String score) {}
+    
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record TerritoryWarResult(
+            String territoryWarId,
+            String score,
+            Integer power,              
+            String opponentScore,
+            String startTime,           
+            String endTimeSeconds,      
+            OpponentGuildProfile opponentGuildProfile
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record OpponentGuildProfile(
+            String id,
+            String name,
+            String guildGalacticPower
+    ) {}
 }

@@ -125,6 +125,74 @@
 			    </div>
 			</div>
         </div>
+        
+<!-- Synthèse TW -->
+<details class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden mb-8 group" th:if="${twSynthese != null}">
+    <summary class="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer list-none hover:bg-slate-750/40 transition-colors">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <i class="bi bi-flag-fill text-red-400"></i> Synthèse TW
+            <i class="bi bi-chevron-down text-sm text-slate-500 transition-transform group-open:rotate-180"></i>
+        </h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div class="bg-slate-850 px-3 py-1.5 rounded-lg border border-slate-700 text-center">
+                <span class="text-slate-400 block text-[10px] uppercase">Victoires</span>
+                <b class="text-emerald-400 font-mono"
+                   th:text="${twSynthese.victoires} + '/' + ${twSynthese.nombreAnalysees}">6/8</b>
+            </div>
+            <div class="bg-slate-850 px-3 py-1.5 rounded-lg border border-slate-700 text-center">
+                <span class="text-slate-400 block text-[10px] uppercase">PG inscrite moy.</span>
+                <b class="text-amber-400 font-mono"
+                   th:text="${twSynthese.pgInscriteMoyenne != null ? #numbers.formatInteger(twSynthese.pgInscriteMoyenne, 0, 'DEFAULT') : '-'}">640 000 000</b>
+            </div>
+            <div class="bg-slate-850 px-3 py-1.5 rounded-lg border border-slate-700 text-center">
+                <span class="text-slate-400 block text-[10px] uppercase">Score moy.</span>
+                <b class="text-slate-200 font-mono"
+                   th:text="${twSynthese.scoreMoyen != null ? #numbers.formatInteger(twSynthese.scoreMoyen, 0, 'DEFAULT') : '-'}">32 000</b>
+            </div>
+            <div class="bg-slate-850 px-3 py-1.5 rounded-lg border border-slate-700 text-center">
+                <span class="text-slate-400 block text-[10px] uppercase">Écart moy.</span>
+                <b class="font-mono"
+                   th:classappend="${twSynthese.ecartMoyen != null and twSynthese.ecartMoyen >= 0} ? 'text-emerald-400' : 'text-rose-400'"
+                   th:text="${twSynthese.ecartMoyen != null ? (twSynthese.ecartMoyen >= 0 ? '+' : '') + #numbers.formatInteger(twSynthese.ecartMoyen, 0, 'DEFAULT') : '-'}">+1 250</b>
+            </div>
+        </div>
+    </summary>
+
+    <div class="overflow-x-auto border-t border-slate-700">
+        <table class="w-full text-center text-sm text-slate-300">
+            <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+                <tr>
+                    <th class="px-4 py-3 text-left">Date</th>
+                    <th class="px-4 py-3 text-left">Adversaire</th>
+                    <th class="px-4 py-3">Notre score</th>
+                    <th class="px-4 py-3">Score adverse</th>
+                    <th class="px-4 py-3">PG inscrite (nous)</th>
+                    <th class="px-4 py-3">PG inscrite (adv.)</th>
+                    <th class="px-4 py-3">Résultat</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-700/60">
+                <tr th:each="tw : ${twRows}" class="hover:bg-slate-750/50 transition-colors">
+                    <td class="px-4 py-3 text-left font-mono text-slate-200"
+                        th:text="${#temporals.format(tw.endTime, 'dd/MM/yyyy')}">01/01/2026</td>
+                    <td class="px-4 py-3 text-left text-slate-300" th:text="${tw.opponentGuildName}">Guilde adverse</td>
+                    <td class="px-4 py-3 font-mono"
+                        th:text="${tw.notreScore != null ? #numbers.formatInteger(tw.notreScore, 0, 'DEFAULT') : '-'}"></td>
+                    <td class="px-4 py-3 font-mono"
+                        th:text="${tw.scoreAdversaire != null ? #numbers.formatInteger(tw.scoreAdversaire, 0, 'DEFAULT') : '-'}"></td>
+                    <td class="px-4 py-3 font-mono text-amber-400"
+                        th:text="${tw.pgInscriteNous != null ? #numbers.formatInteger(tw.pgInscriteNous, 0, 'DEFAULT') : '-'}"></td>
+                    <td class="px-4 py-3 font-mono text-slate-400"
+                        th:text="${tw.pgInscriteAdversaire != null ? #numbers.formatInteger(tw.pgInscriteAdversaire, 0, 'DEFAULT') : '-'}"></td>
+                    <td class="px-4 py-3">
+                        <span th:if="${tw.victoire}" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">VICTOIRE</span>
+                        <span th:unless="${tw.victoire}" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">DÉFAITE</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</details>
 
         <!-- Synthèse BT -->
         <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden mb-8">

@@ -62,47 +62,80 @@ public class DatacronMatchingService {
 
     /** Évalue un datacron cible pour UN joueur donné (interne ou externe), avec le détail par mécanique/stat. */
     public DatacronStatusJoueur evaluerDatacronPourJoueur(String playerId,
-                                                           String setId,
-                                                           List<PlanFarmDatacronMecanique> mecaniques,
-                                                           List<PlanFarmDatacronStat> stats,
-                                                           IndexDatacronsPhysiques index,
-                                                           Map<String, String> descriptionParMecanique,
-                                                           Map<String, String> libelleParStat) {
+            String setId,
+            List<PlanFarmDatacronMecanique> mecaniques,
+            List<PlanFarmDatacronStat> stats,
+            IndexDatacronsPhysiques index,
+            Map<String, String> descriptionParMecanique,
+            Map<String, String> libelleParStat) {
 
-        Integer tierMax = mecaniques.stream().mapToInt(PlanFarmDatacronMecanique::getTier).max().orElse(0);
-        PlanFarmDatacronMecanique mecTierMax = mecaniques.stream().filter(m -> m.getTier().equals(tierMax)).findFirst().orElse(null);
+    	Integer tierMax = mecaniques.stream().mapToInt(PlanFarmDatacronMecanique::getTier).max().orElse(0);
+    	PlanFarmDatacronMecanique mecTierMax = mecaniques.stream().filter(m -> m.getTier().equals(tierMax)).findFirst().orElse(null);
 
-        Set<String> candidatsTmax = trouverCandidatsTmax(playerId, setId, mecTierMax, index);
-        boolean tierMaxAtteint = !candidatsTmax.isEmpty();
+    	Set<String> candidatsTmax = trouverCandidatsTmax(playerId, setId, mecTierMax, index);
+    	boolean tierMaxAtteint = !candidatsTmax.isEmpty();
 
-        List<MecaniqueStatus> listMec = new ArrayList<>();
-        for (PlanFarmDatacronMecanique mec : mecaniques) {
-            boolean atteint = tierMaxAtteint && candidatsTmax.stream()
-                    .anyMatch(idDatacron -> index.mecaniquesParDatacron()
-                            .getOrDefault(playerId + "|" + idDatacron, Set.of())
-                            .contains(mec.getTier() + "|" + mec.getAbilityId()));
-            String desc = descriptionParMecanique.getOrDefault(mec.getTier() + "|" + mec.getAbilityId(), mec.getAbilityId());
-            listMec.add(new MecaniqueStatus(mec.getTier(), desc, atteint));
-        }
+    	// On choisit UN SEUL candidat de référence pour tout l'affichage :
+    	// en priorité celui qui satisfait tous les critères, sinon celui qui en satisfait le plus.
+    	String meilleurCandidat = null;
+    	int meilleurScore = -1;
+    	boolean toutAtteint = false;
 
-        List<StatStatus> listStat = new ArrayList<>();
-        for (PlanFarmDatacronStat stat : stats) {
-            if (stat.getStatValue() == null) continue;
-            BigDecimal meilleureValeur = tierMaxAtteint ? candidatsTmax.stream()
-                    .map(idDatacron -> index.statsParDatacron().getOrDefault(playerId + "|" + idDatacron, Map.of())
-                            .getOrDefault(stat.getStatType(), BigDecimal.ZERO))
-                    .max(BigDecimal::compareTo)
-                    .orElse(BigDecimal.ZERO) : BigDecimal.ZERO;
+    	for (String idDatacron : candidatsTmax) {
+    		if (satisfaitTout(playerId, idDatacron, mecaniques, stats, index)) {
+    			meilleurCandidat = idDatacron;
+    			toutAtteint = true;
+    			break; // on a trouvé le mieux possible, inutile de continuer
+    		}
+    		int score = compterCriteresAtteints(playerId, idDatacron, mecaniques, stats, index);
+    		if (score > meilleurScore) {
+    			meilleurScore = score;
+    			meilleurCandidat = idDatacron;
+    		}
+    	}
 
-            boolean atteint = meilleureValeur.compareTo(stat.getStatValue()) >= 0;
-            String libelle = libelleParStat.getOrDefault(stat.getStatType(), stat.getStatType());
-            listStat.add(new StatStatus(libelle, stat.getStatValue(), meilleureValeur, atteint));
-        }
+    	Set<String> mecPhysiqueRetenu = meilleurCandidat != null
+    			? index.mecaniquesParDatacron().getOrDefault(playerId + "|" + meilleurCandidat, Set.of())
+    					: Set.of();
+    	Map<String, BigDecimal> statPhysiqueRetenu = meilleurCandidat != null
+    			? index.statsParDatacron().getOrDefault(playerId + "|" + meilleurCandidat, Map.of())
+    					: Map.of();
 
-        boolean toutAtteint = tierMaxAtteint && candidatsTmax.stream()
-                .anyMatch(idDatacron -> satisfaitTout(playerId, idDatacron, mecaniques, stats, index));
+    	List<MecaniqueStatus> listMec = new ArrayList<>();
+    	for (PlanFarmDatacronMecanique mec : mecaniques) {
+    		boolean atteint = tierMaxAtteint && mecPhysiqueRetenu.contains(mec.getTier() + "|" + mec.getAbilityId());
+    		String desc = descriptionParMecanique.getOrDefault(mec.getTier() + "|" + mec.getAbilityId(), mec.getAbilityId());
+    		listMec.add(new MecaniqueStatus(mec.getTier(), desc, atteint));
+    	}
 
-        return new DatacronStatusJoueur(playerId, listMec, listStat, tierMaxAtteint, toutAtteint);
+    	List<StatStatus> listStat = new ArrayList<>();
+    	for (PlanFarmDatacronStat stat : stats) {
+    		if (stat.getStatValue() == null) continue;
+    		BigDecimal valeur = tierMaxAtteint ? statPhysiqueRetenu.getOrDefault(stat.getStatType(), BigDecimal.ZERO) : BigDecimal.ZERO;
+    		boolean atteint = valeur.compareTo(stat.getStatValue()) >= 0;
+    		String libelle = libelleParStat.getOrDefault(stat.getStatType(), stat.getStatType());
+    		listStat.add(new StatStatus(libelle, stat.getStatValue(), valeur, atteint));
+    	}
+
+    	return new DatacronStatusJoueur(playerId, listMec, listStat, tierMaxAtteint, toutAtteint);
+    }
+
+    private int compterCriteresAtteints(String playerId, String idDatacron,
+    		List<PlanFarmDatacronMecanique> mecaniques,
+    		List<PlanFarmDatacronStat> stats,
+    		IndexDatacronsPhysiques index) {
+    	Set<String> mecPhysique = index.mecaniquesParDatacron().getOrDefault(playerId + "|" + idDatacron, Set.of());
+    	Map<String, BigDecimal> statPhysique = index.statsParDatacron().getOrDefault(playerId + "|" + idDatacron, Map.of());
+
+    	int score = 0;
+    	for (PlanFarmDatacronMecanique mec : mecaniques) {
+    		if (mecPhysique.contains(mec.getTier() + "|" + mec.getAbilityId())) score++;
+    	}
+    	for (PlanFarmDatacronStat stat : stats) {
+    		if (stat.getStatValue() == null) continue;
+    		if (statPhysique.getOrDefault(stat.getStatType(), BigDecimal.ZERO).compareTo(stat.getStatValue()) >= 0) score++;
+    	}
+    	return score;
     }
 
     private boolean satisfaitTout(String playerId, String idDatacron,

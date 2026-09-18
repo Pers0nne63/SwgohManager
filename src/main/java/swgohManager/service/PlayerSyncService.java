@@ -68,6 +68,7 @@ public class PlayerSyncService {
     private final ExternalRosterUnitModActuelRepository externalRosterUnitModActuelRepository;
     private final ExternalPlayerModQActuelRepository externalPlayerModQActuelRepository;
     private final PlayerModQService playerModQService;
+    private final ExternalRaidTbSyncService externalRaidTbSyncService; 
     // Purge externe
     private final ExternalPlayerRaidRepository externalPlayerRaidRepository;
     private final ExternalPlayerTbScoreRepository externalPlayerTbScoreRepository;
@@ -158,6 +159,8 @@ public class PlayerSyncService {
                 .dateScan(Instant.now())
                 .build();
         externalPlayerRepository.save(externalPlayer);
+        
+        externalRaidTbSyncService.synchroniser(response.guildId(), playerId);
 
         playerRatingService.enregistrerRating(response, Portee.EXTERNE);
 
@@ -199,7 +202,9 @@ public class PlayerSyncService {
                 }
             }
         }
-
+        
+        
+        
         externalRosterUnitActuelRepository.saveAll(unites);
         externalRosterUnitModActuelRepository.saveAll(mods);
 

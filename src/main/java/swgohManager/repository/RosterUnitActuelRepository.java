@@ -80,5 +80,28 @@ public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActu
             WHERE ud.base_id IN :baseIds
             """, nativeQuery = true)
     List<RelicJoueurProjection> findRelicsPourUnites(@Param("baseIds") List<String> baseIds);
+    
+    @Query(value = """
+            SELECT AVG(ru.relic)
+            FROM roster_unit_actuel ru
+            WHERE ru.player_id = :playerId AND ru.relic >= 0
+            """, nativeQuery = true)
+    Double findRelicMoyenJoueur(@Param("playerId") String playerId);
+
+    @Query(value = """
+            SELECT DISTINCT ud.base_id
+            FROM roster_unit_actuel ru
+            JOIN unit_definition ud ON ud.id_unit = ru.definition_id
+            WHERE ru.player_id = :playerId AND ud.legend = true
+            """, nativeQuery = true)
+    List<String> findBaseIdsLegendPossedes(@Param("playerId") String playerId);
+
+    @Query(value = """
+            SELECT DISTINCT ud.base_id
+            FROM roster_unit_actuel ru
+            JOIN unit_definition ud ON ud.id_unit = ru.definition_id
+            WHERE ru.player_id = :playerId AND ud.conquete = true
+            """, nativeQuery = true)
+    List<String> findBaseIdsConquetePossedes(@Param("playerId") String playerId);
 
 }

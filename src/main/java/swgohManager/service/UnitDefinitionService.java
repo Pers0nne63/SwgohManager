@@ -55,6 +55,9 @@ public class UnitDefinitionService {
         List<UnitRelicDefinition> relicsASauver = new ArrayList<>();
         List<UnitDefinition> unitesASauver = new ArrayList<>();
 
+        List<String> idsUnitsRecus = unitesBrutes.stream().map(UnitRaw::id).toList(); // 👈 nouveau
+
+
         for (UnitRaw u : unitesBrutes) {
             UnitDefinition unite = unitesExistantes.get(u.id());
             if (unite == null) {
@@ -67,6 +70,7 @@ public class UnitDefinitionService {
             unite.setUnitClass(u.unitClass());
             unite.setCombatType(u.combatType());
             unite.setLegend(u.legend());
+            unite.setConquete(u.categoryId() != null && u.categoryId().contains("conquest_reward_unit"));
             unite.setStatProgressionId(u.statProgressionId());
             String libelle = localizationService.traduire("UNIT_" + u.baseId() + "_NAME");
             if ("AHSOKATANO".equalsIgnoreCase(u.baseId())) {
@@ -139,6 +143,15 @@ public class UnitDefinitionService {
                 }
             }
         }
+
+        unitDefinitionRepository.saveAll(unitesASauver);
+        unitTierDefinitionRepository.saveAll(tiersASauver);
+        unitBaseStatDefinitionRepository.saveAll(baseStatsASauver);
+        unitRelicDefinitionRepository.saveAll(relicsASauver);
+
+     // 👇 Purge des unités non reçues (ex : devenues non-jouables via obtainableTime != "0")
+        unitDefinitionRepository.deleteByIdUnitNotIn(idsUnitsRecus);
+        unitDefinitionRepository.flush();
 
         unitDefinitionRepository.saveAll(unitesASauver);
         unitTierDefinitionRepository.saveAll(tiersASauver);

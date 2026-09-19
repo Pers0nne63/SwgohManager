@@ -14,6 +14,7 @@ public record UnitRaw(
         String statProgressionId,
         List<String> categoryId,
         Integer primaryUnitStat,
+        String obtainableTime,
         List<UnitTierRaw> unitTier,
         StatWrapper baseStat,
         RelicDefinitionRaw relicDefinition

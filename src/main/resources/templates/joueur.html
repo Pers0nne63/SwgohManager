@@ -210,43 +210,72 @@
             
             <!-- REPARTITION RELIQUES JOUEUR -->
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" th:if="${vm.relicRepartition != null}">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="p-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
-                        <i class="bi bi-gem text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Reliques</h3>
-                        <p class="text-[11px] text-slate-500">Répartition par niveau</p>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-3 gap-1.5 text-sm bg-slate-850 p-2.5 rounded-xl border border-slate-700/60 text-center">
-                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-purple-500/30">
-                        <span class="text-purple-300 block text-[10px] font-bold">R10</span>
-                        <b class="text-purple-400 text-xs font-mono" th:text="${vm.relicRepartition.relic10 != null ? vm.relicRepartition.relic10 : 0}">0</b>
-                    </div>
-                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-red-500/30">
-                        <span class="text-red-300 block text-[10px] font-bold">R9</span>
-                        <b class="text-red-400 text-xs font-mono" th:text="${vm.relicRepartition.relic9 != null ? vm.relicRepartition.relic9 : 0}">0</b>
-                    </div>
-                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-amber-500/30">
-                        <span class="text-amber-300 block text-[10px] font-bold">R8</span>
-                        <b class="text-amber-400 text-xs font-mono" th:text="${vm.relicRepartition.relic8 != null ? vm.relicRepartition.relic8 : 0}">0</b>
-                    </div>
-                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-sky-500/30">
-                        <span class="text-sky-300 block text-[10px] font-bold">R6-7</span>
-                        <b class="text-sky-400 text-xs font-mono" th:text="${vm.relicRepartition.relic6Et7 != null ? vm.relicRepartition.relic6Et7 : 0}">0</b>
-                    </div>
-                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-emerald-500/30">
-                        <span class="text-emerald-300 block text-[10px] font-bold">R0-5</span>
-                        <b class="text-emerald-400 text-xs font-mono" th:text="${vm.relicRepartition.relic0A5 != null ? vm.relicRepartition.relic0A5 : 0}">0</b>
-                    </div>
-                    <div class="bg-slate-800/80 p-1.5 rounded-lg border border-slate-600">
-                        <span class="text-slate-400 block text-[10px] font-bold">G1-13</span>
-                        <b class="text-slate-300 text-xs font-mono" th:text="${vm.relicRepartition.sansRelic != null ? vm.relicRepartition.sansRelic : 0}">0</b>
-                    </div>
-                </div>
-            </div>
+			    <div class="flex items-center gap-3 mb-3">
+			        <div class="p-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
+			            <i class="bi bi-gem text-lg"></i>
+			        </div>
+			        <div>
+			            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Unités</h3>
+			            <p class="text-[11px] text-slate-500">Moyenne Relics :
+			                <b class="text-purple-300" th:text="${vm.relicMoyen != null ? #numbers.formatDecimal(vm.relicMoyen, 1, 2) : '-'}">-</b>
+			            </p>
+			        </div>
+			    </div>
+			
+			    <div class="flex h-3 rounded-full overflow-hidden border border-slate-700/60">
+			        <div th:each="seg : ${vm.relicBarSegments}"
+			             th:style="'width:' + ${seg.pourcentage} + '%; background-color:' + ${seg.cssColor}"
+			             th:title="${seg.label} + ' : ' + ${seg.count}"></div>
+			    </div>
+			    <div class="grid grid-cols-6 gap-1 mt-1.5 text-center">
+			        <div th:each="seg : ${vm.relicBarSegments}">
+			            <span class="block text-[8px] font-bold" th:style="'color:' + ${seg.cssColor}" th:text="${seg.label}">R10</span>
+			            <b class="text-[10px] font-mono text-slate-300" th:text="${seg.count}">0</b>
+			        </div>
+			    </div>
+			
+				<div th:if="${vm.legendProgress != null}" class="mt-3 pt-3 border-t border-slate-700/60 flex items-center justify-between">
+				    <span class="text-[11px] text-slate-400 flex items-center gap-1.5"><i class="bi bi-star-fill text-amber-400 text-[10px]"></i> Légendaires</span>
+				    <div class="relative group cursor-pointer">
+				        <b class="text-xs font-mono text-amber-300 hover:text-amber-200 transition-colors" th:text="${vm.legendProgress.possedes} + ' / ' + ${vm.legendProgress.total}">0 / 0</b>
+				
+				        <div class="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-3 shadow-2xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50">
+				            <div class="text-[11px] font-bold text-slate-400 uppercase mb-2 border-b border-slate-700/60 pb-1 flex justify-between items-center">
+				                <span>Légendaires manquantes</span>
+				                <span th:text="${#lists.size(vm.legendProgress.manquants)}">0</span>
+				            </div>
+				            <ul class="space-y-1 text-xs max-h-48 overflow-y-auto pr-1">
+				                <li th:each="nom : ${vm.legendProgress.manquants}" class="flex items-center gap-1.5 py-1 border-b border-slate-800 last:border-0">
+				                    <i class="bi bi-x-circle-fill text-red-400"></i>
+				                    <span th:text="${nom}" class="text-slate-200 truncate">Nom unité</span>
+				                </li>
+				                <li th:if="${#lists.isEmpty(vm.legendProgress.manquants)}" class="text-emerald-400 text-center py-1">Toutes possédées ✓</li>
+				            </ul>
+				        </div>
+				    </div>
+				</div>
+				
+				<div th:if="${vm.conqueteProgress != null}" class="mt-1.5 flex items-center justify-between">
+				    <span class="text-[11px] text-slate-400 flex items-center gap-1.5"><i class="bi bi-trophy-fill text-indigo-400 text-[10px]"></i> Conquête</span>
+				    <div class="relative group cursor-pointer">
+				        <b class="text-xs font-mono text-indigo-300 hover:text-indigo-200 transition-colors" th:text="${vm.conqueteProgress.possedes} + ' / ' + ${vm.conqueteProgress.total}">0 / 0</b>
+				
+				        <div class="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-3 shadow-2xl invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50">
+				            <div class="text-[11px] font-bold text-slate-400 uppercase mb-2 border-b border-slate-700/60 pb-1 flex justify-between items-center">
+				                <span>Conquête manquantes</span>
+				                <span th:text="${#lists.size(vm.conqueteProgress.manquants)}">0</span>
+				            </div>
+				            <ul class="space-y-1 text-xs max-h-48 overflow-y-auto pr-1">
+				                <li th:each="nom : ${vm.conqueteProgress.manquants}" class="flex items-center gap-1.5 py-1 border-b border-slate-800 last:border-0">
+				                    <i class="bi bi-x-circle-fill text-red-400"></i>
+				                    <span th:text="${nom}" class="text-slate-200 truncate">Nom unité</span>
+				                </li>
+				                <li th:if="${#lists.isEmpty(vm.conqueteProgress.manquants)}" class="text-emerald-400 text-center py-1">Toutes possédées ✓</li>
+				            </ul>
+				        </div>
+				    </div>
+				</div>
+			</div>
 
             <!-- MODQ & STATQ -->
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" th:if="${vm.modQ != null}">
@@ -265,56 +294,64 @@
             </div>
 
             <!-- PLAN DE FARM -->
-			<div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" 
-			     th:if="${vm.farmPlan != null or vm.farmPlanInd != null}">
+			<div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between"
+			     th:if="${vm.farmPlan != null or vm.farmPlanInd != null or globalOmicron != null}">
 			    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Plans de farm</h3>
-			    <div class="space-y-3 text-sm">
-			        
-			        <!-- % Global -> plan-farm-detail.html -->
-			        <div th:if="${vm.farmPlan != null}" class="flex justify-between items-center pb-2 border-b border-slate-700/50">
-			            <div>
-			                <span class="text-slate-300 font-medium block">Global</span>
-			                <span class="text-xs text-slate-500" th:text="${vm.farmPlan.atteint()} + ' / ' + ${vm.farmPlan.total()} + ' atteints'">0/0</span>
-			            </div>
-			            <a th:href="@{/joueur/{id}/plan-farm(id=${vm.joueur.playerId})}" 
-			               class="text-xl font-bold text-emerald-400 hover:underline" 
+			    <div class="space-y-2.5 text-sm">
+			
+			        <div th:if="${vm.farmPlan != null}" class="flex justify-between items-center">
+			            <span class="text-slate-300 font-medium">PDF Commun</span>
+			            <a th:href="@{/joueur/{id}/plan-farm(id=${vm.joueur.playerId})}"
+			               class="text-base font-bold text-emerald-400 hover:underline"
 			               th:text="${vm.farmPlan.pourcentage() != null ? #numbers.formatDecimal(vm.farmPlan.pourcentage(), 1, 1) + ' %' : '0 %'}">0 %</a>
 			        </div>
 			
-			        <!-- % Individuel -> plan-farm-ind-detail.html -->
 			        <div th:if="${vm.farmPlanInd != null}" class="flex justify-between items-center">
-			            <div>
-			                <span class="text-slate-300 font-medium block">Individuel</span>
-			                <span class="text-xs text-slate-500" th:text="${vm.farmPlanInd.atteint()} + ' / ' + ${vm.farmPlanInd.total()} + ' atteints'">0/0</span>
-			            </div>
-			            <a th:href="@{/web/plan-farm-ind/joueur/{id}(id=${vm.joueur.playerId})}" 
-			               class="text-xl font-bold text-amber-400 hover:underline" 
+			            <span class="text-slate-300 font-medium">PDF Individuel</span>
+			            <a th:href="@{/web/plan-farm-ind/joueur/{id}(id=${vm.joueur.playerId})}"
+			               class="text-base font-bold text-amber-400 hover:underline"
 			               th:text="${vm.farmPlanInd.pourcentage() != null ? #numbers.formatDecimal(vm.farmPlanInd.pourcentage(), 1, 1) + ' %' : '0 %'}">0 %</a>
 			        </div>
 			
+			        <div th:if="${globalOmicron != null}" class="pt-1">
+			            <div class="flex justify-between items-center">
+			                <span class="text-slate-300 font-medium">PDF Omicrons</span>
+			                <a th:href="@{/joueur/{id}/omicron-tw(id=${vm.joueur.playerId})}"
+			                   class="text-base font-bold text-indigo-400 hover:underline"
+			                   th:text="${globalOmicron.pourcentage != null ? #numbers.formatDecimal(globalOmicron.pourcentage, 1, 1) + ' %' : '0 %'}">0 %</a>
+			            </div>
+			            <div th:if="${progressionOmicron != null and progressionOmicron.parPriorite != null}"
+						     class="text-[10px] text-slate-500 mt-1 flex flex-wrap gap-x-2">
+						    <span th:each="entry, iter : ${progressionOmicron.parPriorite}">
+						        <span th:text="${'P' + entry.key + ' : ' + (entry.value.pourcentage != null ? #numbers.formatDecimal(entry.value.pourcentage, 1, 0) + '%' : '-')}"></span>
+						        <span th:unless="${iter.last}"> /</span>
+						    </span>
+						</div>
+			        </div>
+			
+			        <!-- PDF Datacron -->
+			        <details class="pt-1 border-t border-slate-700/50 mt-1 group">
+					    <summary class="flex justify-between items-center cursor-pointer text-slate-300 font-medium hover:text-indigo-300 list-none">
+					        <span>PDF Datacron</span>
+					        <span class="flex items-center gap-1.5">
+					            <b class="text-base font-bold text-indigo-300"
+					               th:text="${datacronProgress != null ? #numbers.formatDecimal(datacronProgress.pourcentage(), 1, 1) + ' %' : '0 %'}">0 %</b>
+					            <i class="bi bi-chevron-right text-[10px] transition-transform group-open:rotate-90"></i>
+					        </span>
+					    </summary>
+					
+					    <div th:if="${datacronProgress != null}" class="mt-2 pl-2 border-l border-slate-700/60 space-y-1">
+					        <div th:each="set : ${datacronProgress.sets()}" class="flex justify-between text-[11px]">
+					            <span class="text-slate-500" th:text="'SET ' + ${set.setId()}"></span>
+					            <span class="font-mono"
+					                  th:classappend="${set.pourcentage() >= 80} ? 'text-emerald-400' : (${set.pourcentage() >= 50} ? 'text-amber-400' : 'text-red-400')"
+					                  th:text="${set.datacronsAtteints()} + '/' + ${set.datacronsTotal()} + ' (' + ${#numbers.formatDecimal(set.pourcentage(), 1, 0)} + '%)'"></span>
+					        </div>
+					    </div>
+					</details>
+			
 			    </div>
 			</div>
-
-            <!-- OMICRON TW -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col justify-between" id="omicron-tw" th:if="${globalOmicron != null}">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-700 pb-2">Omicron TW</h3>
-                <div class="space-y-2 text-sm">
-                    <p class="flex justify-between items-center">
-                        <span>Global :</span>
-                        <a th:href="@{/joueur/{id}/omicron-tw(id=${vm.joueur.playerId})}" class="text-lg font-bold text-amber-400 hover:underline">
-                            <b th:text="${globalOmicron.pourcentage != null ? #numbers.formatDecimal(globalOmicron.pourcentage, 1, 1) + ' %' : '0 %'}">0 %</b>
-                        </a>
-                    </p>
-                    <div th:if="${progressionOmicron != null and progressionOmicron.parPriorite != null}" class="pt-2 border-t border-slate-700/60 space-y-1">
-                        <div th:each="entry : ${progressionOmicron.parPriorite}" class="flex justify-between text-xs text-slate-400">
-                            <span th:text="'Phase P' + ${entry.key}">Priorité</span>
-                            <a th:href="@{/joueur/{id}/omicron-tw(id=${vm.joueur.playerId})}" class="text-slate-200 hover:text-amber-400">
-                                <b th:text="${entry.value.pourcentage != null ? #numbers.formatDecimal(entry.value.pourcentage, 1, 1) + ' %' : '0 %'}">0 %</b>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- SYNTHÈSE DES 5 DERNIÈRES TB -->

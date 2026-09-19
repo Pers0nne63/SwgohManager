@@ -178,6 +178,7 @@ public class SwgohDataClient {
     private UnitSegmentData extraireUnitsEtRelicTier(InputStream in) throws IOException {
         List<UnitRaw> units = new ArrayList<>();
         List<RelicTierDefinitionRaw> relics = new ArrayList<>();
+        int nbIgnorees = 0;
 
         try (JsonParser parser = objectMapper.getFactory().createParser(in)) {
             if (parser.nextToken() != JsonToken.START_OBJECT) {
@@ -191,7 +192,12 @@ public class SwgohDataClient {
                 switch (champ) {
                     case "units" -> {
                         while (parser.nextToken() != JsonToken.END_ARRAY) {
-                            units.add(objectMapper.readValue(parser, UnitRaw.class));
+                            UnitRaw unit = objectMapper.readValue(parser, UnitRaw.class);
+                            if ("0".equals(unit.obtainableTime())) {
+                                units.add(unit);
+                            } else {
+                                nbIgnorees++;
+                            }
                         }
                     }
                     case "relicTierDefinition" -> {
@@ -204,7 +210,8 @@ public class SwgohDataClient {
             }
         }
 
-        log.info("{} unité(s) et {} relicTierDefinition extraite(s) en streaming", units.size(), relics.size());
+        log.info("{} unité(s) jouable(s) et {} relicTierDefinition extraite(s) en streaming ({} unité(s) non-jouable(s) ignorée(s))",
+                units.size(), relics.size(), nbIgnorees);
         return new UnitSegmentData(units, relics);
     }
     

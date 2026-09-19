@@ -9,6 +9,9 @@
     <script>
         tailwind.config = { darkMode: 'class', theme: { extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } } } }
     </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
@@ -78,6 +81,16 @@
 		            </div>
 		        </div>
 		    </div>
+		    
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+			    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+			        <i class="bi bi-graph-up text-amber-400"></i> Note vs Nb R8+
+			    </h2>
+			    <p class="text-slate-400 text-xs mb-4">Corrélation entre le nombre d'unités R8+ et la note de performance BT.</p>
+			    <div style="height: 320px;">
+			        <canvas id="chart-note-r8"></canvas>
+			    </div>
+			</div>
 		
 		    <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
 		        <div class="p-6 border-b border-slate-700">
@@ -91,7 +104,7 @@
 		                <i class="bi bi-info-circle text-amber-400"></i> Légende — calcul de la note
 		            </p>
 		            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[11px] text-slate-400">
-		                <div>
+		                <!-- div>
 		                    <span class="text-rose-400 font-semibold"><i class="bi bi-crosshair"></i> Combat tenté</span> — points par combat :
 		                    <ul class="list-disc list-inside mt-1 space-y-0.5">
 		                        <li>Round 3 : 0.5 pt</li>
@@ -99,19 +112,19 @@
 		                        <li>Round 5 : 1.5 pt</li>
 		                        <li>Round 6 : 2 pts</li>
 		                    </ul>
-		                </div>
+		                </div-->
 		                <div>
 		                    <span class="text-blue-400 font-semibold"><i class="bi bi-water"></i> Vague réussie</span> — points par vague :
 		                    <ul class="list-disc list-inside mt-1 space-y-0.5">
-		                        <li>Round 3 : 0.75 pt</li>
-		                        <li>Round 4 : 1.5 pt</li>
-		                        <li>Round 5 : 2.25 pts</li>
-		                        <li>Round 6 : 3 pts</li>
+		                        <li>Round 3 : 1 pt</li>
+		                        <li>Round 4 : 2 pt</li>
+		                        <li>Round 5 : 3 pts</li>
+		                        <li>Round 6 : 4 pts</li>
 		                    </ul>
 		                </div>
 		            </div>
 		            <p class="text-slate-500 text-[10px] mt-3 italic">
-		                La note d'un joueur est la moyenne de ses points cumulés (combats + vagues, toutes phases confondues) sur chaque BT où il a des données, divisée par le nombre de BT concernées.
+		                La note d'un joueur est la moyenne de ses points cumulés toutes phases confondues sur chaque BT où il a des données, divisée par le nombre de BT concernées.
 		            </p>
 		        </div>
 		        <div class="overflow-x-auto">
@@ -730,6 +743,72 @@
     </main>
 
     <script th:inline="javascript">
+    
+    /*<![CDATA[*/
+    const initialTab = /*[[${activeTab}]]*/ 'synthese';
+    switchTab(initialTab);
+    /*]]>*/
+    
+    /*<![CDATA[*/
+    var chartPoints = /*[[${syntheseGlobale.pointsGraphique}]]*/ [];
+    /*]]>*/
+
+    var scatterData = chartPoints.map(function(p) {
+        return { x: p.nbR8Plus, y: p.note, playerName: p.playerName };
+    });
+
+    new Chart(document.getElementById('chart-note-r8'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Joueurs',
+                data: scatterData,
+                backgroundColor: 'rgba(251,191,36,0.7)',
+                borderColor: 'rgba(251,191,36,1)',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointHoverBackgroundColor: '#fbbf24'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: { display: true, text: 'Nb unités R8+', color: '#94a3b8' },
+                    ticks: { color: '#94a3b8', precision: 0 },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                },
+                y: {
+                    title: { display: true, text: 'Note', color: '#94a3b8' },
+                    ticks: { color: '#94a3b8' },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#152032',
+                    borderColor: '#fbbf24',
+                    borderWidth: 1,
+                    titleColor: '#fff',
+                    bodyColor: '#cbd5e1',
+                    callbacks: {
+                        title: function(items) {
+                            return items[0].raw.playerName;
+                        },
+                        label: function(ctx) {
+                            return [
+                                'Note : ' + ctx.raw.y.toFixed(2),
+                                'Nb R8+ : ' + ctx.raw.x
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
     let syntheseSortState = { col: 'note', asc: true };
 
     function sortSynthese(col) {
@@ -803,10 +882,7 @@
             }
         }
 
-        /*<![CDATA[*/
-        const initialTab = /*[[${activeTab}]]*/ 'synthese';
-        switchTab(initialTab);
-        /*]]>*/
+
     </script>
 </body>
 </html>

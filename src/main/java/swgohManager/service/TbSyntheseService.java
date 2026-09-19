@@ -1,7 +1,14 @@
 package swgohManager.service;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -20,8 +27,8 @@ public class TbSyntheseService {
 
     private static final int[] ROUNDS = {3, 4, 5, 6};
 
-    private static final Map<Integer, Double> POIDS_COMBAT = Map.of(3, 0.5, 4, 1.0, 5, 1.5, 6, 2.0);
-    private static final Map<Integer, Double> POIDS_VAGUE  = Map.of(3, 0.75, 4, 1.5, 5, 2.25, 6, 3.0);
+    private static final Map<Integer, Double> POIDS_COMBAT = Map.of(3, 0.0, 4, 0.0, 5, 0.0, 6, 0.0);
+    private static final Map<Integer, Double> POIDS_VAGUE  = Map.of(3, 1.0, 4, 2.0, 5, 3.0, 6, 4.0);
 
     private final TbScoreJoueurRepository tbScoreJoueurRepository;
     private final RosterUnitActuelRepository rosterUnitActuelRepository;
@@ -31,7 +38,8 @@ public class TbSyntheseService {
     public record RoundColonne(int roundNum, List<BtCellule> historique) {}
     public record JoueurSynthese(String playerId, String playerName, Double note, long nbR8Plus, List<RoundColonne> rounds) {}
     public record GuildeRoundMoyenne(int roundNum, double moyenneCombats, double moyenneVagues) {}
-    public record SyntheseResult(List<GuildeRoundMoyenne> guilde, List<JoueurSynthese> joueurs) {}
+    public record ChartPoint(String playerName, Double note, long nbR8Plus) {}
+    public record SyntheseResult(List<GuildeRoundMoyenne> guilde, List<JoueurSynthese> joueurs, List<ChartPoint> pointsGraphique) {}
 
     public SyntheseResult calculerSynthese() {
         List<TbSyntheseRoundProjection> lignes = tbScoreJoueurRepository.findSyntheseJoueursDernieresBt();
@@ -120,7 +128,12 @@ public class TbSyntheseService {
             return Double.compare(a.note(), b.note());
         });
 
-        return new SyntheseResult(guilde, joueurs);
+        List<ChartPoint> pointsGraphique = joueurs.stream()
+                .filter(j -> j.note() != null)
+                .map(j -> new ChartPoint(j.playerName(), j.note(), j.nbR8Plus()))
+                .toList();
+
+        return new SyntheseResult(guilde, joueurs, pointsGraphique);
     }
 
     private long nz(Long v) { return v != null ? v : 0L; }

@@ -472,7 +472,30 @@
 		            </th:block> 
 		        </div> 
 		    </div> 
-		
+			<!-- Graphique Combats vs Points de combat -->
+			<div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+			    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+			        <i class="bi bi-graph-up text-amber-400"></i> Combats vs Points de combat
+			    </h2>
+			    <p class="text-slate-400 text-xs mb-4">Un point par joueur : nombre de combats tentés en abscisse, points de combat obtenus en ordonnée.</p>
+			
+			    <div class="flex flex-wrap items-end gap-4 mb-4">
+			        <div>
+			            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Round</label>
+			            <select id="filtreRoundGraph" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500 min-w-[160px]">
+			            </select>
+			        </div>
+			        <div>
+			            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Planète</label>
+			            <select id="filtrePlaneteGraph" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500 min-w-[220px]">
+			            </select>
+			        </div>
+			    </div>
+			
+			    <div style="height: 360px;">
+			        <canvas id="chart-combats-points"></canvas>
+			    </div>
+			</div>
 		    <!-- Accordion par Round -->
 		    <div th:if="${importResultats != null and not #lists.isEmpty(importResultats)}" class="space-y-4">
 		        <details th:each="round : ${importResultats}" class="group bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
@@ -487,56 +510,65 @@
 		            </summary>
 		
 		            <!-- Tableau avec les 6 colonnes (Joueur + 5 Planètes) -->
-		            <div class="overflow-x-auto p-4 bg-slate-900/50">
-		                <table class="w-full text-sm text-slate-300 whitespace-nowrap">
-						    <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
-						        <tr>
-						            <th class="px-4 py-3 text-left sticky left-0 bg-slate-850 z-10 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Joueur</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">LS</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">DS</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Mix</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Zeffo</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Mandalore</th>
-						        </tr>
-						    </thead>
-						    <tbody class="divide-y divide-slate-700/60">
-						        <tr th:each="joueur : ${round.joueurs}" class="hover:bg-slate-800/80 transition-colors">
-						            <!-- Colonne Joueur -->
-						            <td class="px-4 py-3 font-bold text-slate-200 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" th:text="${joueur.playerName}"></td>
-						            
-						            <!-- Colonnes Planètes (LS, DS, Mix, Zeffo, Mandalore) -->
-						            <th:block th:each="planetKey : ${ {'LS', 'DS', 'Mix', 'Zeffo', 'Mandalore'} }">
-						                <td class="px-3 py-2 border-l border-slate-700/50 align-top" th:with="stat=${joueur.planetStats.get(planetKey)}">
-						                    <!-- Affichage si les données existent pour la planète -->
-						                    <div th:if="${stat != null}" class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
-						                        <div class="flex items-center gap-1.5" title="Combats">
-						                            <i class="bi bi-crosshair text-rose-400"></i>
-						                            <span class="font-mono text-slate-200" th:text="${stat.combats}">0</span>
-						                        </div>
-						                        <div class="flex items-center gap-1.5" title="Vagues">
-						                            <i class="bi bi-water text-blue-400"></i>
-						                            <span class="font-mono text-slate-200" th:text="${stat.vagues}">0</span>
-						                        </div>
-						                        <div class="flex items-center gap-1.5" title="PG Déployée">
-						                            <i class="bi bi-shield-fill text-slate-400"></i>
-						                            <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pgDeploye, 0, 'DEFAULT')}">0</span>
-						                        </div>
-						                        <div class="flex items-center gap-1.5" title="Points de combat">
-						                            <i class="bi bi-star-fill text-amber-400"></i>
-						                            <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pointsCombat, 0, 'DEFAULT')}">0</span>
-						                        </div>
-						                    </div>
-						                    
-						                    <!-- Affichage si aucune donnée -->
-						                    <div th:if="${stat == null}" class="text-center text-slate-600 text-xs py-3">
-						                        -
-						                    </div>
-						                </td>
-						            </th:block>
-						        </tr>
-						    </tbody>
-						</table>
-		            </div>
+					<div class="overflow-x-auto p-4 bg-slate-900/50">
+					    <table class="w-full text-sm text-slate-300 whitespace-nowrap">
+					        <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+					            <tr>
+					                <th class="px-4 py-3 text-left sticky left-0 bg-slate-850 z-10 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Joueur</th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">
+					                    DS
+					                    <span class="block text-[9px] text-slate-500 normal-case font-normal" th:text="${round.planetNames.get('DS')}"></span>
+					                </th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Mandalore</th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">
+					                    Mix
+					                    <span class="block text-[9px] text-slate-500 normal-case font-normal" th:text="${round.planetNames.get('Mix')}"></span>
+					                </th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Zeffo</th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">
+					                    LS
+					                    <span class="block text-[9px] text-slate-500 normal-case font-normal" th:text="${round.planetNames.get('LS')}"></span>
+					                </th>
+					            </tr>
+					        </thead>
+					        <tbody class="divide-y divide-slate-700/60">
+					            <tr th:each="joueur : ${round.joueurs}" class="hover:bg-slate-800/80 transition-colors">
+					                <!-- Colonne Joueur -->
+					                <td class="px-4 py-3 font-bold text-slate-200 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" th:text="${joueur.playerName}"></td>
+					
+					                <!-- Colonnes Planètes réordonnées : DS, Mandalore, Mix, Zeffo, LS -->
+					                <th:block th:each="planetKey : ${ {'DS', 'Mandalore', 'Mix', 'Zeffo', 'LS'} }">
+					                    <td class="px-3 py-2 border-l border-slate-700/50 align-top" th:with="stat=${joueur.planetStats.get(planetKey)}">
+					                        <!-- Affichage si les données existent pour la planète -->
+					                        <div th:if="${stat != null}" class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
+					                            <div class="flex items-center gap-1.5" title="Combats">
+					                                <i class="bi bi-crosshair text-rose-400"></i>
+					                                <span class="font-mono text-slate-200" th:text="${stat.combats}">0</span>
+					                            </div>
+					                            <div class="flex items-center gap-1.5" title="Vagues">
+					                                <i class="bi bi-water text-blue-400"></i>
+					                                <span class="font-mono text-slate-200" th:text="${stat.vagues}">0</span>
+					                            </div>
+					                            <div class="flex items-center gap-1.5" title="PG Déployée">
+					                                <i class="bi bi-shield-fill text-slate-400"></i>
+					                                <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pgDeploye, 0, 'DEFAULT')}">0</span>
+					                            </div>
+					                            <div class="flex items-center gap-1.5" title="Points de combat">
+					                                <i class="bi bi-star-fill text-amber-400"></i>
+					                                <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pointsCombat, 0, 'DEFAULT')}">0</span>
+					                            </div>
+					                        </div>
+					
+					                        <!-- Affichage si aucune donnée -->
+					                        <div th:if="${stat == null}" class="text-center text-slate-600 text-xs py-3">
+					                            -
+					                        </div>
+					                    </td>
+					                </th:block>
+					            </tr>
+					        </tbody>
+					    </table>
+					</div>
 		        </details>
 		    </div>
 		
@@ -745,11 +777,6 @@
     <script th:inline="javascript">
     
     /*<![CDATA[*/
-    const initialTab = /*[[${activeTab}]]*/ 'synthese';
-    switchTab(initialTab);
-    /*]]>*/
-    
-    /*<![CDATA[*/
     var chartPoints = /*[[${syntheseGlobale.pointsGraphique}]]*/ [];
     /*]]>*/
 
@@ -757,7 +784,9 @@
         return { x: p.nbR8Plus, y: p.note, playerName: p.playerName };
     });
 
-    new Chart(document.getElementById('chart-note-r8'), {
+    let chartNoteR8 = null;
+
+    chartNoteR8 = new Chart(document.getElementById('chart-note-r8'), {
         type: 'scatter',
         data: {
             datasets: [{
@@ -842,6 +871,179 @@
         rows.forEach(r => tbody.appendChild(r));
         updateSortIconsSynthese();
     }
+    
+    /*<![CDATA[*/
+    var resultatsImportData = /*[[${importResultats}]]*/ [];
+    /*]]>*/
+
+    const zoneOrderGraph = ['DS', 'Mandalore', 'Mix', 'Zeffo', 'LS'];
+    const zonesSansNom = new Set(['Zeffo', 'Mandalore']);
+
+    let chartCombatsPoints = null;
+    let resultatsChartInitialise = false;
+
+    function libellePlanete(round, zone) {
+        if (zonesSansNom.has(zone)) return zone;
+        const nom = round.planetNames ? round.planetNames[zone] : null;
+        return nom ? (zone + ' - ' + nom) : zone;
+    }
+
+    function peuplerFiltreRound() {
+        const selectRound = document.getElementById('filtreRoundGraph');
+        if (!selectRound || resultatsImportData.length === 0) return;
+        selectRound.innerHTML = '';
+        resultatsImportData.forEach(round => {
+            const opt = document.createElement('option');
+            opt.value = round.roundNum;
+            opt.textContent = 'Round ' + round.roundNum;
+            selectRound.appendChild(opt);
+        });
+        selectRound.addEventListener('change', peuplerFiltrePlanete);
+    }
+
+    function peuplerFiltrePlanete() {
+        const selectRound = document.getElementById('filtreRoundGraph');
+        const selectPlanete = document.getElementById('filtrePlaneteGraph');
+        if (!selectRound || !selectPlanete) return;
+
+        const roundNum = parseInt(selectRound.value, 10);
+        const round = resultatsImportData.find(r => r.roundNum === roundNum);
+        selectPlanete.innerHTML = '';
+        if (!round) return;
+
+        const optToutes = document.createElement('option');
+        optToutes.value = 'TOUTES';
+        optToutes.textContent = 'Toutes';
+        selectPlanete.appendChild(optToutes);
+
+        zoneOrderGraph.forEach(zone => {
+            const opt = document.createElement('option');
+            opt.value = zone;
+            opt.textContent = libellePlanete(round, zone);
+            selectPlanete.appendChild(opt);
+        });
+
+        selectPlanete.removeEventListener('change', updateChartCombatsPoints);
+        selectPlanete.addEventListener('change', updateChartCombatsPoints);
+
+        updateChartCombatsPoints();
+    }
+
+    function updateChartCombatsPoints() {
+        const selectRound = document.getElementById('filtreRoundGraph');
+        const selectPlanete = document.getElementById('filtrePlaneteGraph');
+        const canvas = document.getElementById('chart-combats-points');
+        if (!selectRound || !selectPlanete || !canvas) return;
+
+        const roundNum = parseInt(selectRound.value, 10);
+        const zone = selectPlanete.value;
+        const round = resultatsImportData.find(r => r.roundNum === roundNum);
+
+        // Regroupe les joueurs ayant exactement le même (combats, pointsCombat)
+        const pointsMap = new Map();
+        function ajouterPoint(x, y, playerName) {
+            const key = x + '_' + y;
+            if (!pointsMap.has(key)) {
+                pointsMap.set(key, { x, y, playerNames: [] });
+            }
+            pointsMap.get(key).playerNames.push(playerName);
+        }
+
+        if (round) {
+            round.joueurs.forEach(j => {
+                if (zone === 'TOUTES') {
+                    let sommeCombats = 0;
+                    let sommePoints = 0;
+                    let auMoinsUneStat = false;
+                    zoneOrderGraph.forEach(z => {
+                        const stat = j.planetStats ? j.planetStats[z] : null;
+                        if (stat) {
+                            auMoinsUneStat = true;
+                            sommeCombats += stat.combats || 0;
+                            sommePoints += stat.pointsCombat || 0;
+                        }
+                    });
+                    if (auMoinsUneStat) {
+                        ajouterPoint(sommeCombats, sommePoints, j.playerName);
+                    }
+                } else {
+                    const stat = j.planetStats ? j.planetStats[zone] : null;
+                    if (stat) {
+                        ajouterPoint(stat.combats || 0, stat.pointsCombat || 0, j.playerName);
+                    }
+                }
+            });
+        }
+
+        const points = Array.from(pointsMap.values()).map(p => {
+            p.playerNames.sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+            return p;
+        });
+
+        if (chartCombatsPoints) {
+            chartCombatsPoints.data.datasets[0].data = points;
+            chartCombatsPoints.update();
+            return;
+        }
+
+        chartCombatsPoints = new Chart(canvas, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Joueurs',
+                    data: points,
+                    backgroundColor: 'rgba(251,191,36,0.7)',
+                    borderColor: 'rgba(251,191,36,1)',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointHoverBackgroundColor: '#fbbf24'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Combats', color: '#94a3b8' },
+                        ticks: { color: '#94a3b8', precision: 0 },
+                        grid: { color: 'rgba(148,163,184,0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Points de combat', color: '#94a3b8' },
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: 'rgba(148,163,184,0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#152032',
+                        borderColor: '#fbbf24',
+                        borderWidth: 1,
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        callbacks: {
+                            title: function(items) {
+                                const names = items[0].raw.playerNames;
+                                return names.length > 1 ? (names.length + ' joueurs') : names[0];
+                            },
+                            label: function(ctx) {
+                                const lines = [
+                                    'Combats : ' + ctx.raw.x,
+                                    'Points de combat : ' + ctx.raw.y
+                                ];
+                                if (ctx.raw.playerNames.length > 1) {
+                                    lines.push('');
+                                    lines.push(...ctx.raw.playerNames);
+                                }
+                                return lines;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     function updateSortIconsSynthese() {
         ['nom', 'note', 'r8'].forEach(c => {
@@ -857,31 +1059,49 @@
     
     
     function switchTab(tabName) {
-        	const tabs = {
-        		    synthese: { div: document.getElementById('tab-synthese'), btn: document.getElementById('btn-tab-synthese') },
-        		    analyse: { div: document.getElementById('tab-analyse'), btn: document.getElementById('btn-tab-analyse') },
-        		    mission: { div: document.getElementById('tab-mission'), btn: document.getElementById('btn-tab-mission') },
-        		    resultats: { div: document.getElementById('tab-resultats'), btn: document.getElementById('btn-tab-resultats') },
-        		    modeles: { div: document.getElementById('tab-modeles'), btn: document.getElementById('btn-tab-modeles') },
-        		    affectations: { div: document.getElementById('tab-affectations'), btn: document.getElementById('btn-tab-affectations') }
-        		};
-    
-            const activeStyle = ['border-amber-400', 'text-amber-400'];
-            const inactiveStyle = ['border-transparent', 'text-slate-400', 'hover:text-slate-200'];
-    
-            for (const key in tabs) {
-                if (key === tabName) {
-                    tabs[key].div.classList.remove('hidden');
-                    tabs[key].btn.classList.add(...activeStyle);
-                    tabs[key].btn.classList.remove(...inactiveStyle);
-                } else {
-                    tabs[key].div.classList.add('hidden');
-                    tabs[key].btn.classList.remove(...activeStyle);
-                    tabs[key].btn.classList.add(...inactiveStyle);
-                }
+        const tabs = {
+            synthese: { div: document.getElementById('tab-synthese'), btn: document.getElementById('btn-tab-synthese') },
+            analyse: { div: document.getElementById('tab-analyse'), btn: document.getElementById('btn-tab-analyse') },
+            mission: { div: document.getElementById('tab-mission'), btn: document.getElementById('btn-tab-mission') },
+            resultats: { div: document.getElementById('tab-resultats'), btn: document.getElementById('btn-tab-resultats') },
+            modeles: { div: document.getElementById('tab-modeles'), btn: document.getElementById('btn-tab-modeles') },
+            affectations: { div: document.getElementById('tab-affectations'), btn: document.getElementById('btn-tab-affectations') }
+        };
+
+        const activeStyle = ['border-amber-400', 'text-amber-400'];
+        const inactiveStyle = ['border-transparent', 'text-slate-400', 'hover:text-slate-200'];
+
+        for (const key in tabs) {
+            if (key === tabName) {
+                tabs[key].div.classList.remove('hidden');
+                tabs[key].btn.classList.add(...activeStyle);
+                tabs[key].btn.classList.remove(...inactiveStyle);
+            } else {
+                tabs[key].div.classList.add('hidden');
+                tabs[key].btn.classList.remove(...activeStyle);
+                tabs[key].btn.classList.add(...inactiveStyle);
             }
         }
 
+        if (tabName === 'resultats') {
+            if (!resultatsChartInitialise) {
+                peuplerFiltreRound();
+                peuplerFiltrePlanete();
+                resultatsChartInitialise = true;
+            } else if (chartCombatsPoints) {
+                chartCombatsPoints.resize();
+            }
+        }
+
+        if (tabName === 'synthese' && chartNoteR8) {
+            chartNoteR8.resize();
+        }
+    }
+
+    /*<![CDATA[*/
+    const initialTab = /*[[${activeTab}]]*/ 'synthese';
+    /*]]>*/
+    switchTab(initialTab);
 
     </script>
 </body>

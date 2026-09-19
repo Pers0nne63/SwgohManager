@@ -15,13 +15,13 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import swgohManager.controller.dto.TbImportMapStat;
 import swgohManager.controller.dto.TbImportPlayerStat;
-import swgohManager.controller.dto.TbImportStatWrapper;
 import swgohManager.model.TbImportActivite;
 import swgohManager.model.TbImportScoreJoueur;
 import swgohManager.model.TbPlanRound;
@@ -65,23 +65,26 @@ public class TbImportStatService {
         // 4. Récupérer les planètes actives pour ce round
         List<TbPlaneteReference> planetesActives = getPlanetesActives(planRound);
 
-        // 5. Construire les suffixes attendus (_phaseXX_conflictYY[_bonus])
         List<String> suffixesAttendus = planetesActives.stream()
-                .map(this::construireSuffixe)
+                .map(this::construireSuffixeBase)
                 .toList();
 
-        // 6. Lecture du fichier JSON
+        // 6. Lecture du fichier JSON — le fichier est un tableau JSON à la racine
         File file = new File(importDirectory, nomFichier);
-        TbImportStatWrapper root = objectMapper.readValue(file, TbImportStatWrapper.class);
+        List<TbImportMapStat> currentStat = objectMapper.readValue(
+                file, new TypeReference<List<TbImportMapStat>>() {});
 
-        if (root != null && root.getCurrentStat() != null) {
-            
+        if (currentStat != null) {
+
             // 7. Filtrer et enregistrer dans les tables d'import
-            for (TbImportMapStat stat : root.getCurrentStat()) {
-                
-                Optional<TbPlaneteReference> optRef = planetesActives.stream()
-                        .filter(ref -> stat.getMapStatId() != null && stat.getMapStatId().contains(construireSuffixe(ref)))
-                        .findFirst();
+            for (TbImportMapStat stat : currentStat) {
+            	boolean isBonus = estBonus(stat.getMapStatId());
+
+            	Optional<TbPlaneteReference> optRef = planetesActives.stream()
+            	        .filter(ref -> stat.getMapStatId() != null
+            	                && stat.getMapStatId().contains(construireSuffixeBase(ref))
+            	                && Boolean.TRUE.equals(ref.getBonus()) == isBonus)
+            	        .findFirst();
 
                 if (optRef.isPresent()) {
                     TbPlaneteReference planeteRef = optRef.get();
@@ -97,7 +100,7 @@ public class TbImportStatService {
 
                     activite.setPhase(planeteRef.getPhase());
                     activite.setConflict(planeteRef.getConflict());
-                    activite.setBonus(Boolean.TRUE.equals(planeteRef.getBonus()));
+                    activite.setBonus(isBonus);
                     activite.setRoundNum(roundNum);
                     activite.setStatType(extraireStatType(stat.getMapStatId()));
                     activite.setCovertNum(extraireCovertNum(stat.getMapStatId()));
@@ -146,14 +149,6 @@ public class TbImportStatService {
         return planeteReferenceRepository.findAllByPlaneteIdIn(idsActifs);
     }
 
-    private String construireSuffixe(TbPlaneteReference ref) {
-        String suffix = String.format("_phase%02d_conflict%02d", ref.getPhase(), ref.getConflict());
-        if (Boolean.TRUE.equals(ref.getBonus())) {
-            suffix += "_bonus";
-        }
-        return suffix;
-    }
-
     private String extraireStatType(String mapStatId) {
         if (mapStatId == null) return null;
         if (mapStatId.contains("strike_encounter")) return "strike_encounter";
@@ -195,5 +190,13 @@ public class TbImportStatService {
         } catch (IOException e) {
             System.err.println("Erreur lors de la création du dossier d'import : " + e.getMessage());
         }
+    }
+    
+    private String construireSuffixeBase(TbPlaneteReference ref) {
+        return String.format("_phase%02d_conflict%02d", ref.getPhase(), ref.getConflict());
+    }
+
+    private boolean estBonus(String mapStatId) {
+        return mapStatId != null && mapStatId.contains("bonus");
     }
 }

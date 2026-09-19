@@ -336,6 +336,31 @@
 		    </div>
 		</div>
 		
+		<!-- UNITÉS D'ÈRE -->
+		<div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl mb-8" th:if="${vm.eraUnits != null and !vm.eraUnits.isEmpty()}">
+		    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-700 pb-2 flex items-center gap-2">
+		        <i class="bi bi-hourglass-split text-cyan-400"></i> Unités d'Ère
+		    </h3>
+		    <div class="overflow-y-auto max-h-80">
+		        <table class="w-full text-sm text-left">
+		            <thead class="text-slate-500 text-xs uppercase sticky top-0 bg-slate-800">
+		                <tr>
+		                    <th class="px-2 py-2">Unité</th>
+		                    <th class="px-2 py-2 text-center">Étoiles</th>
+		                    <th class="px-2 py-2 text-center">Niveau d'Ère</th>
+		                </tr>
+		            </thead>
+		            <tbody>
+		                <tr th:each="e : ${vm.eraUnits}" class="border-t border-slate-700/50">
+		                    <td class="px-2 py-1.5 text-slate-200" th:text="${e.libelle != null ? e.libelle : e.unitBaseId}">Unité</td>
+		                    <td class="px-2 py-1.5 text-center text-amber-400 font-mono" th:text="${e.rarity != null ? e.rarity + '★' : '-'}">-</td>
+		                    <td class="px-2 py-1.5 text-center font-mono font-bold text-cyan-300" th:text="${e.eraLevel}">0</td>
+		                </tr>
+		            </tbody>
+		        </table>
+		    </div>
+		</div>
+		
 <!-- SECTION ANALYSE DES MODS & STATQ -->
     <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2"> 
         <i class="bi bi-speedometer2 text-amber-400"></i> Analyse des Mods & StatQ

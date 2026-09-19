@@ -29,6 +29,8 @@ import swgohManager.repository.PlayerStatqActuelRepository;
 import swgohManager.repository.RosterUnitActuelRepository;
 import swgohManager.repository.RosterUnitModActuelRepository;
 import swgohManager.repository.UnitDefinitionRepository;
+import swgohManager.controller.dto.PlayerEraUnitProjection;
+import swgohManager.repository.PlayerEraUnitStatusActuelRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +47,8 @@ public class PlayerViewService {
     private final PlayerStatqActuelRepository playerStatqActuelRepository;
     private final RosterUnitActuelRepository rosterUnitActuelRepository; 
     private final FarmPlanIndProgressService farmPlanIndProgressService; 
-    
+    private final PlayerEraUnitStatusActuelRepository playerEraUnitStatusActuelRepository;
+
     private final UnitDefinitionRepository unitDefinitionRepository; // 👈 nouvelle injection
 
     public record RelicBarSegment(String label, String cssColor, long count, double pourcentage) {}
@@ -76,7 +79,8 @@ public class PlayerViewService {
             List<RelicBarSegment> relicBarSegments,
             Double relicMoyen,
             CollectionProgress legendProgress,
-            CollectionProgress conqueteProgress
+            CollectionProgress conqueteProgress,
+            List<PlayerEraUnitProjection> eraUnits
     ) {}
 
     public PlayerViewModel construire(String playerId) {
@@ -172,10 +176,12 @@ public class PlayerViewService {
                 unitDefinitionRepository.findDistinctConqueteBaseIdsAvecLibelle(),
                 rosterUnitActuelRepository.findBaseIdsConquetePossedes(playerId));
 
+        List<PlayerEraUnitProjection> eraUnits =
+                playerEraUnitStatusActuelRepository.findEraUnitsByPlayerId(playerId);
+
         return new PlayerViewModel(joueur, modQ, ratingActuel, historique, labels, datasets, farmPlan, farmPlanInd,
                 farmPlanHistoLabels, farmPlanHistoValues, statQ, relicRepartition, nbMods5, nbMods6,
-                relicBarSegments, relicMoyen, legendProgress, conqueteProgress);
-       
+                relicBarSegments, relicMoyen, legendProgress, conqueteProgress,eraUnits);
     }
 
     private Integer parseRarity(String rarityStr) {
@@ -250,4 +256,6 @@ public class PlayerViewService {
                 .toList();
         return new CollectionProgress(tousLesBaseIds.size() - manquants.size(), tousLesBaseIds.size(), manquants);
     }
+    
+    
 }

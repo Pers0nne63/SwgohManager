@@ -28,6 +28,10 @@
 
        <!-- Navigation par Onglets -->
         <div class="border-b border-slate-700 mb-8 flex gap-6 text-sm font-semibold">
+	        <button id="btn-tab-synthese" onclick="switchTab('synthese')" 
+			    	class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
+			    <i class="bi bi-trophy text-base"></i> Synthèse
+			</button>												
             <button id="btn-tab-analyse" onclick="switchTab('analyse')" 
                     class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
                 <i class="bi bi-graph-up-arrow text-base"></i> Analyse BT
@@ -50,6 +54,118 @@
             </button>
         </div>
 
+		<!-- ONGLET 0 : SYNTHÈSE -->
+		<div id="tab-synthese" class="hidden space-y-6">
+		
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+		        <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+		            <i class="bi bi-people text-amber-400"></i> Moyenne guilde par round (5 dernières BT)
+		        </h2>
+		        <p class="text-slate-400 text-xs mb-4">Nombre moyen de combats tentés et de vagues réussies par joueur, pour chaque round.</p>
+		        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+		            <div th:each="g : ${syntheseGlobale.guilde}" class="bg-slate-850 border border-slate-700/60 rounded-xl p-4 text-center">
+		                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2">Round <span th:text="${g.roundNum}"></span></div>
+		                <div class="flex items-center justify-center gap-1.5 text-sm mb-1">
+		                    <i class="bi bi-crosshair text-rose-400"></i>
+		                    <span class="font-mono text-slate-200" th:text="${#numbers.formatDecimal(g.moyenneCombats, 1, 1)}"></span>
+		                    <span class="text-[10px] text-slate-500">combats</span>
+		                </div>
+		                <div class="flex items-center justify-center gap-1.5 text-sm">
+		                    <i class="bi bi-water text-blue-400"></i>
+		                    <span class="font-mono text-slate-200" th:text="${#numbers.formatDecimal(g.moyenneVagues, 1, 1)}"></span>
+		                    <span class="text-[10px] text-slate-500">vagues</span>
+		                </div>
+		            </div>
+		        </div>
+		    </div>
+		
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+		        <div class="p-6 border-b border-slate-700">
+		            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+		                <i class="bi bi-clipboard-data text-amber-400"></i> Synthèse par joueur (<span th:text="${#lists.size(syntheseGlobale.joueurs)}">0</span>)
+		            </h2>
+		            <p class="text-slate-400 text-xs mt-1">
+		            	Historique par round : les 5 dernières BT, de la plus ancienne (gauche) à la plus récente (droite)</p>
+		        </div> <div class="px-6 py-4 border-t border-slate-700 bg-slate-900/40">
+		            <p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2 flex items-center gap-2">
+		                <i class="bi bi-info-circle text-amber-400"></i> Légende — calcul de la note
+		            </p>
+		            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[11px] text-slate-400">
+		                <div>
+		                    <span class="text-rose-400 font-semibold"><i class="bi bi-crosshair"></i> Combat tenté</span> — points par combat :
+		                    <ul class="list-disc list-inside mt-1 space-y-0.5">
+		                        <li>Round 3 : 0.5 pt</li>
+		                        <li>Round 4 : 1 pt</li>
+		                        <li>Round 5 : 1.5 pt</li>
+		                        <li>Round 6 : 2 pts</li>
+		                    </ul>
+		                </div>
+		                <div>
+		                    <span class="text-blue-400 font-semibold"><i class="bi bi-water"></i> Vague réussie</span> — points par vague :
+		                    <ul class="list-disc list-inside mt-1 space-y-0.5">
+		                        <li>Round 3 : 0.75 pt</li>
+		                        <li>Round 4 : 1.5 pt</li>
+		                        <li>Round 5 : 2.25 pts</li>
+		                        <li>Round 6 : 3 pts</li>
+		                    </ul>
+		                </div>
+		            </div>
+		            <p class="text-slate-500 text-[10px] mt-3 italic">
+		                La note d'un joueur est la moyenne de ses points cumulés (combats + vagues, toutes phases confondues) sur chaque BT où il a des données, divisée par le nombre de BT concernées.
+		            </p>
+		        </div>
+		        <div class="overflow-x-auto">
+		            <table class="w-full text-center text-xs text-slate-300 whitespace-nowrap">
+		                <thead class="bg-slate-850 text-slate-400 uppercase font-semibold border-b border-slate-700">
+						    <tr>
+						        <th class="px-4 py-3 text-left sticky left-0 bg-slate-850 z-10 min-w-[150px] cursor-pointer select-none hover:text-amber-400"
+						            onclick="sortSynthese('nom')">
+						            Joueur <i id="sort-icon-nom" class="bi bi-arrow-down-up text-[9px] text-slate-600"></i>
+						        </th>
+						        <th class="px-3 py-3 min-w-[70px] cursor-pointer select-none hover:text-amber-400" onclick="sortSynthese('note')">
+						            Note <i id="sort-icon-note" class="bi bi-arrow-up text-[9px] text-amber-400"></i>
+						        </th>
+						        <th class="px-3 py-3 min-w-[70px] cursor-pointer select-none hover:text-amber-400" onclick="sortSynthese('r8')">
+						            Nb R8+ <i id="sort-icon-r8" class="bi bi-arrow-down-up text-[9px] text-slate-600"></i>
+						        </th>
+						        <th class="px-3 py-3 min-w-[160px]" th:each="rNum : ${ {3,4,5,6} }" th:text="'Round ' + ${rNum}"></th>
+						    </tr>
+						</thead>
+		                <tbody id="synthese-tbody" class="divide-y divide-slate-700/60">
+						    <tr th:each="j : ${syntheseGlobale.joueurs}"
+						        class="hover:bg-slate-850/50 transition-colors"
+						        th:attr="data-nom=${j.playerName}, data-note=${j.note != null ? j.note : ''}, data-r8=${j.nbR8Plus}">
+						        <td class="px-4 py-2.5 text-left font-bold text-slate-200 sticky left-0 bg-slate-900 z-10" th:text="${j.playerName}"></td>
+						        <td class="px-3 py-2.5">
+						            <span th:if="${j.note != null}" class="font-mono font-bold text-amber-400" th:text="${#numbers.formatDecimal(j.note, 1, 2)}"></span>
+						            <span th:if="${j.note == null}" class="text-slate-600">-</span>
+						        </td>
+						        <td class="px-3 py-2.5 font-mono font-semibold text-emerald-400" th:text="${j.nbR8Plus}"></td>
+						
+						        <td class="px-2 py-2 align-top" th:each="r : ${j.rounds}">
+						            <div class="grid grid-cols-5 gap-0.5 bg-slate-850/60 rounded-lg p-1.5 border border-slate-700/40">
+						                <div th:each="c : ${r.historique}" class="text-center" th:title="${c.endTime != null ? #temporals.format(c.endTime, 'dd/MM/yyyy') : ''}">
+						                    <div class="flex items-center justify-center gap-0.5 text-[10px] text-blue-400">
+						                        <i class="bi bi-water text-[8px]"></i><span th:text="${c.vagues}">0</span>
+						                    </div>
+						                    <div class="flex items-center justify-center gap-0.5 text-[10px] text-rose-400">
+						                        <i class="bi bi-crosshair text-[8px]"></i><span th:text="${c.combats}">0</span>
+						                    </div>
+						                </div>
+						            </div>
+						        </td>
+						    </tr>
+						    <tr th:if="${#lists.isEmpty(syntheseGlobale.joueurs)}">
+						        <td colspan="7" class="px-6 py-8 text-center text-slate-400 italic">
+						            Aucun membre actuel de la guilde.
+						        </td>
+						    </tr>
+						</tbody>
+		            </table>
+		        </div>
+		    </div>
+		
+		</div>
         <!-- ONGLET 1 : ANALYSE BT -->
         <div id="tab-analyse" class="space-y-6">
             <!-- Sélection de la BT -->
@@ -614,8 +730,56 @@
     </main>
 
     <script th:inline="javascript">
-        function switchTab(tabName) {
+    let syntheseSortState = { col: 'note', asc: true };
+
+    function sortSynthese(col) {
+        const tbody = document.getElementById('synthese-tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr[data-nom]'));
+
+        if (syntheseSortState.col === col) {
+            syntheseSortState.asc = !syntheseSortState.asc;
+        } else {
+            syntheseSortState.col = col;
+            syntheseSortState.asc = true;
+        }
+        const dir = syntheseSortState.asc ? 1 : -1;
+
+        rows.sort((r1, r2) => {
+            if (col === 'nom') {
+                return dir * r1.dataset.nom.localeCompare(r2.dataset.nom, 'fr', { sensitivity: 'base' });
+            }
+            const key = col === 'note' ? 'note' : 'r8';
+            const raw1 = r1.dataset[key];
+            const raw2 = r2.dataset[key];
+            const v1 = raw1 === '' ? null : parseFloat(raw1);
+            const v2 = raw2 === '' ? null : parseFloat(raw2);
+            if (v1 === null && v2 === null) return 0;
+            if (v1 === null) return 1;
+            if (v2 === null) return -1;
+            return dir * (v1 - v2);
+        });
+
+        rows.forEach(r => tbody.appendChild(r));
+        updateSortIconsSynthese();
+    }
+
+    function updateSortIconsSynthese() {
+        ['nom', 'note', 'r8'].forEach(c => {
+            const icon = document.getElementById('sort-icon-' + c);
+            if (!icon) return;
+            if (syntheseSortState.col === c) {
+                icon.className = 'bi ' + (syntheseSortState.asc ? 'bi-arrow-up' : 'bi-arrow-down') + ' text-[9px] text-amber-400';
+            } else {
+                icon.className = 'bi bi-arrow-down-up text-[9px] text-slate-600';
+            }
+        });
+    }    
+    
+    
+    function switchTab(tabName) {
         	const tabs = {
+        		    synthese: { div: document.getElementById('tab-synthese'), btn: document.getElementById('btn-tab-synthese') },
         		    analyse: { div: document.getElementById('tab-analyse'), btn: document.getElementById('btn-tab-analyse') },
         		    mission: { div: document.getElementById('tab-mission'), btn: document.getElementById('btn-tab-mission') },
         		    resultats: { div: document.getElementById('tab-resultats'), btn: document.getElementById('btn-tab-resultats') },
@@ -640,7 +804,7 @@
         }
 
         /*<![CDATA[*/
-        const initialTab = /*[[${activeTab}]]*/ 'analyse';
+        const initialTab = /*[[${activeTab}]]*/ 'synthese';
         switchTab(initialTab);
         /*]]>*/
     </script>

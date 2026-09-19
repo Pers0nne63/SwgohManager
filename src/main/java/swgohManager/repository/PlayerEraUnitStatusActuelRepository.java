@@ -5,7 +5,9 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import swgohManager.controller.dto.PlayerEraUnitProjection;
 import swgohManager.model.PlayerEraUnitStatusActuel;
 
 public interface PlayerEraUnitStatusActuelRepository extends JpaRepository<PlayerEraUnitStatusActuel, Long> {
@@ -27,4 +29,19 @@ public interface PlayerEraUnitStatusActuelRepository extends JpaRepository<Playe
         ORDER BY j.player_name
         """, nativeQuery = true)
     List<EraUnitPlayerProjection> findEraUnitsWithRosterData();
+
+    @Query(value = """
+    	    SELECT e.unit_base_id AS unitBaseId,
+    	           u.libelle      AS libelle,
+    	           e.era_level    AS eraLevel,
+    	           r.etoiles      AS rarity
+    	    FROM player_era_unit_status_actuel e
+    	    LEFT JOIN roster_unit_actuel r
+    	           ON r.player_id = e.player_id
+    	          AND SPLIT_PART(r.definition_id, ':', 1) = e.unit_base_id
+    	    LEFT JOIN unit_definition u ON r.definition_id = u.id_unit
+    	    WHERE e.player_id = :playerId
+    	    ORDER BY e.era_level DESC, u.libelle
+    	    """, nativeQuery = true)
+    	List<PlayerEraUnitProjection> findEraUnitsByPlayerId(@Param("playerId") String playerId);
 }

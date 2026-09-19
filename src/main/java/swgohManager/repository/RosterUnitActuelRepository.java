@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
 import swgohManager.controller.dto.RelicJoueurProjection;
+import swgohManager.controller.dto.RelicR8CountProjection;
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
 import swgohManager.controller.dto.RosterIdUnitProjection;
 import swgohManager.model.RosterUnitActuel;
@@ -103,5 +104,13 @@ public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActu
             WHERE ru.player_id = :playerId AND ud.conquete = true
             """, nativeQuery = true)
     List<String> findBaseIdsConquetePossedes(@Param("playerId") String playerId);
+    
+    @Query(value = """
+            SELECT ru.player_id AS "playerId", COUNT(*) AS "nbR8Plus"
+            FROM roster_unit_actuel ru
+            WHERE ru.relic >= 8
+            GROUP BY ru.player_id
+            """, nativeQuery = true)
+    List<RelicR8CountProjection> countUnitesR8PlusParJoueur();
 
 }

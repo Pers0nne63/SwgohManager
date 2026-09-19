@@ -17,9 +17,10 @@ import lombok.RequiredArgsConstructor;
 import swgohManager.model.TerritoryBattle;
 import swgohManager.repository.TerritoryBattleRepository;
 import swgohManager.service.TbAnalyseService;
+import swgohManager.service.TbImportResultatService;
 import swgohManager.service.TbMissionSpecialeService;
 import swgohManager.service.TbPlanService;
-import swgohManager.service.TbImportResultatService;
+import swgohManager.service.TbSyntheseService;
 
 @Controller
 @RequestMapping("/tb-plan")
@@ -31,12 +32,15 @@ public class TbPlanWebController {
     private final TbAnalyseService tbAnalyseService;
     private final TbMissionSpecialeService tbMissionSpecialeService;
     private final TbImportResultatService tbResultatService;
+    private final TbSyntheseService tbSyntheseService;
+
 
     @GetMapping
     public String page(@RequestParam(defaultValue = "analyse") String tab,
             @RequestParam(required = false) Long tbId,
             @RequestParam(required = false) Long msTbId,
             @RequestParam(required = false) String msMission,
+            @RequestParam(defaultValue = "synthese") String tabdefault,
             Model model) {
         model.addAttribute("plans", tbPlanService.getAllPlansAvecRounds());
         model.addAttribute("libellesPlanetes", tbPlanService.getLibellesPlanetes());
@@ -58,7 +62,8 @@ public class TbPlanWebController {
             model.addAttribute("syntheseRounds", tbAnalyseService.calculerSyntheseRounds(analyseJoueurs));
             model.addAttribute("importResultats", tbResultatService.getResultatsImportForTb(tbId));
         }
-
+        
+        model.addAttribute("syntheseGlobale", tbSyntheseService.calculerSynthese());
         model.addAttribute("missionsSpeciales", TbMissionSpecialeService.MissionSpeciale.values());
         model.addAttribute("msTbIdSelectionnee", msTbId);
         model.addAttribute("msMissionSelectionnee", msMission);

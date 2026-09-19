@@ -12,6 +12,7 @@ import swgohManager.controller.dto.TbMissionJoueurStatsProjection;
 import swgohManager.controller.dto.TbParticipantProjection;
 import swgohManager.controller.dto.TbRoundPlayerStatsProjection;
 import swgohManager.controller.dto.TbRoundStatsProjection;
+import swgohManager.controller.dto.TbSyntheseRoundProjection;
 import swgohManager.model.TbActivite;
 import swgohManager.model.TbScoreJoueur;
 
@@ -182,5 +183,23 @@ public interface TbScoreJoueurRepository extends JpaRepository<TbScoreJoueur, Lo
             WHERE ta.territory_battle_id = :tbId
             """, nativeQuery = true)
     List<TbParticipantProjection> findParticipantsTb(@Param("tbId") Long tbId);
+    
+    @Query(value = """
+            SELECT
+                ta.territory_battle_id AS "territoryBattleId",
+                tb.end_time AS "endTime",
+                ta.round_num AS "roundNum",
+                tsj.player_id AS "playerId",
+                SUM(CASE WHEN ta.stat_type = 'strike_attempt' THEN tsj.score ELSE 0 END) AS "combats",
+                SUM(CASE WHEN ta.stat_type = 'strike_encounter' THEN tsj.score ELSE 0 END) AS "vagues"
+            FROM tb_score_joueur tsj
+            JOIN tb_activite ta ON ta.id = tsj.tb_activite_id
+            JOIN territory_battle tb ON tb.id = ta.territory_battle_id
+            WHERE ta.round_num IN (3, 4, 5, 6)
+              AND tb.id IN (SELECT id FROM territory_battle ORDER BY end_time DESC LIMIT 5)
+            GROUP BY ta.territory_battle_id, tb.end_time, ta.round_num, tsj.player_id
+            ORDER BY tb.end_time ASC, ta.round_num ASC
+            """, nativeQuery = true)
+    List<TbSyntheseRoundProjection> findSyntheseJoueursDernieresBt();
     
 }

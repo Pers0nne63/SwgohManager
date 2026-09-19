@@ -430,6 +430,29 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- TABLEAU UNITÉS D'ÈRE -->
+		<h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2" th:if="${vm.eraUnits != null and !vm.eraUnits.isEmpty()}">
+		    <i class="bi bi-hourglass-split text-cyan-400"></i> Unités d'Ère
+		</h2>
+		<div class="table-container" th:if="${vm.eraUnits != null and !vm.eraUnits.isEmpty()}">
+		    <table>
+		        <thead>
+		            <tr>
+		                <th>Unité</th>
+		                <th>Étoiles</th>
+		                <th>Niveau d'Ère</th>
+		            </tr>
+		        </thead>
+		        <tbody>
+		            <tr th:each="e : ${vm.eraUnits}">
+		                <td th:text="${e.libelle != null ? e.libelle : e.unitBaseId}"></td>
+		                <td th:text="${e.rarity != null ? e.rarity + '★' : '-'}"></td>
+		                <td th:text="${e.eraLevel}"></td>
+		            </tr>
+		        </tbody>
+		    </table>
+		</div>
 
         <!-- SECTION GRAPHIQUES : ÉVOLUTION -->
         <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">

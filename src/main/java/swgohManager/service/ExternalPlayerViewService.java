@@ -29,6 +29,8 @@ import swgohManager.repository.ExternalPlayerTbScoreRepository;
 import swgohManager.repository.ExternalRosterUnitActuelRepository;
 import swgohManager.repository.ExternalRosterUnitModActuelRepository;
 import swgohManager.repository.UnitDefinitionRepository;
+import swgohManager.controller.dto.ExternalEraUnitProjection;
+import swgohManager.repository.ExternalPlayerEraUnitStatusActuelRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +53,8 @@ public class ExternalPlayerViewService {
     private final ExternalPlayerStatqActuelRepository externalPlayerStatqActuelRepository;
     private final ExternalPlayerStatqDetailActuelRepository externalPlayerStatqDetailActuelRepository;
     private final UnitDefinitionRepository unitDefinitionRepository;
+    private final ExternalPlayerEraUnitStatusActuelRepository externalPlayerEraUnitStatusActuelRepository;
+
 
     public record ModSpeedDataset(String label, String backgroundColor, List<Long> data) {}
     public record RelicBarSegment(String label, String cssColor, long count, double pourcentage) {}
@@ -76,7 +80,9 @@ public class ExternalPlayerViewService {
             DatacronProgressService.UnJoueurDatacronProgress datacronComparison, 
             ExternalPlayerRaid raid,
             ExternalTbStatsService.TbSynthese tbSynthese,
-            ExternalTbStatsService.MsStats tbMsStats 
+            ExternalTbStatsService.MsStats tbMsStats,
+            List<ExternalEraUnitProjection> eraUnits
+
     ) {}
 
     public ExternalPlayerViewModel construire(String playerId) {
@@ -155,13 +161,17 @@ public class ExternalPlayerViewService {
         CollectionProgress conqueteProgress = construireCollectionProgress(
                 unitDefinitionRepository.findDistinctConqueteBaseIdsAvecLibelle(),
                 externalRosterUnitActuelRepository.findBaseIdsConquetePossedes(playerId));
+        
+        List<ExternalEraUnitProjection> eraUnits =
+                externalPlayerEraUnitStatusActuelRepository.findEraUnitsByPlayerId(playerId);
+
 
         return new ExternalPlayerViewModel(
                 joueur, rating, modQ, statQ, statQDetails,
                 labels, datasets, nbMods5, nbMods6,
                 relicRepartition, relicBarSegments, relicMoyen, legendProgress, conqueteProgress,
                 farmPlan, omicronComparison, datacronComparison,
-                raid, tbSynthese, tbMsStats
+                raid, tbSynthese, tbMsStats, eraUnits
                 );
     }
     

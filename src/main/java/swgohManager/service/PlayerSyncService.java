@@ -114,7 +114,7 @@ public class PlayerSyncService {
         // --- NOUVEAU : Intégration des calculs Objectifs et STATQ au niveau du joueur ---
         // (À adapter si la méthode prend idSync ou la liste des unités en paramètre dans ton service)
         rosterUnitStatObjectifService.calculerEtEnregistrer(response.playerId());
-        statqCalculService.calculerEtEnregistrer(response.playerId());
+        //statqCalculService.calculerEtEnregistrer(response.playerId());
         // ---------------------------------------------------------------------------------
 
         String message = String.format("Joueur %s (%s) : skillRating=%s, ligue=%s, division=%s | %s",

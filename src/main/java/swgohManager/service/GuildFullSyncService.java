@@ -31,6 +31,7 @@ public class GuildFullSyncService {
     private final GuildBilanService guildBilanService;
     private final GuildBilanActuelRepository guildBilanActuelRepository;
     private final GuildSyncReferentialService guildSyncReferentialService;
+    private final StatqCalculService statqCalculService;
 
     // Services à nettoyer après la synchronisation
     private final RosterUnitService rosterUnitService;
@@ -90,6 +91,14 @@ public class GuildFullSyncService {
             } else {
                 echecs.add(outcome.playerId());
             }
+        }
+        
+        // Calcul StatQ pour toute la guilde, une fois tous les rosters synchronisés
+        if (withProgress) progressService.notifyProgress("guild", 95, "StatQ", "Calcul du StatQ de guilde...");
+        try {
+            statqCalculService.calculerPourTousLesJoueurs();
+        } catch (Exception e) {
+            log.error("Échec du calcul StatQ de guilde : {}", e.getMessage(), e);
         }
 
         // Nettoyage global des données des anciens joueurs

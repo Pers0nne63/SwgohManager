@@ -9,6 +9,9 @@
     <script>
         tailwind.config = { darkMode: 'class', theme: { extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } } } }
     </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
@@ -28,6 +31,10 @@
 
        <!-- Navigation par Onglets -->
         <div class="border-b border-slate-700 mb-8 flex gap-6 text-sm font-semibold">
+	        <button id="btn-tab-synthese" onclick="switchTab('synthese')" 
+			    	class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
+			    <i class="bi bi-trophy text-base"></i> Synthèse
+			</button>												
             <button id="btn-tab-analyse" onclick="switchTab('analyse')" 
                     class="pb-3 flex items-center gap-2 border-b-2 transition-colors focus:outline-none">
                 <i class="bi bi-graph-up-arrow text-base"></i> Analyse BT
@@ -50,6 +57,128 @@
             </button>
         </div>
 
+		<!-- ONGLET 0 : SYNTHÈSE -->
+		<div id="tab-synthese" class="hidden space-y-6">
+		
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+		        <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+		            <i class="bi bi-people text-amber-400"></i> Moyenne guilde par round (5 dernières BT)
+		        </h2>
+		        <p class="text-slate-400 text-xs mb-4">Nombre moyen de combats tentés et de vagues réussies par joueur, pour chaque round.</p>
+		        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+		            <div th:each="g : ${syntheseGlobale.guilde}" class="bg-slate-850 border border-slate-700/60 rounded-xl p-4 text-center">
+		                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2">Round <span th:text="${g.roundNum}"></span></div>
+		                <div class="flex items-center justify-center gap-1.5 text-sm mb-1">
+		                    <i class="bi bi-crosshair text-rose-400"></i>
+		                    <span class="font-mono text-slate-200" th:text="${#numbers.formatDecimal(g.moyenneCombats, 1, 1)}"></span>
+		                    <span class="text-[10px] text-slate-500">combats</span>
+		                </div>
+		                <div class="flex items-center justify-center gap-1.5 text-sm">
+		                    <i class="bi bi-water text-blue-400"></i>
+		                    <span class="font-mono text-slate-200" th:text="${#numbers.formatDecimal(g.moyenneVagues, 1, 1)}"></span>
+		                    <span class="text-[10px] text-slate-500">vagues</span>
+		                </div>
+		            </div>
+		        </div>
+		    </div>
+		    
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+			    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+			        <i class="bi bi-graph-up text-amber-400"></i> Note vs Nb R8+
+			    </h2>
+			    <p class="text-slate-400 text-xs mb-4">Corrélation entre le nombre d'unités R8+ et la note de performance BT.</p>
+			    <div style="height: 320px;">
+			        <canvas id="chart-note-r8"></canvas>
+			    </div>
+			</div>
+		
+		    <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+		        <div class="p-6 border-b border-slate-700">
+		            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+		                <i class="bi bi-clipboard-data text-amber-400"></i> Synthèse par joueur (<span th:text="${#lists.size(syntheseGlobale.joueurs)}">0</span>)
+		            </h2>
+		            <p class="text-slate-400 text-xs mt-1">
+		            	Historique par round : les 5 dernières BT, de la plus ancienne (gauche) à la plus récente (droite)</p>
+		        </div> <div class="px-6 py-4 border-t border-slate-700 bg-slate-900/40">
+		            <p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2 flex items-center gap-2">
+		                <i class="bi bi-info-circle text-amber-400"></i> Légende — calcul de la note
+		            </p>
+		            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[11px] text-slate-400">
+		                <!-- div>
+		                    <span class="text-rose-400 font-semibold"><i class="bi bi-crosshair"></i> Combat tenté</span> — points par combat :
+		                    <ul class="list-disc list-inside mt-1 space-y-0.5">
+		                        <li>Round 3 : 0.5 pt</li>
+		                        <li>Round 4 : 1 pt</li>
+		                        <li>Round 5 : 1.5 pt</li>
+		                        <li>Round 6 : 2 pts</li>
+		                    </ul>
+		                </div-->
+		                <div>
+		                    <span class="text-blue-400 font-semibold"><i class="bi bi-water"></i> Vague réussie</span> — points par vague :
+		                    <ul class="list-disc list-inside mt-1 space-y-0.5">
+		                        <li>Round 3 : 1 pt</li>
+		                        <li>Round 4 : 2 pt</li>
+		                        <li>Round 5 : 3 pts</li>
+		                        <li>Round 6 : 4 pts</li>
+		                    </ul>
+		                </div>
+		            </div>
+		            <p class="text-slate-500 text-[10px] mt-3 italic">
+		                La note d'un joueur est la moyenne de ses points cumulés toutes phases confondues sur chaque BT où il a des données, divisée par le nombre de BT concernées.
+		            </p>
+		        </div>
+		        <div class="overflow-x-auto">
+		            <table class="w-full text-center text-xs text-slate-300 whitespace-nowrap">
+		                <thead class="bg-slate-850 text-slate-400 uppercase font-semibold border-b border-slate-700">
+						    <tr>
+						        <th class="px-4 py-3 text-left sticky left-0 bg-slate-850 z-10 min-w-[150px] cursor-pointer select-none hover:text-amber-400"
+						            onclick="sortSynthese('nom')">
+						            Joueur <i id="sort-icon-nom" class="bi bi-arrow-down-up text-[9px] text-slate-600"></i>
+						        </th>
+						        <th class="px-3 py-3 min-w-[70px] cursor-pointer select-none hover:text-amber-400" onclick="sortSynthese('note')">
+						            Note <i id="sort-icon-note" class="bi bi-arrow-up text-[9px] text-amber-400"></i>
+						        </th>
+						        <th class="px-3 py-3 min-w-[70px] cursor-pointer select-none hover:text-amber-400" onclick="sortSynthese('r8')">
+						            Nb R8+ <i id="sort-icon-r8" class="bi bi-arrow-down-up text-[9px] text-slate-600"></i>
+						        </th>
+						        <th class="px-3 py-3 min-w-[160px]" th:each="rNum : ${ {3,4,5,6} }" th:text="'Round ' + ${rNum}"></th>
+						    </tr>
+						</thead>
+		                <tbody id="synthese-tbody" class="divide-y divide-slate-700/60">
+						    <tr th:each="j : ${syntheseGlobale.joueurs}"
+						        class="hover:bg-slate-850/50 transition-colors"
+						        th:attr="data-nom=${j.playerName}, data-note=${j.note != null ? j.note : ''}, data-r8=${j.nbR8Plus}">
+						        <td class="px-4 py-2.5 text-left font-bold text-slate-200 sticky left-0 bg-slate-900 z-10" th:text="${j.playerName}"></td>
+						        <td class="px-3 py-2.5">
+						            <span th:if="${j.note != null}" class="font-mono font-bold text-amber-400" th:text="${#numbers.formatDecimal(j.note, 1, 2)}"></span>
+						            <span th:if="${j.note == null}" class="text-slate-600">-</span>
+						        </td>
+						        <td class="px-3 py-2.5 font-mono font-semibold text-emerald-400" th:text="${j.nbR8Plus}"></td>
+						
+						        <td class="px-2 py-2 align-top" th:each="r : ${j.rounds}">
+						            <div class="grid grid-cols-5 gap-0.5 bg-slate-850/60 rounded-lg p-1.5 border border-slate-700/40">
+						                <div th:each="c : ${r.historique}" class="text-center" th:title="${c.endTime != null ? #temporals.format(c.endTime, 'dd/MM/yyyy') : ''}">
+						                    <div class="flex items-center justify-center gap-0.5 text-[10px] text-blue-400">
+						                        <i class="bi bi-water text-[8px]"></i><span th:text="${c.vagues}">0</span>
+						                    </div>
+						                    <div class="flex items-center justify-center gap-0.5 text-[10px] text-rose-400">
+						                        <i class="bi bi-crosshair text-[8px]"></i><span th:text="${c.combats}">0</span>
+						                    </div>
+						                </div>
+						            </div>
+						        </td>
+						    </tr>
+						    <tr th:if="${#lists.isEmpty(syntheseGlobale.joueurs)}">
+						        <td colspan="7" class="px-6 py-8 text-center text-slate-400 italic">
+						            Aucun membre actuel de la guilde.
+						        </td>
+						    </tr>
+						</tbody>
+		            </table>
+		        </div>
+		    </div>
+		
+		</div>
         <!-- ONGLET 1 : ANALYSE BT -->
         <div id="tab-analyse" class="space-y-6">
             <!-- Sélection de la BT -->
@@ -343,7 +472,30 @@
 		            </th:block> 
 		        </div> 
 		    </div> 
-		
+			<!-- Graphique Combats vs Points de combat -->
+			<div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+			    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+			        <i class="bi bi-graph-up text-amber-400"></i> Combats vs Points de combat
+			    </h2>
+			    <p class="text-slate-400 text-xs mb-4">Un point par joueur : nombre de combats tentés en abscisse, points de combat obtenus en ordonnée.</p>
+			
+			    <div class="flex flex-wrap items-end gap-4 mb-4">
+			        <div>
+			            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Round</label>
+			            <select id="filtreRoundGraph" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500 min-w-[160px]">
+			            </select>
+			        </div>
+			        <div>
+			            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Planète</label>
+			            <select id="filtrePlaneteGraph" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-amber-500 min-w-[220px]">
+			            </select>
+			        </div>
+			    </div>
+			
+			    <div style="height: 360px;">
+			        <canvas id="chart-combats-points"></canvas>
+			    </div>
+			</div>
 		    <!-- Accordion par Round -->
 		    <div th:if="${importResultats != null and not #lists.isEmpty(importResultats)}" class="space-y-4">
 		        <details th:each="round : ${importResultats}" class="group bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
@@ -358,56 +510,65 @@
 		            </summary>
 		
 		            <!-- Tableau avec les 6 colonnes (Joueur + 5 Planètes) -->
-		            <div class="overflow-x-auto p-4 bg-slate-900/50">
-		                <table class="w-full text-sm text-slate-300 whitespace-nowrap">
-						    <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
-						        <tr>
-						            <th class="px-4 py-3 text-left sticky left-0 bg-slate-850 z-10 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Joueur</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">LS</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">DS</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Mix</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Zeffo</th>
-						            <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Mandalore</th>
-						        </tr>
-						    </thead>
-						    <tbody class="divide-y divide-slate-700/60">
-						        <tr th:each="joueur : ${round.joueurs}" class="hover:bg-slate-800/80 transition-colors">
-						            <!-- Colonne Joueur -->
-						            <td class="px-4 py-3 font-bold text-slate-200 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" th:text="${joueur.playerName}"></td>
-						            
-						            <!-- Colonnes Planètes (LS, DS, Mix, Zeffo, Mandalore) -->
-						            <th:block th:each="planetKey : ${ {'LS', 'DS', 'Mix', 'Zeffo', 'Mandalore'} }">
-						                <td class="px-3 py-2 border-l border-slate-700/50 align-top" th:with="stat=${joueur.planetStats.get(planetKey)}">
-						                    <!-- Affichage si les données existent pour la planète -->
-						                    <div th:if="${stat != null}" class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
-						                        <div class="flex items-center gap-1.5" title="Combats">
-						                            <i class="bi bi-crosshair text-rose-400"></i>
-						                            <span class="font-mono text-slate-200" th:text="${stat.combats}">0</span>
-						                        </div>
-						                        <div class="flex items-center gap-1.5" title="Vagues">
-						                            <i class="bi bi-water text-blue-400"></i>
-						                            <span class="font-mono text-slate-200" th:text="${stat.vagues}">0</span>
-						                        </div>
-						                        <div class="flex items-center gap-1.5" title="PG Déployée">
-						                            <i class="bi bi-shield-fill text-slate-400"></i>
-						                            <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pgDeploye, 0, 'DEFAULT')}">0</span>
-						                        </div>
-						                        <div class="flex items-center gap-1.5" title="Points de combat">
-						                            <i class="bi bi-star-fill text-amber-400"></i>
-						                            <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pointsCombat, 0, 'DEFAULT')}">0</span>
-						                        </div>
-						                    </div>
-						                    
-						                    <!-- Affichage si aucune donnée -->
-						                    <div th:if="${stat == null}" class="text-center text-slate-600 text-xs py-3">
-						                        -
-						                    </div>
-						                </td>
-						            </th:block>
-						        </tr>
-						    </tbody>
-						</table>
-		            </div>
+					<div class="overflow-x-auto p-4 bg-slate-900/50">
+					    <table class="w-full text-sm text-slate-300 whitespace-nowrap">
+					        <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+					            <tr>
+					                <th class="px-4 py-3 text-left sticky left-0 bg-slate-850 z-10 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]">Joueur</th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">
+					                    DS
+					                    <span class="block text-[9px] text-slate-500 normal-case font-normal" th:text="${round.planetNames.get('DS')}"></span>
+					                </th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Mandalore</th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">
+					                    Mix
+					                    <span class="block text-[9px] text-slate-500 normal-case font-normal" th:text="${round.planetNames.get('Mix')}"></span>
+					                </th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">Zeffo</th>
+					                <th class="px-4 py-3 text-center border-l border-slate-700/50 min-w-[170px]">
+					                    LS
+					                    <span class="block text-[9px] text-slate-500 normal-case font-normal" th:text="${round.planetNames.get('LS')}"></span>
+					                </th>
+					            </tr>
+					        </thead>
+					        <tbody class="divide-y divide-slate-700/60">
+					            <tr th:each="joueur : ${round.joueurs}" class="hover:bg-slate-800/80 transition-colors">
+					                <!-- Colonne Joueur -->
+					                <td class="px-4 py-3 font-bold text-slate-200 sticky left-0 bg-slate-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.3)]" th:text="${joueur.playerName}"></td>
+					
+					                <!-- Colonnes Planètes réordonnées : DS, Mandalore, Mix, Zeffo, LS -->
+					                <th:block th:each="planetKey : ${ {'DS', 'Mandalore', 'Mix', 'Zeffo', 'LS'} }">
+					                    <td class="px-3 py-2 border-l border-slate-700/50 align-top" th:with="stat=${joueur.planetStats.get(planetKey)}">
+					                        <!-- Affichage si les données existent pour la planète -->
+					                        <div th:if="${stat != null}" class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
+					                            <div class="flex items-center gap-1.5" title="Combats">
+					                                <i class="bi bi-crosshair text-rose-400"></i>
+					                                <span class="font-mono text-slate-200" th:text="${stat.combats}">0</span>
+					                            </div>
+					                            <div class="flex items-center gap-1.5" title="Vagues">
+					                                <i class="bi bi-water text-blue-400"></i>
+					                                <span class="font-mono text-slate-200" th:text="${stat.vagues}">0</span>
+					                            </div>
+					                            <div class="flex items-center gap-1.5" title="PG Déployée">
+					                                <i class="bi bi-shield-fill text-slate-400"></i>
+					                                <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pgDeploye, 0, 'DEFAULT')}">0</span>
+					                            </div>
+					                            <div class="flex items-center gap-1.5" title="Points de combat">
+					                                <i class="bi bi-star-fill text-amber-400"></i>
+					                                <span class="font-mono text-slate-200" th:text="${#numbers.formatInteger(stat.pointsCombat, 0, 'DEFAULT')}">0</span>
+					                            </div>
+					                        </div>
+					
+					                        <!-- Affichage si aucune donnée -->
+					                        <div th:if="${stat == null}" class="text-center text-slate-600 text-xs py-3">
+					                            -
+					                        </div>
+					                    </td>
+					                </th:block>
+					            </tr>
+					        </tbody>
+					    </table>
+					</div>
 		        </details>
 		    </div>
 		
@@ -614,35 +775,334 @@
     </main>
 
     <script th:inline="javascript">
-        function switchTab(tabName) {
-        	const tabs = {
-        		    analyse: { div: document.getElementById('tab-analyse'), btn: document.getElementById('btn-tab-analyse') },
-        		    mission: { div: document.getElementById('tab-mission'), btn: document.getElementById('btn-tab-mission') },
-        		    resultats: { div: document.getElementById('tab-resultats'), btn: document.getElementById('btn-tab-resultats') },
-        		    modeles: { div: document.getElementById('tab-modeles'), btn: document.getElementById('btn-tab-modeles') },
-        		    affectations: { div: document.getElementById('tab-affectations'), btn: document.getElementById('btn-tab-affectations') }
-        		};
     
-            const activeStyle = ['border-amber-400', 'text-amber-400'];
-            const inactiveStyle = ['border-transparent', 'text-slate-400', 'hover:text-slate-200'];
-    
-            for (const key in tabs) {
-                if (key === tabName) {
-                    tabs[key].div.classList.remove('hidden');
-                    tabs[key].btn.classList.add(...activeStyle);
-                    tabs[key].btn.classList.remove(...inactiveStyle);
-                } else {
-                    tabs[key].div.classList.add('hidden');
-                    tabs[key].btn.classList.remove(...activeStyle);
-                    tabs[key].btn.classList.add(...inactiveStyle);
+    /*<![CDATA[*/
+    var chartPoints = /*[[${syntheseGlobale.pointsGraphique}]]*/ [];
+    /*]]>*/
+
+    var scatterData = chartPoints.map(function(p) {
+        return { x: p.nbR8Plus, y: p.note, playerName: p.playerName };
+    });
+
+    let chartNoteR8 = null;
+
+    chartNoteR8 = new Chart(document.getElementById('chart-note-r8'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Joueurs',
+                data: scatterData,
+                backgroundColor: 'rgba(251,191,36,0.7)',
+                borderColor: 'rgba(251,191,36,1)',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointHoverBackgroundColor: '#fbbf24'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: { display: true, text: 'Nb unités R8+', color: '#94a3b8' },
+                    ticks: { color: '#94a3b8', precision: 0 },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                },
+                y: {
+                    title: { display: true, text: 'Note', color: '#94a3b8' },
+                    ticks: { color: '#94a3b8' },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#152032',
+                    borderColor: '#fbbf24',
+                    borderWidth: 1,
+                    titleColor: '#fff',
+                    bodyColor: '#cbd5e1',
+                    callbacks: {
+                        title: function(items) {
+                            return items[0].raw.playerName;
+                        },
+                        label: function(ctx) {
+                            return [
+                                'Note : ' + ctx.raw.y.toFixed(2),
+                                'Nb R8+ : ' + ctx.raw.x
+                            ];
+                        }
+                    }
                 }
             }
         }
+    });
+    
+    let syntheseSortState = { col: 'note', asc: true };
 
-        /*<![CDATA[*/
-        const initialTab = /*[[${activeTab}]]*/ 'analyse';
-        switchTab(initialTab);
-        /*]]>*/
+    function sortSynthese(col) {
+        const tbody = document.getElementById('synthese-tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr[data-nom]'));
+
+        if (syntheseSortState.col === col) {
+            syntheseSortState.asc = !syntheseSortState.asc;
+        } else {
+            syntheseSortState.col = col;
+            syntheseSortState.asc = true;
+        }
+        const dir = syntheseSortState.asc ? 1 : -1;
+
+        rows.sort((r1, r2) => {
+            if (col === 'nom') {
+                return dir * r1.dataset.nom.localeCompare(r2.dataset.nom, 'fr', { sensitivity: 'base' });
+            }
+            const key = col === 'note' ? 'note' : 'r8';
+            const raw1 = r1.dataset[key];
+            const raw2 = r2.dataset[key];
+            const v1 = raw1 === '' ? null : parseFloat(raw1);
+            const v2 = raw2 === '' ? null : parseFloat(raw2);
+            if (v1 === null && v2 === null) return 0;
+            if (v1 === null) return 1;
+            if (v2 === null) return -1;
+            return dir * (v1 - v2);
+        });
+
+        rows.forEach(r => tbody.appendChild(r));
+        updateSortIconsSynthese();
+    }
+    
+    /*<![CDATA[*/
+    var resultatsImportData = /*[[${importResultats}]]*/ [];
+    /*]]>*/
+
+    const zoneOrderGraph = ['DS', 'Mandalore', 'Mix', 'Zeffo', 'LS'];
+    const zonesSansNom = new Set(['Zeffo', 'Mandalore']);
+
+    let chartCombatsPoints = null;
+    let resultatsChartInitialise = false;
+
+    function libellePlanete(round, zone) {
+        if (zonesSansNom.has(zone)) return zone;
+        const nom = round.planetNames ? round.planetNames[zone] : null;
+        return nom ? (zone + ' - ' + nom) : zone;
+    }
+
+    function peuplerFiltreRound() {
+        const selectRound = document.getElementById('filtreRoundGraph');
+        if (!selectRound || resultatsImportData.length === 0) return;
+        selectRound.innerHTML = '';
+        resultatsImportData.forEach(round => {
+            const opt = document.createElement('option');
+            opt.value = round.roundNum;
+            opt.textContent = 'Round ' + round.roundNum;
+            selectRound.appendChild(opt);
+        });
+        selectRound.addEventListener('change', peuplerFiltrePlanete);
+    }
+
+    function peuplerFiltrePlanete() {
+        const selectRound = document.getElementById('filtreRoundGraph');
+        const selectPlanete = document.getElementById('filtrePlaneteGraph');
+        if (!selectRound || !selectPlanete) return;
+
+        const roundNum = parseInt(selectRound.value, 10);
+        const round = resultatsImportData.find(r => r.roundNum === roundNum);
+        selectPlanete.innerHTML = '';
+        if (!round) return;
+
+        const optToutes = document.createElement('option');
+        optToutes.value = 'TOUTES';
+        optToutes.textContent = 'Toutes';
+        selectPlanete.appendChild(optToutes);
+
+        zoneOrderGraph.forEach(zone => {
+            const opt = document.createElement('option');
+            opt.value = zone;
+            opt.textContent = libellePlanete(round, zone);
+            selectPlanete.appendChild(opt);
+        });
+
+        selectPlanete.removeEventListener('change', updateChartCombatsPoints);
+        selectPlanete.addEventListener('change', updateChartCombatsPoints);
+
+        updateChartCombatsPoints();
+    }
+
+    function updateChartCombatsPoints() {
+        const selectRound = document.getElementById('filtreRoundGraph');
+        const selectPlanete = document.getElementById('filtrePlaneteGraph');
+        const canvas = document.getElementById('chart-combats-points');
+        if (!selectRound || !selectPlanete || !canvas) return;
+
+        const roundNum = parseInt(selectRound.value, 10);
+        const zone = selectPlanete.value;
+        const round = resultatsImportData.find(r => r.roundNum === roundNum);
+
+        // Regroupe les joueurs ayant exactement le même (combats, pointsCombat)
+        const pointsMap = new Map();
+        function ajouterPoint(x, y, playerName) {
+            const key = x + '_' + y;
+            if (!pointsMap.has(key)) {
+                pointsMap.set(key, { x, y, playerNames: [] });
+            }
+            pointsMap.get(key).playerNames.push(playerName);
+        }
+
+        if (round) {
+            round.joueurs.forEach(j => {
+                if (zone === 'TOUTES') {
+                    let sommeCombats = 0;
+                    let sommePoints = 0;
+                    let auMoinsUneStat = false;
+                    zoneOrderGraph.forEach(z => {
+                        const stat = j.planetStats ? j.planetStats[z] : null;
+                        if (stat) {
+                            auMoinsUneStat = true;
+                            sommeCombats += stat.combats || 0;
+                            sommePoints += stat.pointsCombat || 0;
+                        }
+                    });
+                    if (auMoinsUneStat) {
+                        ajouterPoint(sommeCombats, sommePoints, j.playerName);
+                    }
+                } else {
+                    const stat = j.planetStats ? j.planetStats[zone] : null;
+                    if (stat) {
+                        ajouterPoint(stat.combats || 0, stat.pointsCombat || 0, j.playerName);
+                    }
+                }
+            });
+        }
+
+        const points = Array.from(pointsMap.values()).map(p => {
+            p.playerNames.sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+            return p;
+        });
+
+        if (chartCombatsPoints) {
+            chartCombatsPoints.data.datasets[0].data = points;
+            chartCombatsPoints.update();
+            return;
+        }
+
+        chartCombatsPoints = new Chart(canvas, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Joueurs',
+                    data: points,
+                    backgroundColor: 'rgba(251,191,36,0.7)',
+                    borderColor: 'rgba(251,191,36,1)',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointHoverBackgroundColor: '#fbbf24'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Combats', color: '#94a3b8' },
+                        ticks: { color: '#94a3b8', precision: 0 },
+                        grid: { color: 'rgba(148,163,184,0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Points de combat', color: '#94a3b8' },
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: 'rgba(148,163,184,0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#152032',
+                        borderColor: '#fbbf24',
+                        borderWidth: 1,
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        callbacks: {
+                            title: function(items) {
+                                const names = items[0].raw.playerNames;
+                                return names.length > 1 ? (names.length + ' joueurs') : names[0];
+                            },
+                            label: function(ctx) {
+                                const lines = [
+                                    'Combats : ' + ctx.raw.x,
+                                    'Points de combat : ' + ctx.raw.y
+                                ];
+                                if (ctx.raw.playerNames.length > 1) {
+                                    lines.push('');
+                                    lines.push(...ctx.raw.playerNames);
+                                }
+                                return lines;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateSortIconsSynthese() {
+        ['nom', 'note', 'r8'].forEach(c => {
+            const icon = document.getElementById('sort-icon-' + c);
+            if (!icon) return;
+            if (syntheseSortState.col === c) {
+                icon.className = 'bi ' + (syntheseSortState.asc ? 'bi-arrow-up' : 'bi-arrow-down') + ' text-[9px] text-amber-400';
+            } else {
+                icon.className = 'bi bi-arrow-down-up text-[9px] text-slate-600';
+            }
+        });
+    }    
+    
+    
+    function switchTab(tabName) {
+        const tabs = {
+            synthese: { div: document.getElementById('tab-synthese'), btn: document.getElementById('btn-tab-synthese') },
+            analyse: { div: document.getElementById('tab-analyse'), btn: document.getElementById('btn-tab-analyse') },
+            mission: { div: document.getElementById('tab-mission'), btn: document.getElementById('btn-tab-mission') },
+            resultats: { div: document.getElementById('tab-resultats'), btn: document.getElementById('btn-tab-resultats') },
+            modeles: { div: document.getElementById('tab-modeles'), btn: document.getElementById('btn-tab-modeles') },
+            affectations: { div: document.getElementById('tab-affectations'), btn: document.getElementById('btn-tab-affectations') }
+        };
+
+        const activeStyle = ['border-amber-400', 'text-amber-400'];
+        const inactiveStyle = ['border-transparent', 'text-slate-400', 'hover:text-slate-200'];
+
+        for (const key in tabs) {
+            if (key === tabName) {
+                tabs[key].div.classList.remove('hidden');
+                tabs[key].btn.classList.add(...activeStyle);
+                tabs[key].btn.classList.remove(...inactiveStyle);
+            } else {
+                tabs[key].div.classList.add('hidden');
+                tabs[key].btn.classList.remove(...activeStyle);
+                tabs[key].btn.classList.add(...inactiveStyle);
+            }
+        }
+
+        if (tabName === 'resultats') {
+            if (!resultatsChartInitialise) {
+                peuplerFiltreRound();
+                peuplerFiltrePlanete();
+                resultatsChartInitialise = true;
+            } else if (chartCombatsPoints) {
+                chartCombatsPoints.resize();
+            }
+        }
+
+        if (tabName === 'synthese' && chartNoteR8) {
+            chartNoteR8.resize();
+        }
+    }
+
+    /*<![CDATA[*/
+    const initialTab = /*[[${activeTab}]]*/ 'synthese';
+    /*]]>*/
+    switchTab(initialTab);
+
     </script>
 </body>
 </html>

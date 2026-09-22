@@ -15,6 +15,7 @@ import swgohManager.model.RaidHistorique;
 import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.RaidHistoriqueRepository;
 import swgohManager.repository.TbScoreJoueurRepository;
+import swgohManager.service.DatacronProgressService;
 import swgohManager.service.OmicronPlanProgressService;
 import swgohManager.service.PlayerDatacronViewService;
 import swgohManager.service.PlayerViewService;
@@ -32,32 +33,33 @@ public class PlayerWebController {
     private final JoueurRepository joueurRepository;
     private final OmicronPlanProgressService omicronPlanProgressService;
     private final PlayerDatacronViewService playerDatacronViewService; 
+    private final DatacronProgressService datacronProgressService;
 
     
     @GetMapping("/joueur/{playerId}")
     public String joueur(@PathVariable String playerId, Model model) {
-        // 1. Vue principale du joueur (Skill Rating, ModQ, Plan de farm)
         model.addAttribute("vm", playerViewService.construire(playerId));
-        
-        // 2. Liste déroulante des joueurs actifs
+
         model.addAttribute("joueurs", joueurRepository.findAllByPresentInGuildTrue().stream()
                 .sorted(Comparator.comparing(Joueur::getPlayerName, String.CASE_INSENSITIVE_ORDER))
                 .toList());
-        
-        // 3. Graphique des 10 derniers raids
+
         List<RaidHistorique> raids = raidHistoriqueRepository.findTop10ByPlayerIdOrderByEndTimeAsc(playerId);
         model.addAttribute("raidHistorique", raids);
 
-        // 4. Synthèse des 5 dernières Territory Battles (alimente la table ${tbSynthese})
         model.addAttribute("tbSynthese", tbStatsService.getSyntheseTb(playerId));
 
-        // 5. Missions Spéciales des 5 dernières BT (alimente la table ${tbMsStats})
         List<TbMSStatsProjection> msStats = tbScoreJoueurRepository.findPlayerTbMSStats(playerId);
         model.addAttribute("tbMsStats", msStats);
 
-        // 6. Progression Omicron TW (P1 à P4 + Global)
         model.addAttribute("progressionOmicron", omicronPlanProgressService.getProgression(playerId, Portee.GUILDE));
-        model.addAttribute("globalOmicron", omicronPlanProgressService.getGlobalProgression(playerId,Portee.GUILDE));
+        model.addAttribute("globalOmicron", omicronPlanProgressService.getGlobalProgression(playerId, Portee.GUILDE));
+
+        Joueur joueurCourant = joueurRepository.findByPlayerId(playerId).orElse(null);
+        if (joueurCourant != null) {
+            model.addAttribute("datacronProgress",
+                    datacronProgressService.construireProgressionJoueur(playerId, joueurCourant.getPlayerName()));
+        }
 
         return "joueur";
     }

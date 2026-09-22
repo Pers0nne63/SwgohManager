@@ -1,12 +1,15 @@
 package swgohManager.service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
+import swgohManager.controller.dto.BaseIdLibelleProjection;
 import swgohManager.controller.dto.GuildeRelicRepartitionProjection;
 import swgohManager.controller.dto.StatQTeamProjection;
 import swgohManager.model.ExternalPlayer;
@@ -25,6 +28,9 @@ import swgohManager.repository.ExternalPlayerStatqDetailActuelRepository;
 import swgohManager.repository.ExternalPlayerTbScoreRepository;
 import swgohManager.repository.ExternalRosterUnitActuelRepository;
 import swgohManager.repository.ExternalRosterUnitModActuelRepository;
+import swgohManager.repository.UnitDefinitionRepository;
+import swgohManager.controller.dto.ExternalEraUnitProjection;
+import swgohManager.repository.ExternalPlayerEraUnitStatusActuelRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -46,9 +52,14 @@ public class ExternalPlayerViewService {
     private final ExternalTbStatsService externalTbStatsService;
     private final ExternalPlayerStatqActuelRepository externalPlayerStatqActuelRepository;
     private final ExternalPlayerStatqDetailActuelRepository externalPlayerStatqDetailActuelRepository;
+    private final UnitDefinitionRepository unitDefinitionRepository;
+    private final ExternalPlayerEraUnitStatusActuelRepository externalPlayerEraUnitStatusActuelRepository;
+
 
     public record ModSpeedDataset(String label, String backgroundColor, List<Long> data) {}
-
+    public record RelicBarSegment(String label, String cssColor, long count, double pourcentage) {}
+    public record CollectionProgress(int possedes, int total, List<String> manquants) {}
+    
     public record ExternalPlayerViewModel(
             ExternalPlayer joueur,
             ExternalPlayerRatingActuel rating,
@@ -60,12 +71,18 @@ public class ExternalPlayerViewService {
             Long nbMods5,
             Long nbMods6,
             GuildeRelicRepartitionProjection relicRepartition,
+            List<RelicBarSegment> relicBarSegments,
+            Double relicMoyen,
+            CollectionProgress legendProgress,
+            CollectionProgress conqueteProgress,   
             FarmPlanProgressService.PlayerFarmProgress farmPlan,
             ExternalOmicronComparisonService.ExternalOmicronProgress omicronComparison,
             DatacronProgressService.UnJoueurDatacronProgress datacronComparison, 
             ExternalPlayerRaid raid,
             ExternalTbStatsService.TbSynthese tbSynthese,
-            ExternalTbStatsService.MsStats tbMsStats 
+            ExternalTbStatsService.MsStats tbMsStats,
+            List<ExternalEraUnitProjection> eraUnits
+
     ) {}
 
     public ExternalPlayerViewModel construire(String playerId) {
@@ -134,24 +151,61 @@ public class ExternalPlayerViewService {
         List<StatQTeamProjection> statQDetails = externalPlayerStatqDetailActuelRepository
                 .findStatQbyTeambyPlayerId(playerId);
 
+        List<RelicBarSegment> relicBarSegments = construireRelicBarSegments(relicRepartition);
+        Double relicMoyen = externalRosterUnitActuelRepository.findRelicMoyenJoueur(playerId);
+
+        CollectionProgress legendProgress = construireCollectionProgress(
+                unitDefinitionRepository.findDistinctLegendBaseIdsAvecLibelle(),
+                externalRosterUnitActuelRepository.findBaseIdsLegendPossedes(playerId));
+
+        CollectionProgress conqueteProgress = construireCollectionProgress(
+                unitDefinitionRepository.findDistinctConqueteBaseIdsAvecLibelle(),
+                externalRosterUnitActuelRepository.findBaseIdsConquetePossedes(playerId));
+        
+        List<ExternalEraUnitProjection> eraUnits =
+                externalPlayerEraUnitStatusActuelRepository.findEraUnitsByPlayerId(playerId);
+
+
         return new ExternalPlayerViewModel(
-                joueur,
-                rating,
-                modQ,
-                statQ,
-                statQDetails,
-                labels, 
-                datasets, 
-                nbMods5, 
-                nbMods6,
-                relicRepartition, 
-                farmPlan, 
-                omicronComparison, 
-                datacronComparison, 
-                raid, 
-                tbSynthese, 
-                tbMsStats
+                joueur, rating, modQ, statQ, statQDetails,
+                labels, datasets, nbMods5, nbMods6,
+                relicRepartition, relicBarSegments, relicMoyen, legendProgress, conqueteProgress,
+                farmPlan, omicronComparison, datacronComparison,
+                raid, tbSynthese, tbMsStats, eraUnits
+                );
+    }
+    
+    private List<RelicBarSegment> construireRelicBarSegments(GuildeRelicRepartitionProjection r) {
+        if (r == null) return List.of();
+        long relic10 = nvl(r.getRelic10());
+        long relic9 = nvl(r.getRelic9());
+        long relic8 = nvl(r.getRelic8());
+        long relic67 = nvl(r.getRelic6Et7());
+        long relic05 = nvl(r.getRelic0A5());
+        long sansRelic = nvl(r.getSansRelic());
+        long total = relic10 + relic9 + relic8 + relic67 + relic05 + sansRelic;
+
+        return List.of(
+            new RelicBarSegment("R10", "#a855f7", relic10, pct(relic10, total)),
+            new RelicBarSegment("R9", "#ef4444", relic9, pct(relic9, total)),
+            new RelicBarSegment("R8", "#f59e0b", relic8, pct(relic8, total)),
+            new RelicBarSegment("R6-7", "#0ea5e9", relic67, pct(relic67, total)),
+            new RelicBarSegment("R0-5", "#10b981", relic05, pct(relic05, total)),
+            new RelicBarSegment("G1-13", "#64748b", sansRelic, pct(sansRelic, total))
         );
+    }
+
+    private long nvl(Long v) { return v != null ? v : 0L; }
+    private double pct(long part, long total) { return total > 0 ? part * 100.0 / total : 0.0; }
+
+    private CollectionProgress construireCollectionProgress(List<BaseIdLibelleProjection> tousLesBaseIds, List<String> baseIdsPossedes) {
+        Set<String> possedesSet = new HashSet<>(baseIdsPossedes);
+        List<String> manquants = tousLesBaseIds.stream()
+                .filter(p -> !possedesSet.contains(p.getBaseId()))
+                .map(BaseIdLibelleProjection::getLibelle)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+        return new CollectionProgress(tousLesBaseIds.size() - manquants.size(), tousLesBaseIds.size(), manquants);
     }
 
     private Integer parseRarity(String rarityStr) {

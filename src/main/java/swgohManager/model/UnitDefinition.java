@@ -28,6 +28,7 @@ public class UnitDefinition {
     private Integer unitClass;
     private Integer combatType;
     private Boolean legend;
+    private Boolean conquete;
     private String statProgressionId;
     private String role;
     private String primaryStat;

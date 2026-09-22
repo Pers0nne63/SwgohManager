@@ -63,4 +63,27 @@ public interface ExternalRosterUnitActuelRepository extends JpaRepository<Extern
             """, nativeQuery = true)
     GuildeRelicRepartitionProjection findRepartitionRelicsByGuildId(@Param("guild_id") String guildId);
     
+    @Query(value = """
+            SELECT AVG(ru.relic)
+            FROM external_roster_unit_actuel ru
+            WHERE ru.player_id = :playerId AND ru.relic >= 0
+            """, nativeQuery = true)
+    Double findRelicMoyenJoueur(@Param("playerId") String playerId);
+
+    @Query(value = """
+            SELECT DISTINCT ud.base_id
+            FROM external_roster_unit_actuel ru
+            JOIN unit_definition ud ON ud.id_unit = ru.definition_id
+            WHERE ru.player_id = :playerId AND ud.legend = true
+            """, nativeQuery = true)
+    List<String> findBaseIdsLegendPossedes(@Param("playerId") String playerId);
+
+    @Query(value = """
+            SELECT DISTINCT ud.base_id
+            FROM external_roster_unit_actuel ru
+            JOIN unit_definition ud ON ud.id_unit = ru.definition_id
+            WHERE ru.player_id = :playerId AND ud.conquete = true
+            """, nativeQuery = true)
+    List<String> findBaseIdsConquetePossedes(@Param("playerId") String playerId);
+    
 }

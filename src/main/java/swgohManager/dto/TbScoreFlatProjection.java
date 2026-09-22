@@ -7,4 +7,7 @@ public interface TbScoreFlatProjection {
     Integer getRoundNum();
     String getStatType();
     Long getScore();
+    Integer getPhase();
+    Integer getConflict();
+    Boolean getBonus();
 }

@@ -24,18 +24,24 @@ public class TbImportResultatService {
 
     private final TbImportScoreJoueurRepository tbImportScoreJoueurRepository;
 
+    // Identifie de façon unique une "planète" (phase/conflict/bonus) indépendamment du round
+    private record PlaneteKey(Integer phase, Integer conflict, Boolean bonus) {}
+
     public List<RoundImportDTO> getResultatsImportForTb(Long tbId) {
-        
+
         List<TbScoreFlatProjection> rows = tbImportScoreJoueurRepository.findScoresByTbIdNative(tbId);
         if (rows.isEmpty()) return Collections.emptyList();
 
         // Structure : Map<RoundNum, Map<PlayerName, Map<Zone, PlanetStatDTO>>>
         Map<Integer, Map<String, Map<String, PlanetStatDTO>>> aggr = new TreeMap<>();
-        
+
         // Noms des planètes par round : Map<RoundNum, Map<Zone, NomPlanete>>
         Map<Integer, Map<String, String>> roundPlanetNames = new TreeMap<>();
 
-     // 1. Première passe : Accumulation des données brutes
+        // Identité phase/conflict/bonus par round et par zone : Map<RoundNum, Map<Zone, PlaneteKey>>
+        Map<Integer, Map<String, PlaneteKey>> roundZonePlanete = new TreeMap<>();
+
+        // 1. Première passe : Accumulation des données brutes
         for (TbScoreFlatProjection row : rows) {
             Integer round = row.getRoundNum();
             if (round == null) continue;
@@ -53,12 +59,17 @@ public class TbImportResultatService {
                 continue;
             }
 
+            // Mémoriser la clé phase/conflict/bonus pour ce (round, zone)
+            roundZonePlanete.putIfAbsent(round, new HashMap<>());
+            roundZonePlanete.get(round).putIfAbsent(zone,
+                    new PlaneteKey(row.getPhase(), row.getConflict(), row.getBonus()));
+
             String type = row.getStatType();
             Long val = row.getScore() != null ? row.getScore() : 0L;
 
             aggr.putIfAbsent(round, new HashMap<>());
             aggr.get(round).putIfAbsent(playerName, new HashMap<>());
-            
+
             aggr.get(round).get(playerName).putIfAbsent(zone, PlanetStatDTO.builder()
                     .combats(0)
                     .vagues(0)
@@ -83,33 +94,41 @@ public class TbImportResultatService {
             }
         }
 
-        // 2. Seconde passe : Calcul des points de combat (summary(R) - power(R) - summary(R-1))
+        // 2. Seconde passe : Calcul des points de combat
+        //    - Si la planète (phase/conflict/bonus) du round est la MÊME qu'au round précédent :
+        //          pointsCombat = summary(R) - power(R) - summary(R-1)
+        //    - Sinon (nouvelle planète sur ce round) :
+        //          pointsCombat = summary(R) - power(R)
         for (Integer roundNum : aggr.keySet()) {
             Map<String, Map<String, PlanetStatDTO>> joueursDuRound = aggr.get(roundNum);
-            
+
             for (Map.Entry<String, Map<String, PlanetStatDTO>> entryJoueur : joueursDuRound.entrySet()) {
                 String player = entryJoueur.getKey();
-                
+
                 for (Map.Entry<String, PlanetStatDTO> entryZone : entryJoueur.getValue().entrySet()) {
                     String zone = entryZone.getKey();
                     PlanetStatDTO stats = entryZone.getValue();
 
                     Long summaryActuel = stats.getRawSummary() != null ? stats.getRawSummary() : 0L;
                     Long powerActuel = stats.getPgDeploye() != null ? stats.getPgDeploye() : 0L;
-                    
-                    // Recherche du summary au round précédent (R-1)
+
+                    PlaneteKey planeteActuelle = roundZonePlanete.getOrDefault(roundNum, Map.of()).get(zone);
+                    PlaneteKey planetePrecedente = roundZonePlanete.getOrDefault(roundNum - 1, Map.of()).get(zone);
+
+                    boolean memePlanete = planeteActuelle != null && planeteActuelle.equals(planetePrecedente);
+
                     Long summaryPrecedent = 0L;
-                    if (aggr.containsKey(roundNum - 1) 
-                            && aggr.get(roundNum - 1).containsKey(player) 
+                    if (memePlanete
+                            && aggr.containsKey(roundNum - 1)
+                            && aggr.get(roundNum - 1).containsKey(player)
                             && aggr.get(roundNum - 1).get(player).containsKey(zone)) {
-                        
+
                         PlanetStatDTO statsPrecedentes = aggr.get(roundNum - 1).get(player).get(zone);
                         if (statsPrecedentes.getRawSummary() != null) {
                             summaryPrecedent = statsPrecedentes.getRawSummary();
                         }
                     }
 
-                    // Calcul final
                     Long ptsCombat = summaryActuel - powerActuel - summaryPrecedent;
                     stats.setPointsCombat(ptsCombat);
                 }
@@ -140,5 +159,4 @@ public class TbImportResultatService {
 
         return result;
     }
-    
 }

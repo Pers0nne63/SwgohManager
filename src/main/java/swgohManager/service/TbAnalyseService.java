@@ -56,7 +56,9 @@ public class TbAnalyseService {
                 ? calculerMaxParRound(tb.getPlanId())
                 : Map.of();
 
-        Map<String, String> nomJoueurs = joueurRepository.findAllByPresentInGuildTrue().stream()
+        //Map<String, String> nomJoueurs = joueurRepository.findAllByPresentInGuildTrue().stream()
+        		Map<String, String> nomJoueurs = joueurRepository.findAll().stream()
+        				
                 .collect(Collectors.toMap(Joueur::getPlayerId, Joueur::getPlayerName));
 
         Map<String, List<RoundDetail>> parJoueur = new LinkedHashMap<>();

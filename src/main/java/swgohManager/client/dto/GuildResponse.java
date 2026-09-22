@@ -4,9 +4,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import swgohManager.client.dto.GuildResponse.GuildProfile;
-import swgohManager.client.dto.GuildResponse.RecentRaidResult;
-import swgohManager.client.dto.GuildResponse.TerritoryBattleResult;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record GuildResponse(Guild guild) {

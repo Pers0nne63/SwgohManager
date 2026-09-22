@@ -65,10 +65,6 @@ public class TbImportStatService {
         // 4. Récupérer les planètes actives pour ce round
         List<TbPlaneteReference> planetesActives = getPlanetesActives(planRound);
 
-        // 5. Construire les suffixes attendus (_phaseXX_conflictYY[_bonus])
-        List<String> suffixesAttendus = planetesActives.stream()
-                .map(this::construireSuffixe)
-                .toList();
 
         // 6. Lecture du fichier JSON
         File file = new File(importDirectory, nomFichier);

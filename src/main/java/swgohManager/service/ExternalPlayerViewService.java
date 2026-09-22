@@ -14,7 +14,6 @@ import swgohManager.model.ExternalPlayerModQActuel;
 import swgohManager.model.ExternalPlayerRaid;
 import swgohManager.model.ExternalPlayerRatingActuel;
 import swgohManager.model.ExternalPlayerStatqActuel;
-import swgohManager.model.ExternalPlayerStatqDetailActuel;
 import swgohManager.model.ExternalPlayerTbScore;
 import swgohManager.model.ExternalRosterUnitModActuel;
 import swgohManager.repository.ExternalPlayerModQActuelRepository;

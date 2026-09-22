@@ -17,11 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import swgohManager.model.GuildComparisonResult;
 import swgohManager.repository.GuildComparisonResultRepository;
-import swgohManager.service.GuildComparisonViewService.GuildeInfo;
-import swgohManager.service.GuildComparisonViewService.MetricRow;
-import swgohManager.service.GuildComparisonViewService.RelicTier;
-import swgohManager.service.GuildComparisonViewService.StatqTeamRow;
-import swgohManager.service.GuildComparisonViewService.TwAnalyse;
 
 @Service
 @RequiredArgsConstructor

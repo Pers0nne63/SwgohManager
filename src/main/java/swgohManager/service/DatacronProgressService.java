@@ -24,8 +24,6 @@ import swgohManager.repository.PlanFarmDatacronMecaniqueRepository;
 import swgohManager.repository.PlanFarmDatacronRepository;
 import swgohManager.repository.PlanFarmDatacronStatRepository;
 import swgohManager.repository.PlayerDatacronAffixActuelRepository;
-import swgohManager.service.DatacronProgressService.JoueurDatacronCible;
-import swgohManager.service.DatacronProgressService.JoueurSetProgress;
 
 @Service
 @RequiredArgsConstructor

@@ -98,7 +98,7 @@ public class GuildFullSyncService {
         try {
             statqCalculService.calculerPourTousLesJoueurs();
         } catch (Exception e) {
-            log.error("Échec du calcul StatQ de guilde : {}", e.getMessage(), e);
+            log.error("Échec du calcul du StatQ de guilde : {}", e.getMessage(), e);
         }
 
         // Nettoyage global des données des anciens joueurs

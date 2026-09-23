@@ -1,6 +1,7 @@
 package swgohManager.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +69,17 @@ public class GuildOverviewService {
             Long pgInscriteNous, Long pgInscriteAdversaire,
             boolean victoire
     ) {}
+    
+    public record ActiviteLigneVM(
+            String libelle,
+            boolean nouvelleUnite,
+            Integer etoilesAvant, Integer etoilesApres,
+            Integer gearAvant, Integer gearApres,
+            Integer relicAvant, Integer relicApres) {}
+
+    public record ActiviteJoueurVM(String playerName, List<ActiviteLigneVM> lignes) {}
+
+    public record ActiviteJourVM(LocalDate jour, List<ActiviteJoueurVM> joueurs) {}
 
     public List<PlayerRow> getJoueurs() {
         List<Joueur> joueurs = joueurRepository.findAllByPresentInGuildTrue();

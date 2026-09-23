@@ -7,6 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import lombok.RequiredArgsConstructor;
 import swgohManager.controller.dto.TbMSStatsProjection;
@@ -15,6 +16,7 @@ import swgohManager.model.RaidHistorique;
 import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.RaidHistoriqueRepository;
 import swgohManager.repository.TbScoreJoueurRepository;
+import swgohManager.service.ActiviteRosterService;
 import swgohManager.service.DatacronProgressService;
 import swgohManager.service.OmicronPlanProgressService;
 import swgohManager.service.PlayerDatacronViewService;
@@ -34,10 +36,14 @@ public class PlayerWebController {
     private final OmicronPlanProgressService omicronPlanProgressService;
     private final PlayerDatacronViewService playerDatacronViewService; 
     private final DatacronProgressService datacronProgressService;
+    private final ActiviteRosterService activiteRosterService;
+
 
     
     @GetMapping("/joueur/{playerId}")
-    public String joueur(@PathVariable String playerId, Model model) {
+    public String joueur(@PathVariable String playerId,
+            @RequestParam(name = "jours", defaultValue = "30") int jours,
+            Model model) {
         model.addAttribute("vm", playerViewService.construire(playerId));
 
         model.addAttribute("joueurs", joueurRepository.findAllByPresentInGuildTrue().stream()
@@ -60,6 +66,9 @@ public class PlayerWebController {
             model.addAttribute("datacronProgress",
                     datacronProgressService.construireProgressionJoueur(playerId, joueurCourant.getPlayerName()));
         }
+
+        model.addAttribute("activiteParJour", activiteRosterService.getActiviteJoueur(playerId, jours));
+        model.addAttribute("joursActivite", jours);
 
         return "joueur";
     }

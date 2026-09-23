@@ -44,6 +44,7 @@ public class RosterUnitService {
     private final UnitSkillCalculationService unitSkillCalculationService;
     private final UnitModCalculationService unitModCalculationService;
     private final GuildSyncReferentialService guildSyncReferentialService;
+    private final RosterUnitProgressionService rosterUnitProgressionService;
 
     public Map<String, SkillDefinition> chargerDefinitionsSkill() {
         return skillDefinitionRepository.findAll().stream()
@@ -117,6 +118,10 @@ public class RosterUnitService {
         Map<String, SkillDefinition> definitions = cache.skillDefinitions();
         stopWatch.stop();
 
+        stopWatch.start("Chargement anciennes unités (progression)");
+        List<RosterUnitActuel> anciennesUnites = rosterUnitActuelRepository.findByPlayerId(playerId);
+        stopWatch.stop();
+        
         stopWatch.start("Suppression DB (anciennes données)");
         rosterUnitActuelRepository.deleteByPlayerId(playerId);
         rosterUnitModActuelRepository.deleteByPlayerId(playerId);
@@ -138,6 +143,10 @@ public class RosterUnitService {
                     .idSync(idSync)
                     .build());
 
+            //Recher et enregistrement des écarts entre 2 synchros
+            
+            rosterUnitProgressionService.detecterEtEnregistrer(playerId, anciennesUnites, unitesActuelles, idSync);
+            
             if (u.equippedStatMod() != null) {
                 for (PlayerResponse.EquippedStatMod mod : u.equippedStatMod()) {
                     List<UnitModDTO> lignesDto = unitModCalculationService.construireLignesModDto(u.id(), mod);

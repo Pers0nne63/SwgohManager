@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
@@ -46,6 +47,7 @@ public class RosterUnitService {
     private final UnitModCalculationService unitModCalculationService;
     private final GuildSyncReferentialService guildSyncReferentialService;
     private final RosterUnitProgressionService rosterUnitProgressionService;
+    private final JdbcTemplate jdbcTemplate; // Injecté automatiquement par Spring
 
     public Map<String, SkillDefinition> chargerDefinitionsSkill() {
         return skillDefinitionRepository.findAll().stream()
@@ -107,8 +109,6 @@ public class RosterUnitService {
     public String enregistrerRoster(PlayerResponse response, Long idSync, GuildSyncReferentialCache cache) {
         String playerId = response.playerId();
         
-        log.info("enregistrerRoster appelé pour playerId={} thread={}", playerId, Thread.currentThread().getName());
-
         List<PlayerResponse.RosterUnit> roster = response.rosterUnit();
 
         if (roster == null || roster.isEmpty()) {
@@ -194,11 +194,14 @@ public class RosterUnitService {
                 definitionIdParIdUnit, idSync, baseIdsEraJoueur);
         stopWatch.stop();
 
-        stopWatch.start("SaveAll DB (Unités & Mods)");
+        stopWatch.start("Enregistrement Unités");
         rosterUnitActuelRepository.saveAll(unitesActuelles);
-        rosterUnitModActuelRepository.saveAll(modsActuels);
         rosterUnitActuelRepository.flush();
-        rosterUnitModActuelRepository.flush();
+        stopWatch.stop();
+        stopWatch.start("Enregistrement Mods");
+        //rosterUnitModActuelRepository.saveAll(modsActuels);
+        //rosterUnitModActuelRepository.flush();
+        bulkInsertMods(modsActuels);
         stopWatch.stop();
 
         if (skillsSansDefinition > 0) {
@@ -260,5 +263,35 @@ public class RosterUnitService {
         rosterUnitModActuelRepository.flush();
 
         log.info("Nettoyage des joueurs inactifs terminé.");
+    }
+    
+    
+    private void bulkInsertMods(List<RosterUnitModActuel> mods) {
+        String sql = """
+            INSERT INTO roster_unit_mod_actuel (
+                id, player_id, id_unit, id_mod, definition_id, set, rarity, position,
+                niveau, id_primaire, primaire, valeur_primaire, id_secondaire,
+                secondaire, valeur_secondaire, ordre_secondaire, id_sync
+            ) VALUES (nextval('roster_unit_mod_actuel_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
+
+        jdbcTemplate.batchUpdate(sql, mods, 1000, (ps, mod) -> {
+            ps.setString(1, mod.getPlayerId());
+            ps.setString(2, mod.getIdUnit());
+            ps.setString(3, mod.getIdMod());
+            ps.setString(4, mod.getDefinitionId());
+            ps.setString(5, mod.getSet());
+            ps.setString(6, mod.getRarity());
+            ps.setString(7, mod.getPosition());
+            ps.setObject(8, mod.getNiveau());
+            ps.setObject(9, mod.getIdPrimaire());
+            ps.setString(10, mod.getPrimaire());
+            ps.setObject(11, mod.getValeurPrimaire());
+            ps.setObject(12, mod.getIdSecondaire());
+            ps.setString(13, mod.getSecondaire());
+            ps.setObject(14, mod.getValeurSecondaire());
+            ps.setObject(15, mod.getOrdreSecondaire());
+            ps.setObject(16, mod.getIdSync());
+        });
     }
 }

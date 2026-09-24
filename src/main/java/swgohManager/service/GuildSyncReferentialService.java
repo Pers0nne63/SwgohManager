@@ -3,6 +3,7 @@ package swgohManager.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -10,10 +11,12 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import swgohManager.model.FarmPlan;
 import swgohManager.model.OmicronPlan;
+import swgohManager.model.PlayerEraUnitStatusActuel;
 import swgohManager.model.SkillDefinition;
 import swgohManager.model.UnitDefinition;
 import swgohManager.repository.FarmPlanRepository;
 import swgohManager.repository.OmicronPlanRepository;
+import swgohManager.repository.PlayerEraUnitStatusActuelRepository;
 import swgohManager.repository.SkillDefinitionRepository;
 import swgohManager.repository.UnitDefinitionRepository;
 
@@ -32,6 +35,7 @@ public class GuildSyncReferentialService {
     private final OmicronPlanRepository omicronPlanRepository;
     private final OmicronPlanService omicronPlanService;
     private final UnitStatReferentialService unitStatReferentialService;
+    private final PlayerEraUnitStatusActuelRepository playerEraUnitStatusActuelRepository;
 
     public GuildSyncReferentialCache charger() {
         Map<String, SkillDefinition> skillDefinitions = skillDefinitionRepository.findAll().stream()
@@ -52,7 +56,12 @@ public class GuildSyncReferentialService {
 
         UnitStatReferentialService.UnitStatReferentiel statReferentiel = unitStatReferentialService.chargerComplet();
 
+        Map<String, Set<String>> eraBaseIdsByPlayerId = playerEraUnitStatusActuelRepository.findAll().stream()
+                .collect(Collectors.groupingBy(
+                        PlayerEraUnitStatusActuel::getPlayerId,
+                        Collectors.mapping(PlayerEraUnitStatusActuel::getUnitBaseId, Collectors.toSet())));
+
         return new GuildSyncReferentialCache(skillDefinitions, farmPlans, unitLibelleByBaseId,
-                omicronPlans, omicronOptionsByCle, statReferentiel);
+                omicronPlans, omicronOptionsByCle, statReferentiel, eraBaseIdsByPlayerId);
     }
 }

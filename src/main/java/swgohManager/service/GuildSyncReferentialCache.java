@@ -2,6 +2,7 @@ package swgohManager.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import swgohManager.model.FarmPlan;
 import swgohManager.model.OmicronPlan;
@@ -19,5 +20,6 @@ public record GuildSyncReferentialCache(
         Map<String, String> unitLibelleByBaseId,
         List<OmicronPlan> omicronPlans,
         Map<String, OmicronPlanService.Option> omicronOptionsByCle,
-        UnitStatReferentiel statReferentiel
+        UnitStatReferentiel statReferentiel,
+        Map<String, Set<String>> eraBaseIdsByPlayerId
 ) {}

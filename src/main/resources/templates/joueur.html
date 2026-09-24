@@ -565,6 +565,11 @@
 	                              class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30 shrink-0">
 	                            <i class="bi bi-plus-circle"></i> DÉBLOQUÉE
 	                        </span>
+	                        <span th:if="${l.omicronObtenu}"
+							      class="omicron-detail-btn cursor-pointer px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shrink-0 hover:bg-emerald-500 hover:text-slate-950 transition-colors"
+							      th:attr="data-player-id=${vm.joueur.playerId},data-base-id=${l.baseId},data-jour=${#temporals.format(jourVM.jour,'yyyy-MM-dd')}">
+							    <i class="bi bi-lightning-charge-fill"></i> OMICRON
+							</span>
 	
 	                        <div th:unless="${l.nouvelleUnite}" class="flex items-center gap-2 text-xs font-mono shrink-0">
 	                            <span th:if="${l.etoilesAvant != l.etoilesApres}" class="text-amber-400"
@@ -578,6 +583,21 @@
 	                </div>
 	            </div>
 	        </div>
+	        
+	        <div id="modalOmicronOverlay" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4" onclick="fermerDetailOmicron(event)">
+			    <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-sm max-h-[70vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+			        <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+			            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+			                <i class="bi bi-lightning-charge-fill text-emerald-400"></i> Omicron(s) posé(s)
+			            </h3>
+			            <button onclick="fermerDetailOmicron()" class="text-slate-400 hover:text-white transition-colors">
+			                <i class="bi bi-x-lg"></i>
+			            </button>
+			        </div>
+			        <div id="modalOmicronContenu" class="p-4 overflow-y-auto space-y-1.5">
+			        </div>
+			    </div>
+			</div>
 	    </div>
 	</div>
 
@@ -665,6 +685,49 @@ new Chart(document.getElementById('vitesseChart'), {
         }
     }
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.omicron-detail-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (event) {
+            event.stopPropagation();
+            ouvrirDetailOmicron(
+                    btn.getAttribute('data-player-id'),
+                    btn.getAttribute('data-base-id'),
+                    btn.getAttribute('data-jour'));
+        });
+    });
+});
+
+function ouvrirDetailOmicron(playerId, baseId, jour) {
+    var overlay = document.getElementById('modalOmicronOverlay');
+    var contenu = document.getElementById('modalOmicronContenu');
+    contenu.innerHTML = '<p class="text-slate-400 text-sm italic">Chargement...</p>';
+    overlay.classList.remove('hidden');
+
+    fetch('/activite-roster/omicron-detail?playerId=' + encodeURIComponent(playerId)
+            + '&baseId=' + encodeURIComponent(baseId) + '&jour=' + encodeURIComponent(jour))
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (!data || data.length === 0) {
+                contenu.innerHTML = '<p class="text-slate-500 text-xs italic">Aucun détail disponible.</p>';
+                return;
+            }
+            var html = '';
+            data.forEach(function (o) {
+                html += '<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 rounded-lg border border-slate-700/50 text-sm text-slate-200">'
+                     + '<i class="bi bi-lightning-charge-fill text-emerald-400"></i> ' + o.libelle + '</div>';
+            });
+            contenu.innerHTML = html;
+        })
+        .catch(function () {
+            contenu.innerHTML = '<p class="text-rose-400 text-sm">Erreur lors du chargement.</p>';
+        });
+}
+
+function fermerDetailOmicron(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('modalOmicronOverlay').classList.add('hidden');
+}
 
 function afficherOnglet(nom) {
     var estSynthese = nom === 'synthese';

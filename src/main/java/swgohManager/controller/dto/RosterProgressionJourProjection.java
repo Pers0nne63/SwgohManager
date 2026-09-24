@@ -1,12 +1,15 @@
 package swgohManager.controller.dto;
 
+import java.time.LocalDate;
+
 public interface RosterProgressionJourProjection {
-    java.time.LocalDate getJour();
+    LocalDate getJour();
     String getPlayerId();
     String getPlayerName();
     String getBaseId();
     String getLibelle();
     Boolean getNouvelleUnite();
+    Boolean getOmicronObtenu();
     Integer getEtoilesAvant();
     Integer getEtoilesApres();
     Integer getGearAvant();

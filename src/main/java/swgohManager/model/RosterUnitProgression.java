@@ -35,11 +35,15 @@ public class RosterUnitProgression {
     private String playerId;
     private String idUnit;
     private String definitionId;
+    private String idSkill;
+    private String skillType;
+    private Integer skillNumero;
 
     private Instant dateConstat;
     private Long idSync;
 
     private Boolean nouvelleUnite;
+    private Boolean omicronObtenu;
 
     private Integer etoilesAvant;
     private Integer etoilesApres;

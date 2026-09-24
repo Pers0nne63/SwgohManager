@@ -60,6 +60,7 @@ public class GuildFullSyncService {
         log.info("Référentiel commun chargé en {} ms", System.currentTimeMillis() - t0);
 
         List<Joueur> joueursPresents = joueurRepository.findAllByPresentInGuildTrue();
+        
         int totalJoueurs = joueursPresents.size();
         log.info("Synchronisation de {} joueur(s) sous idSync={}, 10 en parallèle", joueursPresents.size(), idSync);
 

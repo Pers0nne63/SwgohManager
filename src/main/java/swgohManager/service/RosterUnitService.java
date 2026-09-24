@@ -106,6 +106,9 @@ public class RosterUnitService {
     @Transactional
     public String enregistrerRoster(PlayerResponse response, Long idSync, GuildSyncReferentialCache cache) {
         String playerId = response.playerId();
+        
+        log.info("enregistrerRoster appelé pour playerId={} thread={}", playerId, Thread.currentThread().getName());
+
         List<PlayerResponse.RosterUnit> roster = response.rosterUnit();
 
         if (roster == null || roster.isEmpty()) {
@@ -121,11 +124,8 @@ public class RosterUnitService {
 
         stopWatch.start("Chargement anciennes unités (progression)");
         List<RosterUnitActuel> anciennesUnites = rosterUnitActuelRepository.findByPlayerId(playerId);
-        stopWatch.stop();
-        
-        /** On capture les anciens skill pour détecter les modifications */
         List<RosterUnitSkillActuel> anciennesSkills = rosterUnitSkillActuelRepository.findByPlayerId(playerId);
-
+        stopWatch.stop();
         
         stopWatch.start("Suppression DB (anciennes données)");
         rosterUnitActuelRepository.deleteByPlayerId(playerId);
@@ -133,7 +133,6 @@ public class RosterUnitService {
         rosterUnitActuelRepository.flush();
         rosterUnitModActuelRepository.flush();
         stopWatch.stop();
-        
 
         stopWatch.start("Mapping objets en mémoire");
         List<RosterUnitActuel> unitesActuelles = new ArrayList<>();
@@ -149,11 +148,6 @@ public class RosterUnitService {
                     .idSync(idSync)
                     .build());
 
-            //Recher et enregistrement des écarts entre 2 synchros
-            
-            Set<String> baseIdsEraJoueur = cache.eraBaseIdsByPlayerId().getOrDefault(playerId, Set.of());
-            rosterUnitProgressionService.detecterEtEnregistrer(playerId, anciennesUnites, unitesActuelles, idSync, baseIdsEraJoueur);
-            
             if (u.equippedStatMod() != null) {
                 for (PlayerResponse.EquippedStatMod mod : u.equippedStatMod()) {
                     List<UnitModDTO> lignesDto = unitModCalculationService.construireLignesModDto(u.id(), mod);
@@ -179,11 +173,25 @@ public class RosterUnitService {
             }
         }
         stopWatch.stop();
-      
+
+        stopWatch.start("Détection des évolutions (Roster & Omicrons)");
+        Set<String> baseIdsEraJoueur = cache.eraBaseIdsByPlayerId().getOrDefault(playerId, Set.of());
+        
+        // Un seul appel unique pour l'ensemble du roster
+        rosterUnitProgressionService.detecterEtEnregistrer(playerId, anciennesUnites, unitesActuelles, idSync, baseIdsEraJoueur);
+        stopWatch.stop();
+
         stopWatch.start("Enregistrement Skills");
         UnitSkillCalculationService.UnitSkillBuildResult buildResult =
                 enregistrerSkills(playerId, roster, definitions, Portee.GUILDE, idSync);
         int skillsSansDefinition = buildResult.skillsSansDefinition();
+        stopWatch.stop();
+
+        stopWatch.start("Détection des Omicrons");
+        Map<String, String> definitionIdParIdUnit = unitesActuelles.stream()
+                .collect(Collectors.toMap(RosterUnitActuel::getIdUnit, RosterUnitActuel::getDefinitionId, (a, b) -> a));
+        rosterUnitProgressionService.detecterOmicronsEtEnregistrer(playerId, anciennesSkills, buildResult.skills(),
+                definitionIdParIdUnit, idSync, baseIdsEraJoueur);
         stopWatch.stop();
 
         stopWatch.start("SaveAll DB (Unités & Mods)");
@@ -192,14 +200,6 @@ public class RosterUnitService {
         rosterUnitActuelRepository.flush();
         rosterUnitModActuelRepository.flush();
         stopWatch.stop();
-        
-        Set<String> baseIdsEraJoueur = cache.eraBaseIdsByPlayerId().getOrDefault(playerId, Set.of());
-        rosterUnitProgressionService.detecterEtEnregistrer(playerId, anciennesUnites, unitesActuelles, idSync, baseIdsEraJoueur);
-
-        Map<String, String> definitionIdParIdUnit = unitesActuelles.stream()
-                .collect(Collectors.toMap(RosterUnitActuel::getIdUnit, RosterUnitActuel::getDefinitionId, (a, b) -> a));
-        rosterUnitProgressionService.detecterOmicronsEtEnregistrer(playerId, anciennesSkills, buildResult.skills(),
-                definitionIdParIdUnit, idSync, baseIdsEraJoueur);
 
         if (skillsSansDefinition > 0) {
             log.warn("{} skill(s) sans correspondance dans skill_definition (référentiel pas encore synchronisé ?)",

@@ -30,18 +30,33 @@ public class RosterUnitProgressionService {
     public void detecterEtEnregistrer(String playerId, List<RosterUnitActuel> anciennesUnites,
             List<RosterUnitActuel> nouvellesUnites, Long idSync, Set<String> baseIdsEra) {
 
-        if (anciennesUnites.isEmpty()) {
+        log.info("detecterEtEnregistrer appelé pour playerId={} idSync={} thread={} anciennesUnites.size={} nouvellesUnites.size={}",
+                playerId, idSync, Thread.currentThread().getName(), anciennesUnites.size(), nouvellesUnites.size());
+
+        if (anciennesUnites == null || anciennesUnites.isEmpty()) {
             return;
         }
 
+        // NOUVEAU : Purge des progressions déjà générées pour cette même passe/idSync
+        progressionRepository.deleteByPlayerIdAndIdSync(playerId, idSync);
+        progressionRepository.flush();
+
+        // Map sécurisé contre les idUnit null et les doublons de clés éventuels
         Map<String, RosterUnitActuel> anciennesParIdUnit = anciennesUnites.stream()
-                .collect(Collectors.toMap(RosterUnitActuel::getIdUnit, u -> u));
+                .filter(u -> u.getIdUnit() != null)
+                .collect(Collectors.toMap(
+                        RosterUnitActuel::getIdUnit, 
+                        u -> u, 
+                        (existant, remplaçant) -> existant
+                ));
 
         Instant maintenant = Instant.now();
         List<RosterUnitProgression> progressions = new ArrayList<>();
 
         for (RosterUnitActuel nouvelle : nouvellesUnites) {
-            if (estUniteEra(nouvelle.getDefinitionId(), baseIdsEra)) continue;
+            if (nouvelle.getIdUnit() == null || estUniteEra(nouvelle.getDefinitionId(), baseIdsEra)) {
+                continue;
+            }
 
             RosterUnitActuel ancienne = anciennesParIdUnit.get(nouvelle.getIdUnit());
 
@@ -66,9 +81,12 @@ public class RosterUnitProgressionService {
                         .playerId(playerId).idUnit(nouvelle.getIdUnit()).definitionId(nouvelle.getDefinitionId())
                         .dateConstat(maintenant).idSync(idSync)
                         .nouvelleUnite(false)
-                        .etoilesAvant(ancienne.getEtoiles()).etoilesApres(nouvelle.getEtoiles())
-                        .gearAvant(ancienne.getGear()).gearApres(nouvelle.getGear())
-                        .relicAvant(ancienne.getRelic()).relicApres(nouvelle.getRelic())
+                        .etoilesAvant(ancienne.getEtoiles())
+                        .etoilesApres(nouvelle.getEtoiles())
+                        .gearAvant(ancienne.getGear())
+                        .gearApres(nouvelle.getGear())
+                        .relicAvant(ancienne.getRelic())
+                        .relicApres(nouvelle.getRelic())
                         .build());
             }
         }
@@ -84,12 +102,12 @@ public class RosterUnitProgressionService {
             List<UnitSkillDTO> nouvellesSkills, Map<String, String> definitionIdParIdUnit,
             Long idSync, Set<String> baseIdsEra) {
 
-        if (anciennesSkills.isEmpty()) {
-            return; // pas de baseline : même règle que pour les stats
+        if (anciennesSkills == null || anciennesSkills.isEmpty()) {
+            return;
         }
 
         Set<String> anciennesOmicronsAppliques = anciennesSkills.stream()
-                .filter(s -> Boolean.TRUE.equals(s.getOmicronApplied()))
+                .filter(s -> Boolean.TRUE.equals(s.getOmicronApplied()) && s.getIdUnit() != null && s.getIdSkill() != null)
                 .map(s -> cleSkill(s.getIdUnit(), s.getIdSkill()))
                 .collect(Collectors.toSet());
 
@@ -97,10 +115,12 @@ public class RosterUnitProgressionService {
         List<RosterUnitProgression> progressions = new ArrayList<>();
 
         for (UnitSkillDTO skill : nouvellesSkills) {
-            if (!Boolean.TRUE.equals(skill.omicronApplied())) continue;
+            if (!Boolean.TRUE.equals(skill.omicronApplied()) || skill.idUnit() == null || skill.idSkill() == null) {
+                continue;
+            }
 
             String cle = cleSkill(skill.idUnit(), skill.idSkill());
-            if (anciennesOmicronsAppliques.contains(cle)) continue; // déjà obtenu avant
+            if (anciennesOmicronsAppliques.contains(cle)) continue;
 
             String definitionId = definitionIdParIdUnit.get(skill.idUnit());
             if (estUniteEra(definitionId, baseIdsEra)) continue;

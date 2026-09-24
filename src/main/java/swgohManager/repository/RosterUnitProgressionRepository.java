@@ -14,6 +14,7 @@ import swgohManager.model.RosterUnitProgression;
 
 public interface RosterUnitProgressionRepository extends JpaRepository<RosterUnitProgression, Long> {
     List<RosterUnitProgression> findByPlayerId(String playerId);
+    void deleteByPlayerIdAndIdSync(String playerId, Long idSync);
     
     @Query(value = """
     	    SELECT

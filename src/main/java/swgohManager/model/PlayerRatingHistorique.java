@@ -28,4 +28,8 @@ public class PlayerRatingHistorique {
     @CreationTimestamp
     @Column(updatable = false)
     private Instant dateReleve;
+    
+
+    @Column(name = "date_sync", updatable = false)
+    private Instant dateSync;
 }

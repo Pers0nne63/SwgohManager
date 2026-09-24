@@ -1,8 +1,22 @@
 package swgohManager.model;
 
-import jakarta.persistence.*;
-import lombok.*;
 import java.time.Instant;
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "external_player_tb_score",
@@ -28,4 +42,8 @@ public class ExternalPlayerTbScore {
     private Integer covertNum;
     private Integer roundNum;
     private Long score;
+    
+    @CreationTimestamp
+    @Column(name = "date_sync", updatable = false)
+    private LocalDateTime dateSync;
 }

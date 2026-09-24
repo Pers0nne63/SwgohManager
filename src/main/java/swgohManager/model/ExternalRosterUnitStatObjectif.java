@@ -1,4 +1,9 @@
 package swgohManager.model;
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -46,4 +51,8 @@ public class ExternalRosterUnitStatObjectif implements UnitStatValues {
     private Double esquiveCritiquePhysique;
     private Double esquiveCritiqueSpeciale;
     private Double defense;
+    
+    @CreationTimestamp
+    @Column(name = "date_sync", updatable = false)
+    private LocalDateTime dateSync;
 }

@@ -1,4 +1,9 @@
 package swgohManager.model;
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -28,4 +33,7 @@ public class ExternalPlayerStatqDetailActuel implements StatqDetailValues {
     private Double valeurObjectif;
     private Double variation;
     private Integer note;
+    @CreationTimestamp
+    @Column(name = "date_sync", updatable = false)
+    private LocalDateTime dateSync;
 }

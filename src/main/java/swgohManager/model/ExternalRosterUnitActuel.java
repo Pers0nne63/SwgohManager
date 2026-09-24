@@ -1,5 +1,9 @@
 package swgohManager.model;
 
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -36,4 +40,8 @@ public class ExternalRosterUnitActuel {
     private Integer niveau;
     private Integer gear;
     private Integer relic;
+    
+    @CreationTimestamp
+    @Column(name = "date_sync", updatable = false)
+    private LocalDateTime dateSync;
 }

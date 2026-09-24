@@ -3,6 +3,7 @@ package swgohManager.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "guild_bilan_actuel")
@@ -50,4 +51,5 @@ public class GuildBilanActuel {
 
     @Column(columnDefinition = "TEXT")
     private String statQParTeamJson;
+    
 }

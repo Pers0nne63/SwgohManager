@@ -1,5 +1,15 @@
 package swgohManager.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
 import swgohManager.controller.dto.PlayerOmicronStatusProjection;
 import swgohManager.model.OmicronPlan;
 import swgohManager.model.PlayerPdfOmicronActuel;
@@ -9,13 +19,6 @@ import swgohManager.repository.OmicronPlanRepository;
 import swgohManager.repository.PlayerPdfOmicronActuelRepository;
 import swgohManager.repository.PlayerPdfOmicronHistoriqueRepository;
 import swgohManager.repository.RosterUnitSkillActuelRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -69,39 +72,41 @@ public class OmicronPlanProgressService {
     }
 
     private void persister(String playerId, Long idSync, OmicronPlanCalculationService.PlayerOmicronProgress progress) {
-        for (int i = 1; i <= 4; i++) {
-            OmicronPlanCalculationService.PrioriteSummary pSummary = progress.parPriorite().get(i);
-            String prioriteLabel = "P" + i;
+    	Map<String, PlayerPdfOmicronActuel> existants = playerPdfOmicronActuelRepository
+    	        .findAllByPlayerId(playerId).stream()
+    	        .collect(Collectors.toMap(PlayerPdfOmicronActuel::getPriorite, e -> e));
 
+        List<PlayerPdfOmicronHistorique> aHistoriser = new ArrayList<>();
+        List<PlayerPdfOmicronActuel> aSauver = new ArrayList<>();
+
+        for (int i = 1; i <= 4; i++) {
+            String prioriteLabel = "P" + i;
+            OmicronPlanCalculationService.PrioriteSummary pSummary = progress.parPriorite().get(i);
             int atteint = pSummary != null ? pSummary.atteint() : 0;
             int total = pSummary != null ? pSummary.total() : 0;
             Double pourcentage = pSummary != null ? pSummary.pourcentage() : null;
 
-            PlayerPdfOmicronActuel existant = playerPdfOmicronActuelRepository
-                    .findByPlayerIdAndPriorite(playerId, prioriteLabel).orElse(null);
-
+            PlayerPdfOmicronActuel existant = existants.get(prioriteLabel);
             if (existant != null) {
-                playerPdfOmicronHistoriqueRepository.save(PlayerPdfOmicronHistorique.builder()
-                        .playerId(existant.getPlayerId())
-                        .priorite(existant.getPriorite())
-                        .atteint(existant.getAtteint())
-                        .total(existant.getTotal())
-                        .pourcentage(existant.getPourcentage())
-                        .idSync(existant.getIdSync())
+                aHistoriser.add(PlayerPdfOmicronHistorique.builder()
+                        .playerId(existant.getPlayerId()).priorite(existant.getPriorite())
+                        .atteint(existant.getAtteint()).total(existant.getTotal())
+                        .pourcentage(existant.getPourcentage()).idSync(existant.getIdSync())
                         .build());
             } else {
                 existant = new PlayerPdfOmicronActuel();
                 existant.setPlayerId(playerId);
                 existant.setPriorite(prioriteLabel);
             }
-
             existant.setAtteint(atteint);
             existant.setTotal(total);
             existant.setPourcentage(pourcentage);
             existant.setIdSync(idSync);
-
-            playerPdfOmicronActuelRepository.save(existant);
+            aSauver.add(existant);
         }
+
+        playerPdfOmicronHistoriqueRepository.saveAll(aHistoriser);
+        playerPdfOmicronActuelRepository.saveAll(aSauver);
     }
 
     public Map<String, Map<String, Double>> getPourcentagesOmiPourJoueurs(List<String> playerIds) {

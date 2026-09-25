@@ -44,7 +44,9 @@ public class UnitStatCalculationService {
         Map<Integer, Double> relicGrowth = Map.of();
 
         if (relicRawTier != null && relicRawTier >= 3) {
-            List<RelicTierDefinition> lignes = ref.relicByClasseTier().get(def.getMasteryClass() + "|" + relicRawTier);
+        	String classeRelic = def.getRelicClass() != null ? def.getRelicClass() : def.getMasteryClass(); 
+            List<RelicTierDefinition> lignes = ref.relicByClasseTier().get(classeRelic + "|" + relicRawTier);
+                     
             if (lignes != null && !lignes.isEmpty()) {
                 statRelicDefinition = lignes.stream()
                         .filter(l -> l.getStat() != null)
@@ -59,9 +61,9 @@ public class UnitStatCalculationService {
         Map<Integer, Double> masteryStat = ref.masteryByClasse().getOrDefault(def.getMasteryClass(), Map.of());
 
         double[] stats = unitStatFormulaService.calculerStatsDeBase(unitStats, statGrowth, statRelicDefinition,
-                relicGrowth, masteryStat, niveau, def.getPrimaryStat());
-
-        return unitStatFormulaService.calculerFinal(stats, niveau, acc);
+                relicGrowth, masteryStat, niveau, def.getPrimaryStat(),def.getIdUnit());
+        
+        return unitStatFormulaService.calculerFinal(stats, niveau, acc); // ligne d'origine, à restaurer après debug
     }
 
     /**

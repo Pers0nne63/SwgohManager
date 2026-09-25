@@ -47,6 +47,7 @@ public class UnitDefinition {
     private String role;
     private String primaryStat;
     private String masteryClass;
+    private String relicClass;
 
     private String gameVersion;
 

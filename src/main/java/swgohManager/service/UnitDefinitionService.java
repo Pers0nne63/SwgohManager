@@ -1,18 +1,29 @@
 package swgohManager.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import swgohManager.client.SwgohDataClient;
 import swgohManager.client.dto.RelicTierDefinitionRaw;
 import swgohManager.client.dto.UnitRaw;
 import swgohManager.client.dto.UnitSegmentData;
-import swgohManager.model.*;
-import swgohManager.repository.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import java.util.stream.Collectors;
+import swgohManager.model.RelicTierDefinition;
+import swgohManager.model.UnitBaseStatDefinition;
+import swgohManager.model.UnitDefinition;
+import swgohManager.model.UnitRelicDefinition;
+import swgohManager.model.UnitTierDefinition;
+import swgohManager.repository.RelicTierDefinitionRepository;
+import swgohManager.repository.UnitBaseStatDefinitionRepository;
+import swgohManager.repository.UnitDefinitionRepository;
+import swgohManager.repository.UnitRelicDefinitionRepository;
+import swgohManager.repository.UnitTierDefinitionRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -129,7 +140,16 @@ public class UnitDefinitionService {
             }
 
             if (u.relicDefinition() != null && u.relicDefinition().relicTierDefinitionId() != null) {
-                for (String relicId : u.relicDefinition().relicTierDefinitionId()) {
+                List<String> relicIds = u.relicDefinition().relicTierDefinitionId();
+
+                for (String id : relicIds) {
+                    if (id != null && id.contains("_RELIC_TIER_")) {
+                        unite.setRelicClass(id.substring(0, id.indexOf("_RELIC_TIER_")));
+                        break;
+                    }
+                }
+
+                for (String relicId : relicIds) {
                     String cle = u.id() + "|" + relicId;
                     UnitRelicDefinition r = relicsExistants.get(cle);
                     if (r == null) {

@@ -18,7 +18,7 @@ public class UnitStatFormulaService {
 
     public double[] calculerStatsDeBase(Map<Integer, Double> unitStats, Map<Integer, Double> statGrowth,
                                          Map<Integer, Double> statRelicDefinition, Map<Integer, Double> relicGrowth,
-                                         Map<Integer, Double> masteryStat, int level, String primaryStat) {
+                                         Map<Integer, Double> masteryStat, int level, String primaryStat,String idUnitDebug) {
         double[] s = new double[62];
 
         s[61] = Math.floor(g(unitStats, 61) + g(statRelicDefinition, 61) + g(relicGrowth, 61));
@@ -30,7 +30,9 @@ public class UnitStatFormulaService {
             s[i] = g(unitStats, i) + s[61] * g(masteryStat, i) + g(statRelicDefinition, i);
         }
 
+        
         s[1] = Math.floor(g(unitStats, 1) + 18 * s[2] + g(statRelicDefinition, 1) + s[61] * g(masteryStat, 1));
+        
 
         double mainStatBonus = switch (primaryStat) {
             case "STR" -> 1.4 * s[2];
@@ -51,6 +53,8 @@ public class UnitStatFormulaService {
         s[15] = round2(100 * (0.1 + (g(unitStats, 15)) / 2400) + s[61] * g(masteryStat, 15));
 
         s[27] = g(unitStats, 27) * 100 + s[61] * g(masteryStat, 27) + 100 * g(statRelicDefinition, 27);
+        
+     
 
         return s;
     }

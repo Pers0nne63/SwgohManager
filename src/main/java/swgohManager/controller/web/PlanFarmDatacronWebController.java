@@ -8,9 +8,14 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import lombok.RequiredArgsConstructor;
+import swgohManager.service.DatacronDefinitionService;
 import swgohManager.service.PlanFarmDatacronOptionsService;
 import swgohManager.service.PlanFarmDatacronService;
 
@@ -21,11 +26,14 @@ public class PlanFarmDatacronWebController {
 
     private final PlanFarmDatacronOptionsService optionsService;
     private final PlanFarmDatacronService planFarmDatacronService;
+    private final DatacronDefinitionService definitionService; 
+
 
     public record OngletSet(
             String setId,
             PlanFarmDatacronOptionsService.SetOptions options,
-            PlanFarmDatacronService.SetCartes cartes
+            PlanFarmDatacronService.SetCartes cartes,
+            DatacronDefinitionService.SetDefinitions definitions
     ) {}
 
     @GetMapping
@@ -38,17 +46,22 @@ public class PlanFarmDatacronWebController {
 
         Map<String, PlanFarmDatacronService.SetCartes> cartesParSet = cartes.stream()
                 .collect(Collectors.toMap(PlanFarmDatacronService.SetCartes::setId, c -> c));
+        
+        Map<String, DatacronDefinitionService.SetDefinitions> definitionsParSet = definitionService.construireParSet();
+
 
         TreeSet<String> tousLesSets = new TreeSet<>(Comparator.reverseOrder());
         options.forEach(o -> tousLesSets.add(o.setId()));
         cartes.forEach(c -> tousLesSets.add(c.setId()));
+        
+        
 
         List<OngletSet> onglets = tousLesSets.stream()
-                .map(setId -> new OngletSet(
-                        setId,
-                        optionsParSet.get(setId),
-                        cartesParSet.getOrDefault(setId, new PlanFarmDatacronService.SetCartes(setId, List.of()))
-                ))
+        		.map(setId -> new OngletSet(
+        		        setId,
+        		        optionsParSet.get(setId),
+        		        cartesParSet.getOrDefault(setId, new PlanFarmDatacronService.SetCartes(setId, List.of())),
+        		        definitionsParSet.get(setId)))
                 .toList();
 
         model.addAttribute("onglets", onglets);

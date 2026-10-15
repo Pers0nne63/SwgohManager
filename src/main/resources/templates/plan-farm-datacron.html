@@ -17,13 +17,19 @@
     </script>
 
     <style>
-        .tab-btn.active {
+        .tab-btn.active,
+        .sub-btn.active,
+        .def-btn.active {
             background-color: rgba(245, 158, 11, 0.12);
             color: #fbbf24;
             border-color: rgba(245, 158, 11, 0.4);
         }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
+        .sub-panel { display: none; }
+        .sub-panel.active { display: block; }
+        .def-panel { display: none; }
+        .def-panel.active { display: block; }
 
         .checkbox-row {
             display: flex;
@@ -64,7 +70,7 @@
 
         <div th:if="${!#lists.isEmpty(onglets)}">
 
-            <!-- ONGLETS -->
+            <!-- ONGLETS DE SET -->
             <div class="flex flex-wrap gap-2 mb-6" id="tabButtons">
                 <button th:each="onglet, iter : ${onglets}"
                         type="button"
@@ -75,167 +81,306 @@
                 </button>
             </div>
 
-            <!-- PANNEAUX -->
+            <!-- PANNEAUX DE SET -->
             <div th:each="onglet, iter : ${onglets}"
                  class="tab-panel"
                  th:classappend="${iter.first} ? 'active' : ''"
                  th:id="'panel-' + ${iter.index}">
 
-                <!-- ===================== FORMULAIRE DE CRÉATION ===================== -->
-                <div th:if="${onglet.options != null}" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8">
-                    <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <i class="bi bi-plus-circle text-emerald-400"></i>
-                        Nouveau datacron cible — SET <span th:text="${onglet.setId}"></span>
-                    </h2>
+                <!-- SOUS-ONGLETS -->
+                <div class="flex gap-2 mb-6">
+                    <button type="button" data-sub="def" onclick="showSub(this, 'def')"
+                            class="sub-btn active px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 text-xs font-semibold transition-colors">
+                        <i class="bi bi-book me-1"></i> Définitions
+                    </button>
+                    <button type="button" data-sub="plan" onclick="showSub(this, 'plan')"
+                            class="sub-btn px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 text-xs font-semibold transition-colors">
+                        <i class="bi bi-bullseye me-1"></i> Plan de farm
+                    </button>
+                </div>
 
-                    <form th:action="@{/web/plan-farm-datacron/creer}" method="post" class="space-y-6">
-                        <input type="hidden" name="setId" th:value="${onglet.setId}">
+                <!-- =============================================================== -->
+                <!-- SOUS-PANNEAU 1 : DÉFINITIONS                                    -->
+                <!-- =============================================================== -->
+                <div class="sub-panel active" data-sub="def">
 
-                        <!-- Nom du datacron cible -->
-                        <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nom du datacron cible</h3>
-                            <input type="text" name="nom" placeholder="Ex : DTC Tank Lumineux"
-                                   class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                    <div th:if="${onglet.definitions == null}" class="text-slate-500 text-sm">
+                        Aucune définition disponible pour ce set.
+                    </div>
+
+                    <th:block th:if="${onglet.definitions != null}">
+
+                        <!-- Onglets FDTC / DTC -->
+                        <div class="flex gap-2 mb-6">
+                            <button type="button" data-def="fdtc" onclick="showDef(this, 'fdtc')"
+                                    class="def-btn active px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 text-xs font-semibold transition-colors">
+                                <i class="bi bi-star-fill me-1"></i> FDTC
+                            </button>
+                            <button type="button" data-def="dtc" onclick="showDef(this, 'dtc')"
+                                    class="def-btn px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 text-xs font-semibold transition-colors">
+                                <i class="bi bi-gem me-1"></i> DTC
+                            </button>
                         </div>
 
-                        <!-- Mécaniques : 3 sélecteurs empilés -->
-                        <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mécaniques (jusqu'à 3)</h3>
-                            <div class="space-y-2">
-                                <select name="mecaniques"
-                                        class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
-                                    <option value="">-- Mécanique 1 : aucune --</option>
-                                    <option th:each="mec : ${onglet.options.mecaniques}"
-                                            th:value="${mec.tier} + '|' + ${mec.abilityId}"
-                                            th:text="${mec.libelleAffichage}"
-                                            th:title="${mec.descriptionComplete}">
-                                    </option>
-                                </select>
-                                <select name="mecaniques"
-                                        class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
-                                    <option value="">-- Mécanique 2 : aucune --</option>
-                                    <option th:each="mec : ${onglet.options.mecaniques}"
-                                            th:value="${mec.tier} + '|' + ${mec.abilityId}"
-                                            th:text="${mec.libelleAffichage}"
-                                            th:title="${mec.descriptionComplete}">
-                                    </option>
-                                </select>
-                                <select name="mecaniques"
-                                        class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
-                                    <option value="">-- Mécanique 3 : aucune --</option>
-                                    <option th:each="mec : ${onglet.options.mecaniques}"
-                                            th:value="${mec.tier} + '|' + ${mec.abilityId}"
-                                            th:text="${mec.libelleAffichage}"
-                                            th:title="${mec.descriptionComplete}">
-                                    </option>
-                                </select>
+                        <!-- ============ FDTC : une ligne par nom de datacron ============ -->
+                        <div class="def-panel active" data-def="fdtc">
+
+                            <div th:if="${#lists.isEmpty(onglet.definitions.focus)}" class="text-slate-500 text-sm">
+                                Pas de FDTC
                             </div>
+
+                            <section th:each="groupe : ${onglet.definitions.focus}" class="mb-10">
+                                <h2 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+                                    <i class="bi bi-star-fill"></i>
+                                    <span th:text="${groupe.nom}"></span>
+                                    <span th:if="${#lists.size(groupe.cartes) > 1}"
+                                          class="text-[11px] font-normal normal-case text-slate-500"
+                                          th:text="'(' + ${#lists.size(groupe.cartes)} + ' variantes)'"></span>
+                                </h2>
+
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div th:each="card, cs : ${groupe.cartes}"
+                                         class="bg-slate-800 border border-amber-500/30 rounded-2xl p-5 shadow-xl flex flex-col">
+
+                                        <div th:if="${#lists.size(groupe.cartes) > 1}"
+                                             class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2"
+                                             th:text="'Variante ' + ${cs.count}"></div>
+
+                                        <div th:if="${!#lists.isEmpty(card.statsBrutes)}" class="flex flex-wrap gap-2 mb-4">
+                                            <span th:each="s : ${card.statsBrutes}"
+                                                  class="inline-flex items-center gap-1 bg-slate-850 border border-slate-700 rounded-lg px-2.5 py-1 text-xs max-w-[240px]">
+                                                <span class="text-slate-400 truncate" th:text="${s.libelle}" th:title="${s.libelle}"></span>
+                                                <b class="text-emerald-400 font-mono whitespace-nowrap" th:text="${s.valeur}"></b>
+                                            </span>
+                                        </div>
+
+                                        <table class="w-full text-xs text-left table-fixed">
+                                            <thead>
+                                                <tr class="text-slate-500 border-b border-slate-700">
+                                                    <th class="py-1.5 pr-2 font-semibold w-10">Tier</th>
+                                                    <th class="py-1.5 font-semibold">Affixe</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="t : ${card.tiers}" class="border-b border-slate-700/60">
+                                                    <td class="py-2 pr-2 align-top">
+                                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/10 text-amber-400 font-bold"
+                                                              th:text="${t.tier}"></span>
+                                                    </td>
+                                                    <td class="py-2 align-top">
+                                                        <div class="text-slate-300 whitespace-pre-line" th:text="${t.description}"></div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
 
-                        <!-- Stats -->
-                        <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Statistiques cibles</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-64 overflow-y-auto bg-slate-850 border border-slate-700/60 rounded-xl p-2">
-                                <div th:each="stat : ${onglet.options.stats}" class="checkbox-row">
-                                    <input type="checkbox" name="statsSelectionnees" th:value="${stat.statType}"
-                                           class="accent-amber-500 shrink-0">
-                                    <span class="text-xs text-slate-300 flex-1" th:text="${stat.statLibelle}"></span>
-                                    <input type="number" step="0.01"
-                                           th:name="'statValue_' + ${stat.statType}"
-                                           placeholder="Valeur"
-                                           class="w-24 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                        <!-- ============ DTC : une ligne par niveau ============ -->
+                        <div class="def-panel" data-def="dtc">
+
+                            <div th:if="${#lists.isEmpty(onglet.definitions.niveaux)}" class="text-slate-500 text-sm">
+                                Aucun DTC.
+                            </div>
+
+                            <section th:each="n : ${onglet.definitions.niveaux}" class="mb-10">
+                                <h2 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/10 text-amber-400 font-bold"
+                                          th:text="${n.tier}"></span>
+                                    <span>Niveau <span th:text="${n.tier}"></span></span>
+                                    <span class="text-[11px] font-normal normal-case text-slate-500"
+                                          th:text="'— une card par ' + ${n.typeGroupe}"></span>
+                                </h2>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    <div th:each="c : ${n.cartes}"
+                                         class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl flex flex-col overflow-hidden">
+
+                                        <h3 class="text-sm font-bold text-slate-200 px-5 py-3 bg-slate-850 border-b border-slate-600 flex items-center gap-2">
+                                            <i class="bi bi-gem text-purple-400"></i>
+                                            <span th:text="${c.titre}"></span>
+                                            <span class="ms-auto text-[10px] font-normal text-slate-500"
+                                                  th:text="${#lists.size(c.mecaniques)}"></span>
+                                        </h3>
+
+                                        <ul class="divide-y divide-slate-600">
+                                            <li th:each="m : ${c.mecaniques}"
+                                                class="px-5 py-3 text-xs text-slate-300 leading-relaxed whitespace-pre-line border-l-2 border-amber-500/40"
+                                                th:text="${m.description}"></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                    </th:block>
+                </div>
+
+                <!-- =============================================================== -->
+                <!-- SOUS-PANNEAU 2 : PLAN DE FARM (page actuelle)                   -->
+                <!-- =============================================================== -->
+                <div class="sub-panel" data-sub="plan">
+
+                    <!-- ===================== FORMULAIRE DE CRÉATION ===================== -->
+                    <div th:if="${onglet.options != null}" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8">
+                        <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <i class="bi bi-plus-circle text-emerald-400"></i>
+                            Nouveau datacron cible — SET <span th:text="${onglet.setId}"></span>
+                        </h2>
+
+                        <form th:action="@{/web/plan-farm-datacron/creer}" method="post" class="space-y-6">
+                            <input type="hidden" name="setId" th:value="${onglet.setId}">
+
+                            <!-- Nom du datacron cible -->
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nom du datacron cible</h3>
+                                <input type="text" name="nom" placeholder="Ex : DTC Tank Lumineux"
+                                       class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                            </div>
+
+                            <!-- Mécaniques : 3 sélecteurs empilés -->
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mécaniques (jusqu'à 3)</h3>
+                                <div class="space-y-2">
+                                    <select name="mecaniques"
+                                            class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                                        <option value="">-- Mécanique 1 : aucune --</option>
+                                        <option th:each="mec : ${onglet.options.mecaniques}"
+                                                th:value="${mec.tier} + '|' + ${mec.abilityId}"
+                                                th:text="${mec.libelleAffichage}"
+                                                th:title="${mec.descriptionComplete}">
+                                        </option>
+                                    </select>
+                                    <select name="mecaniques"
+                                            class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                                        <option value="">-- Mécanique 2 : aucune --</option>
+                                        <option th:each="mec : ${onglet.options.mecaniques}"
+                                                th:value="${mec.tier} + '|' + ${mec.abilityId}"
+                                                th:text="${mec.libelleAffichage}"
+                                                th:title="${mec.descriptionComplete}">
+                                        </option>
+                                    </select>
+                                    <select name="mecaniques"
+                                            class="w-full bg-slate-850 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                                        <option value="">-- Mécanique 3 : aucune --</option>
+                                        <option th:each="mec : ${onglet.options.mecaniques}"
+                                                th:value="${mec.tier} + '|' + ${mec.abilityId}"
+                                                th:text="${mec.libelleAffichage}"
+                                                th:title="${mec.descriptionComplete}">
+                                        </option>
+                                    </select>
                                 </div>
                             </div>
-                        </div>
 
-                        <button type="submit"
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/30 rounded-xl font-semibold text-sm transition-all duration-200">
-                            <i class="bi bi-save"></i>
-                            <span>Enregistrer le datacron cible</span>
-                        </button>
-                    </form>
-                </div>
+                            <!-- Stats -->
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Statistiques cibles</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-64 overflow-y-auto bg-slate-850 border border-slate-700/60 rounded-xl p-2">
+                                    <div th:each="stat : ${onglet.options.stats}" class="checkbox-row">
+                                        <input type="checkbox" name="statsSelectionnees" th:value="${stat.statType}"
+                                               class="accent-amber-500 shrink-0">
+                                        <span class="text-xs text-slate-300 flex-1" th:text="${stat.statLibelle}"></span>
+                                        <input type="number" step="0.01"
+                                               th:name="'statValue_' + ${stat.statType}"
+                                               placeholder="Valeur"
+                                               class="w-24 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                                    </div>
+                                </div>
+                            </div>
 
-                <div th:if="${onglet.options == null}" class="text-slate-500 text-sm mb-8">
-                    Ce set n'est plus disponible pour la création (hors des 4 sets les plus récents).
-                </div>
-
-                <!-- ===================== CARDS ENREGISTRÉES ===================== -->
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                        <i class="bi bi-collection"></i> Datacrons cibles enregistrés
-                    </h2>
-                    <form th:if="${!#lists.isEmpty(onglet.cartes.datacrons)}"
-                          th:action="@{/web/plan-farm-datacron/set/{setId}/supprimer(setId=${onglet.setId})}"
-                          method="post"
-                          onsubmit="return confirm('Supprimer tous les datacrons cibles de ce set ?');">
-                        <button type="submit"
-                                class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-slate-950 border border-red-500/30 rounded-lg font-semibold text-xs transition-all duration-200">
-                            <i class="bi bi-trash3"></i>
-                            <span>Vider ce set</span>
-                        </button>
-                    </form>
-                </div>
-
-                <div th:if="${#lists.isEmpty(onglet.cartes.datacrons)}" class="text-slate-500 text-sm">
-                    Aucun datacron cible enregistré pour ce set.
-                </div>
-
-                <div th:if="${!#lists.isEmpty(onglet.cartes.datacrons)}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    <div th:each="carte : ${onglet.cartes.datacrons}"
-                         class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col">
-
-                        <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
-                            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-                                <i class="bi bi-gem text-purple-400"></i>
-                                <span th:text="${carte.nom}"></span>
-                            </h3>
-                            <form th:action="@{/web/plan-farm-datacron/{id}/supprimer(id=${carte.id})}"
-                                  method="post"
-                                  onsubmit="return confirm('Supprimer ce datacron cible ?');">
-                                <button type="submit" class="text-red-400 hover:text-red-300" title="Supprimer le datacron">
-                                    <i class="bi bi-trash3"></i>
-                                </button>
-                            </form>
-                        </div>
-
-                        <!-- Mécaniques -->
-                        <div th:if="${!#lists.isEmpty(carte.mecaniques)}" class="mb-4">
-                            <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mécaniques</h4>
-                            <ul class="space-y-1">
-                                <li th:each="mec : ${carte.mecaniques}" class="flex items-start gap-2 text-xs">
-                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px] shrink-0 mt-0.5"
-                                          th:text="${mec.tier}"></span>
-                                    <div class="text-slate-300 text-clamp-2 flex-1 min-w-0"
-                                         th:text="${mec.description}"
-                                         th:title="${mec.description}"></div>
-                                    <form th:action="@{/web/plan-farm-datacron/mecanique/{id}/supprimer(id=${mec.id})}" method="post" class="shrink-0">
-                                        <button type="submit" class="text-slate-500 hover:text-red-400" title="Supprimer cette mécanique">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <!-- Stats -->
-                        <div th:if="${!#lists.isEmpty(carte.stats)}">
-                            <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Statistiques</h4>
-                            <ul class="space-y-1">
-                                <li th:each="stat : ${carte.stats}" class="flex items-center justify-between gap-2 text-xs">
-                                    <span class="text-slate-300 flex-1 truncate" th:text="${stat.statLibelle}"></span>
-                                    <b class="text-emerald-400 font-mono" th:text="${stat.value != null ? stat.value : '-'}"></b>
-                                    <form th:action="@{/web/plan-farm-datacron/stat/{id}/supprimer(id=${stat.id})}" method="post">
-                                        <button type="submit" class="text-slate-500 hover:text-red-400" title="Supprimer cette stat">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </div>
-
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 border border-emerald-500/30 rounded-xl font-semibold text-sm transition-all duration-200">
+                                <i class="bi bi-save"></i>
+                                <span>Enregistrer le datacron cible</span>
+                            </button>
+                        </form>
                     </div>
+
+                    <div th:if="${onglet.options == null}" class="text-slate-500 text-sm mb-8">
+                        Ce set n'est plus disponible pour la création (hors des 4 sets les plus récents).
+                    </div>
+
+                    <!-- ===================== CARDS ENREGISTRÉES ===================== -->
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="bi bi-collection"></i> Datacrons cibles enregistrés
+                        </h2>
+                        <form th:if="${!#lists.isEmpty(onglet.cartes.datacrons)}"
+                              th:action="@{/web/plan-farm-datacron/set/{setId}/supprimer(setId=${onglet.setId})}"
+                              method="post"
+                              onsubmit="return confirm('Supprimer tous les datacrons cibles de ce set ?');">
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-slate-950 border border-red-500/30 rounded-lg font-semibold text-xs transition-all duration-200">
+                                <i class="bi bi-trash3"></i>
+                                <span>Vider ce set</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(onglet.cartes.datacrons)}" class="text-slate-500 text-sm">
+                        Aucun datacron cible enregistré pour ce set.
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(onglet.cartes.datacrons)}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <div th:each="carte : ${onglet.cartes.datacrons}"
+                             class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl flex flex-col">
+
+                            <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
+                                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                    <i class="bi bi-gem text-purple-400"></i>
+                                    <span th:text="${carte.nom}"></span>
+                                </h3>
+                                <form th:action="@{/web/plan-farm-datacron/{id}/supprimer(id=${carte.id})}"
+                                      method="post"
+                                      onsubmit="return confirm('Supprimer ce datacron cible ?');">
+                                    <button type="submit" class="text-red-400 hover:text-red-300" title="Supprimer le datacron">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Mécaniques -->
+                            <div th:if="${!#lists.isEmpty(carte.mecaniques)}" class="mb-4">
+                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mécaniques</h4>
+                                <ul class="space-y-1">
+                                    <li th:each="mec : ${carte.mecaniques}" class="flex items-start gap-2 text-xs">
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-400 font-bold text-[10px] shrink-0 mt-0.5"
+                                              th:text="${mec.tier}"></span>
+                                        <div class="text-slate-300 text-clamp-2 flex-1 min-w-0"
+                                             th:text="${mec.description}"
+                                             th:title="${mec.description}"></div>
+                                        <form th:action="@{/web/plan-farm-datacron/mecanique/{id}/supprimer(id=${mec.id})}" method="post" class="shrink-0">
+                                            <button type="submit" class="text-slate-500 hover:text-red-400" title="Supprimer cette mécanique">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Stats -->
+                            <div th:if="${!#lists.isEmpty(carte.stats)}">
+                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Statistiques</h4>
+                                <ul class="space-y-1">
+                                    <li th:each="stat : ${carte.stats}" class="flex items-center justify-between gap-2 text-xs">
+                                        <span class="text-slate-300 flex-1 truncate" th:text="${stat.statLibelle}"></span>
+                                        <b class="text-emerald-400 font-mono" th:text="${stat.value != null ? stat.value : '-'}"></b>
+                                        <form th:action="@{/web/plan-farm-datacron/stat/{id}/supprimer(id=${stat.id})}" method="post">
+                                            <button type="submit" class="text-slate-500 hover:text-red-400" title="Supprimer cette stat">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+
+                        </div>
+                    </div>
+
                 </div>
+                <!-- /sous-panneau plan -->
 
             </div>
         </div>
@@ -243,6 +388,7 @@
     </main>
 
     <script>
+        // Onglets de set
         function showTab(index) {
             document.querySelectorAll('.tab-panel').forEach((panel, i) => {
                 panel.classList.toggle('active', i === index);
@@ -251,6 +397,39 @@
                 btn.classList.toggle('active', i === index);
             });
         }
+
+        // Sous-onglets (Définitions / Plan de farm), propres à chaque set
+        function showSub(btn, name) {
+            const panel = btn.closest('.tab-panel');
+            panel.querySelectorAll('.sub-panel').forEach(p => {
+                p.classList.toggle('active', p.dataset.sub === name);
+            });
+            panel.querySelectorAll('.sub-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.sub === name);
+            });
+        }
+
+        // Onglets FDTC / DTC (dans l'onglet Définitions)
+        function showDef(btn, name) {
+            const zone = btn.closest('.sub-panel');
+            zone.querySelectorAll('.def-panel').forEach(p => {
+                p.classList.toggle('active', p.dataset.def === name);
+            });
+            zone.querySelectorAll('.def-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.def === name);
+            });
+        }
+
+        // Après création / suppression : un redirect vers /web/plan-farm-datacron#plan
+        // ré-ouvre directement le sous-onglet "Plan de farm".
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.location.hash === '#plan') {
+                document.querySelectorAll('.tab-panel').forEach(panel => {
+                    const btn = panel.querySelector('.sub-btn[data-sub="plan"]');
+                    if (btn) showSub(btn, 'plan');
+                });
+            }
+        });
     </script>
 
 </body>

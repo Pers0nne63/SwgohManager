@@ -70,18 +70,28 @@
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
 
+		<!-- Outils Microsoft Excel -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.3.0</version>
+		</dependency>
+
+		<!-- ========================================== -->
+		<!-- AJOUTS REQUÊTES EA CONNECT / LIVE SWGOH     -->
+		<!-- ========================================== -->
+		<dependency>
+			<groupId>com.microsoft.playwright</groupId>
+			<artifactId>playwright</artifactId>
+			<version>1.49.0</version>
+		</dependency>
+
 		<!-- Tests -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
-		<dependency>
-          <groupId>org.apache.poi</groupId>
-          <artifactId>poi-ooxml</artifactId>
-          <version>5.3.0</version>
-        </dependency>
 	</dependencies>
 
 	<build>

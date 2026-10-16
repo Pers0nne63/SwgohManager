@@ -23,6 +23,13 @@ public class GacTopPlayerService {
     private static final long PUISSANCE_MINIMUM = 13_000_000L;
     private static final int NB_JOUEURS_CIBLE = 100;
     private static final int MAX_BRACKETS = 50; // garde-fou anti-boucle infinie
+    public static final int LEADERBOARD_TYPE = 4;
+
+    public record GacContext(String gacId, String eventInstanceId) {
+        public String groupId(int bracket) {
+            return gacId + ":" + eventInstanceId + ":" + LIGUE + ":" + bracket;
+        }
+    }
 
     public List<String> recupererTopPlayers() {
         EventsResponse events = swgohApiClient.getEvents();
@@ -59,6 +66,20 @@ public class GacTopPlayerService {
 
         log.info("{} joueur(s) top GAC récupéré(s) après {} bracket(s) parcouru(s)", topPlayers.size(), i);
         return new ArrayList<>(topPlayers);
+    }
+    
+    public GacContext resolveGacContext() {
+        EventsResponse events = swgohApiClient.getEvents();
+
+        EventsResponse.GameEvent gac = events.gameEvent().stream()
+                .filter(e -> NOM_EVENT_GAC.equals(e.nameKey()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Aucune GAC en cours trouvée (" + NOM_EVENT_GAC + ")"));
+
+        if (gac.instance() == null || gac.instance().isEmpty()) {
+            throw new IllegalStateException("La GAC trouvée n'a pas d'instance active");
+        }
+        return new GacContext(gac.id(), gac.instance().get(0).id());
     }
 
     private long parseLong(String value) {

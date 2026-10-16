@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Les Baguettes Enflammées - Stat GAC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { slate: { 850: '#152032', 950: '#0b1329' } } } }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+
+    <div th:replace="~{fragments/fragments :: navbar}"></div>
+
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+
+        <!-- EN-TÊTE + sélecteur de snapshot -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-extrabold text-white flex items-center gap-2">
+                    <i class="bi bi-trophy-fill text-amber-400"></i> Stat GAC — Ligue Kyber
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">Statistiques globales sur l'ensemble des joueurs Kyber</p>
+            </div>
+
+            <form th:if="${snapshot != null}" method="get" th:action="@{/stat-gac}" class="flex items-center gap-2">
+                <label for="snapshotId" class="text-xs text-slate-400 font-semibold uppercase">Snapshot</label>
+                <select id="snapshotId" name="snapshotId" onchange="this.form.submit()"
+                        class="bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-amber-400">
+                    <option th:each="s : ${snapshots}"
+                            th:value="${s.id}"
+                            th:selected="${s.id == snapshot.id}"
+                            th:text="${#temporals.format(s.dateSnapshot, 'dd/MM/yyyy HH:mm')}">01/01/2026</option>
+                </select>
+            </form>
+        </div>
+
+        <!-- AUCUNE DONNÉE -->
+        <div th:if="${snapshot == null}" class="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center shadow-xl">
+            <i class="bi bi-inbox text-4xl text-slate-500"></i>
+            <p class="text-slate-300 font-semibold mt-3">Aucun snapshot Kyber pour le moment.</p>
+            <p class="text-xs text-slate-500 mt-1">Les statistiques sont générées lors de la synchronisation GAC (une fois par semaine).</p>
+        </div>
+
+        <th:block th:if="${snapshot != null}">
+
+            <!-- CARTES -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl">
+                    <span class="text-slate-400 block text-xs uppercase font-semibold">Joueurs analysés</span>
+                    <b class="text-2xl font-mono text-amber-400"
+                       th:text="${#numbers.formatInteger(snapshot.nbJoueurs, 0, 'DEFAULT')}">50 000</b>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl">
+                    <span class="text-slate-400 block text-xs uppercase font-semibold">PG moyenne Kyber</span>
+                    <b class="text-2xl font-mono text-white"
+                       th:text="${#numbers.formatInteger(pgMoyenneGlobale, 0, 'DEFAULT')}">0</b>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl">
+                    <span class="text-slate-400 block text-xs uppercase font-semibold">Brackets parcourus</span>
+                    <b class="text-2xl font-mono text-white"
+                       th:text="${#numbers.formatInteger(snapshot.nbBrackets, 0, 'DEFAULT')}">0</b>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-xl">
+                    <span class="text-slate-400 block text-xs uppercase font-semibold">Erreurs d'appel</span>
+                    <b class="text-2xl font-mono"
+                       th:classappend="${snapshot.nbErreurs > 0} ? 'text-rose-400' : 'text-emerald-400'"
+                       th:text="${snapshot.nbErreurs}">0</b>
+                </div>
+            </div>
+
+            <!-- RÉPARTITION PAR DIVISION -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden mb-8">
+                <div class="p-6 border-b border-slate-700">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="bi bi-bar-chart-fill text-sky-400"></i> Répartition par division
+                    </h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-slate-300">
+                        <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left">Division</th>
+                                <th class="px-6 py-3 text-right">Joueurs</th>
+                                <th class="px-6 py-3 text-right">Part</th>
+                                <th class="px-6 py-3 w-1/3"></th>
+                                <th class="px-6 py-3 text-right">PG moyenne</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700/60">
+                            <tr th:each="d : ${divisions}" class="hover:bg-slate-750/50 transition-colors">
+                                <td class="px-6 py-3 font-bold text-white" th:text="'Division ' + ${d.division}">Division 1</td>
+                                <td class="px-6 py-3 text-right font-mono text-slate-200"
+                                    th:text="${#numbers.formatInteger(d.nbJoueurs, 0, 'DEFAULT')}">0</td>
+                                <td class="px-6 py-3 text-right font-mono text-amber-400"
+                                    th:text="${#numbers.formatDecimal(d.pct, 1, 1)} + ' %'">0 %</td>
+                                <td class="px-6 py-3">
+                                    <div class="h-2.5 bg-slate-850 rounded-full overflow-hidden border border-slate-700/60">
+                                        <div class="h-full bg-gradient-to-r from-amber-600 to-yellow-400 rounded-full"
+                                             th:style="'width:' + ${d.barre} + '%'"></div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3 text-right font-mono text-slate-200"
+                                    th:text="${#numbers.formatInteger(d.pgMoyenne, 0, 'DEFAULT')}">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SKILL RATING : GRAPHIQUE + TABLEAU -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden mb-8">
+                <div class="p-6 border-b border-slate-700">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="bi bi-graph-up text-emerald-400"></i> PG moyenne par tranche de skill rating
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Tranches de 100 points — barres : nombre de joueurs, courbe : PG moyenne</p>
+                </div>
+                <div class="p-6">
+                    <div class="relative h-80">
+                        <canvas id="chartTranches"></canvas>
+                    </div>
+                </div>
+
+                <details class="group border-t border-slate-700">
+                    <summary class="px-6 py-3 cursor-pointer list-none text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 hover:text-white transition-colors">
+                        <i class="bi bi-table"></i> Détail par tranche
+                        <i class="bi bi-chevron-down text-slate-500 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="overflow-x-auto border-t border-slate-700">
+                        <table class="w-full text-sm text-slate-300">
+                            <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left">Skill rating</th>
+                                    <th class="px-6 py-3 text-right">Joueurs</th>
+                                    <th class="px-6 py-3 w-1/3"></th>
+                                    <th class="px-6 py-3 text-right">PG moyenne</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-700/60">
+                                <tr th:each="t : ${tranches}" class="hover:bg-slate-750/50 transition-colors">
+                                    <td class="px-6 py-2.5 font-mono font-semibold text-white"
+                                        th:text="${t.cle} + ' – ' + (${t.cle} + 99)">2300 – 2399</td>
+                                    <td class="px-6 py-2.5 text-right font-mono text-slate-200"
+                                        th:text="${#numbers.formatInteger(t.nbJoueurs, 0, 'DEFAULT')}">0</td>
+                                    <td class="px-6 py-2.5">
+                                        <div class="h-2 bg-slate-850 rounded-full overflow-hidden border border-slate-700/60">
+                                            <div class="h-full bg-sky-500/70 rounded-full"
+                                                 th:style="'width:' + ${t.nbJoueurs * 100 / maxTranche} + '%'"></div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-2.5 text-right font-mono text-amber-400"
+                                        th:text="${#numbers.formatInteger(t.pgMoyenne, 0, 'DEFAULT')}">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
+
+            <!-- ÉVOLUTION HEBDO -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden mb-8">
+                <div class="p-6 border-b border-slate-700">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="bi bi-clock-history text-purple-400"></i> Évolution hebdomadaire
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Nombre de joueurs par division, snapshot après snapshot</p>
+                </div>
+                <div class="p-6">
+                    <p th:if="${#lists.size(snapshots) < 2}" class="text-sm text-slate-500 italic">
+                        Il faut au moins deux snapshots pour afficher une évolution.
+                    </p>
+                    <div th:if="${#lists.size(snapshots) >= 2}" class="relative h-72">
+                        <canvas id="chartEvolution"></canvas>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+    </main>
+
+    <script th:inline="javascript" th:if="${snapshot != null}">
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(51,65,85,0.6)';
+
+        var trancheLabels = /*[[${trancheLabels}]]*/ [];
+        var trancheNb     = /*[[${trancheNb}]]*/ [];
+        var tranchePg     = /*[[${tranchePg}]]*/ [];
+        var evoLabels     = /*[[${evoLabels}]]*/ [];
+        var evoSeries     = /*[[${evoSeries}]]*/ {};
+
+        new Chart(document.getElementById('chartTranches'), {
+            data: {
+                labels: trancheLabels,
+                datasets: [
+                    { type: 'bar', label: 'Joueurs', data: trancheNb, yAxisID: 'yNb',
+                      backgroundColor: 'rgba(14,165,233,0.45)', borderColor: 'rgba(14,165,233,0.9)', borderWidth: 1 },
+                    { type: 'line', label: 'PG moyenne', data: tranchePg, yAxisID: 'yPg',
+                      borderColor: '#fbbf24', backgroundColor: '#fbbf24', tension: 0.3, pointRadius: 2 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    yNb: { position: 'left',  title: { display: true, text: 'Joueurs' }, beginAtZero: true },
+                    yPg: { position: 'right', title: { display: true, text: 'PG moyenne' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        var canvasEvo = document.getElementById('chartEvolution');
+        if (canvasEvo) {
+            var couleurs = ['#fbbf24', '#34d399', '#38bdf8', '#a78bfa', '#fb7185'];
+            var datasets = Object.keys(evoSeries).map(function (div, i) {
+                return { label: 'Division ' + div, data: evoSeries[div],
+                         borderColor: couleurs[i % couleurs.length], backgroundColor: couleurs[i % couleurs.length],
+                         tension: 0.25, pointRadius: 3 };
+            });
+            new Chart(canvasEvo, {
+                type: 'line',
+                data: { labels: evoLabels, datasets: datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

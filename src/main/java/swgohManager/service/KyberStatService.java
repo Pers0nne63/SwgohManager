@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,7 @@ public class KyberStatService {
     private static final int BATCH_SIZE = 64;
     private static final int MAX_BRACKETS = 20_000; // garde-fou anti-boucle infinie
     private static final int INTERVALLE_JOURS = 6;
+    private static final int PROGRESS_STEP = 250;
 
     public String genererSnapshotSiNecessaire() {
         KyberStatSnapshot dernier = snapshotRepository.findFirstByOrderByDateSnapshotDesc();
@@ -59,10 +61,27 @@ public class KyberStatService {
      * Parcourt tous les brackets Kyber, agrège en mémoire puis sauvegarde un snapshot.
      * Volontairement non transactionnel : seule la sauvegarde finale l'est.
      */
-    public String  genererSnapshot() {
-        GacContext ctx = gacTopPlayerService.resolveGacContext();
+    
+    
+    public String genererSnapshotSiNecessaire(IntConsumer onProgress) {
+        KyberStatSnapshot dernier = snapshotRepository.findFirstByOrderByDateSnapshotDesc();
+        if (dernier != null && dernier.getDateSnapshot()
+                .isAfter(LocalDateTime.now().minusDays(INTERVALLE_JOURS))) {
+            return "Stats Kyber ignorées : dernier snapshot du " + dernier.getDateSnapshot().toLocalDate();
+        }
+        return genererSnapshot(onProgress);
+    }
+
+    public String genererSnapshot() {
+        return genererSnapshot(n -> { });
+    }
+    
+    
+    public String  genererSnapshot(IntConsumer onProgress) {
+    	GacTopPlayerService.GacContext ctx = gacTopPlayerService.resolveGacContext();
         Queue<Sample> samples = new ConcurrentLinkedQueue<>();
         AtomicInteger erreurs = new AtomicInteger();
+        AtomicInteger scannes = new AtomicInteger();
         int brackets = 0;
 
         ExecutorService pool = Executors.newFixedThreadPool(THREADS);
@@ -73,7 +92,7 @@ public class KyberStatService {
                 for (int i = debut; i < debut + BATCH_SIZE; i++) {
                     final int bracket = i;
                     futures.add(CompletableFuture.supplyAsync(
-                            () -> traiterBracket(ctx, bracket, samples, erreurs), pool));
+                            () -> traiterBracket(ctx, bracket, samples, erreurs, scannes, onProgress), pool));
                 }
                 int nonVides = (int) futures.stream()
                         .map(CompletableFuture::join)
@@ -104,7 +123,7 @@ public class KyberStatService {
     }
 
     /** @return true si le bracket n'était pas vide */
-    private boolean traiterBracket(GacContext ctx, int bracket, Queue<Sample> samples, AtomicInteger erreurs) {
+    private boolean traiterBracket(GacContext ctx, int bracket, Queue<Sample> samples, AtomicInteger erreurs, AtomicInteger scannes, IntConsumer onProgress) {
         List<LeaderboardResponse.PlayerEntry> entries;
         try {
             LeaderboardResponse resp = apiClient.getLeaderboard(
@@ -147,10 +166,22 @@ public class KyberStatService {
             } catch (Exception e) {
                 erreurs.incrementAndGet();
                 log.debug("Joueur {} ignoré : {}", entry.id(), e.getMessage());
+            } finally {
+                signalerProgression(scannes, onProgress);
             }
         }
         return true;
     }
+
+    private void signalerProgression(AtomicInteger scannes, IntConsumer onProgress) {
+        int n = scannes.incrementAndGet();
+        if (n % PROGRESS_STEP == 0) {
+            synchronized (scannes) { // évite deux envois SSE simultanés depuis des threads différents
+                onProgress.accept(n);
+            }
+        }
+    }
+    
 
     private void sauvegarder(Queue<Sample> samples, int brackets, int erreurs) {
         KyberStatSnapshot snap = new KyberStatSnapshot();

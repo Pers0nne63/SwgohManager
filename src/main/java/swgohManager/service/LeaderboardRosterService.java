@@ -31,13 +31,13 @@ public class LeaderboardRosterService {
             return;
         }
 
-        // Pas d'historisation : on remplace intégralement l'ancien état
-        leaderboardUnitRepository.deleteByPlayerId(playerId);
-        leaderboardModRepository.deleteByPlayerId(playerId);
+        // Pas d'historisation : on remplace intégralement l'ancien état  ==> Inutile dorénavant car on clean les tables avant dans gacrostersyncservice pour être sûr de supprimer les joueurs sortis du top 100.
+       // leaderboardUnitRepository.deleteByPlayerId(playerId);
+        //leaderboardModRepository.deleteByPlayerId(playerId);
         
      // FORCER Hibernate à envoyer les DELETE immédiatement à la BDD
-        leaderboardUnitRepository.flush();
-        leaderboardModRepository.flush();
+      //  leaderboardUnitRepository.flush();
+       // leaderboardModRepository.flush();
 
         List<LeaderboardUnit> unites = new ArrayList<>();
         List<LeaderboardMod> mods = new ArrayList<>();
@@ -96,6 +96,13 @@ public class LeaderboardRosterService {
         }
 
         return lignes;
+    }
+    
+    @Transactional
+    public void viderLeaderboard() {
+        leaderboardModRepository.deleteAllInBatch();
+        leaderboardUnitRepository.deleteAllInBatch();
+        log.info("Tables leaderboard_mods et leaderboard_units vidées");
     }
 
     private Long parseLong(String value) {

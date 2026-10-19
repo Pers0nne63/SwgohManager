@@ -29,6 +29,9 @@ public class GacRosterSyncService {
     public GacSyncResult synchroniserTopPlayers(boolean withProgress) {
     	List<String> playerIds = gacTopPlayerService.recupererTopPlayers();
         int totalJoueurs = playerIds.size();
+        
+        leaderboardRosterService.viderLeaderboard();
+        
         log.info("Synchronisation du roster GAC de {} joueur(s), 10 en parallèle", totalJoueurs);
 
         AtomicInteger jouersTraites = new AtomicInteger(0);

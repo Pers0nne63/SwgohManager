@@ -1,17 +1,30 @@
 package swgohManager.service;
 
-import swgohManager.model.*;
-import swgohManager.repository.*;
-import swgohManager.util.ModAggregationUtil;
-import swgohManager.util.ModAggregationUtil.ModAccumulator;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.function.ToDoubleFunction;
-import java.util.stream.Collectors;
+import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import swgohManager.model.LeaderboardMod;
+import swgohManager.model.LeaderboardModMoy;
+import swgohManager.model.LeaderboardUnit;
+import swgohManager.model.StatDefinition;
+import swgohManager.model.UnitDefinition;
+import swgohManager.repository.LeaderboardModMoyRepository;
+import swgohManager.repository.LeaderboardModRepository;
+import swgohManager.repository.LeaderboardUnitRepository;
+import swgohManager.repository.StatDefinitionRepository;
+import swgohManager.repository.UnitDefinitionRepository;
+import swgohManager.util.ModAggregationUtil;
+import swgohManager.util.ModAggregationUtil.ModAccumulator;
 
 @Service
 @RequiredArgsConstructor
@@ -23,30 +36,40 @@ public class LeaderboardModMoyService {
     private final UnitDefinitionRepository unitDefinitionRepository;
     private final StatDefinitionRepository statDefinitionRepository;
     private final LeaderboardModMoyRepository leaderboardModMoyRepository;
+    private final EntityManager entityManager;
 
     @Transactional
     public String calculerMoyennes() {
-        List<LeaderboardUnit> unites = leaderboardUnitRepository.findAll();
+        List<LeaderboardUnit> unites = leaderboardUnitRepository.findAll();   // ~85 000 lignes, OK
         List<String> definitionIds = unites.stream().map(LeaderboardUnit::getDefinitionId).distinct().toList();
 
         Map<String, String> baseIdParDefinitionId = unitDefinitionRepository.findByIdUnitIn(definitionIds).stream()
                 .collect(Collectors.toMap(UnitDefinition::getIdUnit, UnitDefinition::getBaseId));
 
-        Map<String, List<LeaderboardMod>> modsParUnite = leaderboardModRepository.findAll().stream()
-                .collect(Collectors.groupingBy(m -> m.getPlayerId() + "|" + m.getIdUnit()));
-
         Map<Integer, Boolean> isDecimalByStat = statDefinitionRepository.findAll().stream()
                 .collect(Collectors.toMap(StatDefinition::getStatId, sd -> Boolean.TRUE.equals(sd.getIsDecimal())));
 
+        Map<String, List<LeaderboardUnit>> unitesParJoueur = unites.stream()
+                .collect(Collectors.groupingBy(LeaderboardUnit::getPlayerId));
+
         Map<String, List<ModAccumulator>> accParBaseId = new HashMap<>();
 
-        for (LeaderboardUnit u : unites) {
-            String baseId = baseIdParDefinitionId.get(u.getDefinitionId());
-            if (baseId == null) continue;
+        for (Map.Entry<String, List<LeaderboardUnit>> joueur : unitesParJoueur.entrySet()) {
+            // Uniquement les mods de ce joueur (~8 000 lignes au lieu de 1,6 M)
+            Map<String, List<LeaderboardMod>> modsParUnite = leaderboardModRepository
+                    .findByPlayerId(joueur.getKey()).stream()
+                    .collect(Collectors.groupingBy(LeaderboardMod::getIdUnit));
 
-            List<LeaderboardMod> modsUnite = modsParUnite.getOrDefault(u.getPlayerId() + "|" + u.getIdUnit(), List.of());
-            ModAccumulator acc = ModAggregationUtil.agregerMods(modsUnite, isDecimalByStat);
-            accParBaseId.computeIfAbsent(baseId, k -> new ArrayList<>()).add(acc);
+            for (LeaderboardUnit u : joueur.getValue()) {
+                String baseId = baseIdParDefinitionId.get(u.getDefinitionId());
+                if (baseId == null) continue;
+
+                List<LeaderboardMod> modsUnite = modsParUnite.getOrDefault(u.getIdUnit(), List.of());
+                ModAccumulator acc = ModAggregationUtil.agregerMods(modsUnite, isDecimalByStat);
+                accParBaseId.computeIfAbsent(baseId, k -> new ArrayList<>()).add(acc);
+            }
+
+            entityManager.clear();   // libère les entités du joueur avant le suivant
         }
 
         leaderboardModMoyRepository.deleteAll();

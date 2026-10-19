@@ -34,9 +34,9 @@ import swgohManager.service.GacTopPlayerService.GacContext;
 @Slf4j
 public class KyberStatService {
 
-    private static final int THREADS = 16;
-    private static final int BATCH_SIZE = 64;
-    private static final int MAX_BRACKETS = 20_000; // garde-fou anti-boucle infinie
+    private static final int THREADS = 24;
+    private static final int BATCH_SIZE = 96;
+    private static final int MAX_BRACKETS = 8_000; // garde-fou anti-boucle infinie
     private static final int INTERVALLE_JOURS = 6;
     private static final int PROGRESS_STEP = 250;
 

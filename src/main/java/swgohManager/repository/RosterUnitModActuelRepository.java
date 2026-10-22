@@ -20,7 +20,8 @@ public interface RosterUnitModActuelRepository extends JpaRepository<RosterUnitM
     void deleteByPlayerIdNotIn(@Param("activePlayerIds") List<String> activePlayerIds);
     List<RosterUnitModActuel> findByPlayerIdAndIdSecondaire(String playerId, Integer idSecondaire);
 
-    // 👇 remplace countByPlayerIdAndRarity : compte les mods distincts (pas les lignes stat secondaire)
     @Query("SELECT COUNT(DISTINCT m.idMod) FROM RosterUnitModActuel m WHERE m.playerId = :playerId AND m.rarity = :rarity")
     long countDistinctModsByPlayerIdAndRarity(@Param("playerId") String playerId, @Param("rarity") String rarity);
+    
+    List<RosterUnitModActuel> findByPlayerIdAndIdUnit(String playerId, String idUnit);
 }

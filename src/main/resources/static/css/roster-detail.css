@@ -1,0 +1,133 @@
+/* ========================================================
+   Card d'unité agrandie (onglet Roster)
+   ======================================================== */
+.unit.cursor-pointer { transition: transform .15s ease; }
+.unit.cursor-pointer:hover { transform: scale(1.04); }
+
+.roster-item { transition: border-color .2s ease; }
+.roster-item.roster-open {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 2rem;
+    border-color: rgba(245, 158, 11, .6);
+}
+.roster-item.roster-open .roster-left { width: 140px; flex-shrink: 0; }
+.roster-detail { flex: 1; min-width: 0; }
+@media (max-width: 767px) {
+    .roster-item.roster-open { flex-direction: column; align-items: center; }
+    .roster-item.roster-open .roster-detail { width: 100%; }
+}
+
+.rd-titre { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; margin-bottom: .5rem; }
+
+/* ========================================================
+   Plateau : [détail] [mod] [mod] [détail], 3 lignes
+   ======================================================== */
+.rd-board {
+    display: grid;
+    grid-template-columns: minmax(0, 250px) 76px 76px minmax(0, 250px);
+    column-gap: 14px;
+    row-gap: 14px;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 8px; /* place pour les pastilles sous le dernier mod */
+}
+.rd-pos-l    { grid-column: 2; }
+.rd-pos-r    { grid-column: 3; }
+.rd-detail-l { grid-column: 1; }
+.rd-detail-r { grid-column: 4; }
+
+/* ========================================================
+   Le mod (conteneur + calques)
+   ======================================================== */
+.rd-slot { position: relative; width: 76px; height: 76px; }
+
+.rd-slot-vide { opacity: .25; filter: grayscale(1); }
+.rd-slot-vide > img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* Plaque de base (métal neutre 5★ ou or 6★) */
+.rd-chip-base {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 1;
+}
+
+/* Niveau et pastilles de rareté */
+.rd-lvl {
+    position: absolute; right: 0; bottom: 0; font-size: 10px; font-weight: 700; color: #fff;
+    background: rgba(15, 23, 42, .85); border-radius: 4px; padding: 0 4px; z-index: 15;
+}
+.rd-pips { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); display: flex; gap: 1px; z-index: 15; }
+.rd-pips img { width: 8px; height: 8px; display: block; }
+
+/* ========================================================
+   Couleurs des tiers (E → A), à ajuster ici uniquement
+   ======================================================== */
+.mod-tier-1 { --tier: #d3f0ef; }
+.mod-tier-2 { --tier: #4fe05a; }
+.mod-tier-3 { --tier: #348ad1; }
+.mod-tier-4 { --tier: #9e60ed; }
+.mod-tier-5 { --tier: #e9bd44; }
+
+/* Calque teinté : contour du tier + icône, l'image sert de masque */
+.rd-tint {
+    position: absolute; inset: 0; z-index: 10; pointer-events: none;
+}
+.rd-chip-light,
+.rd-stat-icon {
+    position: absolute;
+    background-color: var(--tier);
+    -webkit-mask: var(--mask) center / contain no-repeat;
+            mask: var(--mask) center / contain no-repeat;
+}
+.rd-chip-light { inset: 0; }
+.rd-stat-icon  { transform: translate(-50%, -50%); }
+
+/* Position de l'icône dans le creux de chaque forme */
+.rd-stat-square   { top: 42%; left: 61%; width: 22px; height: 22px; }
+.rd-stat-arrow    { top: 37%; left: 63%; width: 22px; height: 22px; }
+.rd-stat-diamond  { top: 51%; left: 50%; width: 22px; height: 22px; }
+.rd-stat-triangle { top: 58%; left: 50%; width: 22px; height: 22px; }
+.rd-stat-circle   { top: 51%; left: 50%; width: 22px; height: 22px; }
+.rd-stat-cross    { top: 52%; left: 50%; width: 22px; height: 22px; }
+
+/* ========================================================
+   Carte de détail d'un mod (bordure à la couleur du tier)
+   ======================================================== */
+.rd-detail {
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.35;
+    background: rgba(15, 23, 42, .55);
+    border: 1px solid color-mix(in srgb, var(--tier, #475569) 50%, transparent);
+}
+.rd-detail-vide { font-style: italic; color: #64748b; border-color: #334155; opacity: .6; }
+
+.rd-d-titre {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--tier, #94a3b8);
+    padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid #334155;
+}
+.rd-d-prim, .rd-d-sec { display: flex; justify-content: space-between; gap: 12px; padding: 1px 0; color: #cbd5e1; }
+.rd-d-prim { color: #fff; font-weight: 600; padding-bottom: 5px; margin-bottom: 4px; border-bottom: 1px dashed #334155; }
+.rd-d-prim b, .rd-d-sec b { font-family: ui-monospace, monospace; font-weight: 600; color: #f8fafc; white-space: nowrap; }
+.rd-d-prim .rd-d-ico { width: 16px; height: 16px; }
+.rd-d-sec.rd-vit, .rd-d-sec.rd-vit b { color: #fbbf24; }
+.rd-roll { margin-left: 4px; font-size: 11px; color: #94a3b8; }
+.rd-d-lbl { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.rd-d-ico { width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; }
+
+/* ========================================================
+   Mobile : un mod par ligne, détail à côté
+   ======================================================== */
+@media (max-width: 767px) {
+    .rd-board { grid-template-columns: 76px minmax(0, 1fr); column-gap: 12px; justify-content: stretch; }
+    .rd-pos-l, .rd-pos-r       { grid-column: 1 !important; grid-row: auto !important; }
+    .rd-detail-l, .rd-detail-r { grid-column: 2 !important; grid-row: auto !important; }
+}

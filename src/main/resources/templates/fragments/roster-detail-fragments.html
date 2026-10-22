@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<body>
+
+<!-- Panneau de détail d'une unité. Modèle : detail (RosterUnitDetailService.UnitDetail) -->
+<div th:fragment="unitDetail" class="rd flex flex-col lg:flex-row gap-8 w-full">
+
+    <!-- Stats -->
+    <div class="rd-stats lg:w-72 shrink-0">
+        <h4 class="rd-titre"><i class="bi bi-bar-chart-line"></i> Stats</h4>
+        <p th:if="${#lists.isEmpty(detail.stats)}" class="text-xs text-slate-500 italic">Stats indisponibles pour cette unité.</p>
+        <div th:each="s : ${detail.stats}" class="flex justify-between gap-4 text-xs py-1 border-b border-slate-700/40">
+            <span class="text-slate-400" th:text="${s.label}">Santé</span>
+            <span class="font-mono text-slate-100" th:text="${s.valeur}">0</span>
+        </div>
+    </div>
+
+    <!-- Mods : [détail] [mod] [mod] [détail] sur 3 lignes -->
+    <div class="rd-mods flex-1 min-w-0 lg:self-center">
+        <h4 class="rd-titre"><i class="bi bi-cpu"></i> Mods</h4>
+        <div class="rd-board">
+            <th:block th:each="m, iter : ${detail.mods}">
+
+                <!-- ===== Le mod ===== -->
+                <div th:if="${m.vide}" class="rd-slot rd-slot-vide"
+                     th:classappend="${iter.odd} ? 'rd-pos-l' : 'rd-pos-r'"
+                     th:style="|grid-row:${iter.index / 2 + 1}|">
+                    <img alt="" th:src="@{|/img/game/mod/modchip_${m.forme}_base.png|}">
+                </div>
+
+                <div th:unless="${m.vide}" class="rd-slot"
+                     th:classappend="|mod-tier-${m.tier} ${iter.odd ? 'rd-pos-l' : 'rd-pos-r'}|"
+                     th:style="|grid-row:${iter.index / 2 + 1}|">
+
+                    <img class="rd-chip-base" alt=""
+                         th:src="@{|/img/game/mod/modchip_${m.forme}_${m.rarete == 6 ? '6dot' : 'base'}.png|}">
+
+                    <div class="rd-tint">
+                        <div class="rd-chip-light"
+                             th:style="'--mask:url(' + @{|/img/game/mod/modchip_${m.forme}_light.png|} + ')'"></div>
+                        <div th:if="${m.primaireIconFileName != null}"
+                             class="rd-stat-icon"
+                             th:classappend="'rd-stat-' + ${m.forme}"
+                             th:style="'--mask:url(' + @{'/img/game/stat/' + ${m.primaireIconFileName}} + ')'"></div>
+                    </div>
+
+                    <span class="rd-lvl" th:text="${m.niveau}">15</span>
+                    <div th:if="${m.rarete > 0}" class="rd-pips">
+                        <img th:each="i : ${#numbers.sequence(1, m.rarete)}" alt="" th:src="@{/img/game/mod/pip.png}">
+                    </div>
+                </div>
+
+                <!-- ===== Son détail (à gauche pour carré/losange/rond, à droite pour les autres) ===== -->
+                <div th:if="${m.vide}" class="rd-detail rd-detail-vide"
+                     th:classappend="${iter.odd} ? 'rd-detail-l' : 'rd-detail-r'"
+                     th:style="|grid-row:${iter.index / 2 + 1}|">Emplacement vide</div>
+
+                <div th:unless="${m.vide}" class="rd-detail"
+                     th:classappend="|mod-tier-${m.tier} ${iter.odd ? 'rd-detail-l' : 'rd-detail-r'}|"
+                     th:style="|grid-row:${iter.index / 2 + 1}|">
+
+                    <div class="rd-d-titre" th:text="${m.setLibelle}">Vitesse</div>
+
+                    <div th:if="${m.primaire != null}" class="rd-d-prim">
+					    <span class="rd-d-lbl">
+					        <img class="rd-d-ico" alt="" th:src="@{'/img/game/stat/' + ${m.primaire.iconFileName}}">
+					        <span th:text="${m.primaire.label}">Vitesse</span>
+					    </span>
+					    <b th:text="${m.primaire.valeur}">+32</b>
+					</div>
+
+                    <div th:each="s : ${m.secondaires}" class="rd-d-sec" th:classappend="${s.vitesse} ? 'rd-vit'">
+					    <span class="rd-d-lbl">
+					        <img class="rd-d-ico" alt="" th:src="@{'/img/game/stat/' + ${s.iconFileName}}">
+					        <span th:text="${s.label}">Vitesse</span>
+					    </span>
+					    <span>
+					        <b th:text="${s.valeur}">+12</b><span th:if="${s.rollSecondaire != null}"
+					              class="rd-roll" th:text="'(' + ${s.rollSecondaire} + ')'"></span>
+					    </span>
+					</div>
+                </div>
+
+            </th:block>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

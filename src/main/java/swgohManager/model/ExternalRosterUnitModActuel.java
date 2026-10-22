@@ -36,11 +36,13 @@ public class ExternalRosterUnitModActuel implements ModLigne {
     private String rarity;
     private String position;
     private Integer niveau;
+    private Integer tier;
     private Integer idPrimaire;
     private Long valeurPrimaire;
     private Integer idSecondaire;
     private Long valeurSecondaire;
     private Integer ordreSecondaire;
+    private Integer rollSecondaire;
     
     @CreationTimestamp
     @Column(name = "date_sync", updatable = false)

@@ -15,6 +15,7 @@ import swgohManager.model.Joueur;
 import swgohManager.model.RaidHistorique;
 import swgohManager.repository.JoueurRepository;
 import swgohManager.repository.RaidHistoriqueRepository;
+import swgohManager.repository.RosterUnitActuelRepository;
 import swgohManager.repository.TbScoreJoueurRepository;
 import swgohManager.service.ActiviteRosterService;
 import swgohManager.service.DatacronProgressService;
@@ -22,6 +23,7 @@ import swgohManager.service.OmicronPlanProgressService;
 import swgohManager.service.PlayerDatacronViewService;
 import swgohManager.service.PlayerViewService;
 import swgohManager.service.Portee;
+import swgohManager.service.RosterUnitDetailService;
 import swgohManager.service.TbStatsService;
 
 @Controller
@@ -37,6 +39,8 @@ public class PlayerWebController {
     private final PlayerDatacronViewService playerDatacronViewService; 
     private final DatacronProgressService datacronProgressService;
     private final ActiviteRosterService activiteRosterService;
+    private final RosterUnitActuelRepository rosterUnitActuelRepository; 
+    private final RosterUnitDetailService rosterUnitDetailService;
 
 
     
@@ -45,6 +49,9 @@ public class PlayerWebController {
             @RequestParam(name = "jours", defaultValue = "30") int jours,
             Model model) {
         model.addAttribute("vm", playerViewService.construire(playerId));
+        
+        // 👇 Récupération de la liste des unités du roster pour l'onglet Roster
+        model.addAttribute("roster", rosterUnitActuelRepository.findRosterCartesJoueur(playerId));
 
         model.addAttribute("joueurs", joueurRepository.findAllByPresentInGuildTrue().stream()
                 .sorted(Comparator.comparing(Joueur::getPlayerName, String.CASE_INSENSITIVE_ORDER))
@@ -60,6 +67,8 @@ public class PlayerWebController {
 
         model.addAttribute("progressionOmicron", omicronPlanProgressService.getProgression(playerId, Portee.GUILDE));
         model.addAttribute("globalOmicron", omicronPlanProgressService.getGlobalProgression(playerId, Portee.GUILDE));
+        
+
 
         Joueur joueurCourant = joueurRepository.findByPlayerId(playerId).orElse(null);
         if (joueurCourant != null) {
@@ -90,5 +99,11 @@ public class PlayerWebController {
                 .toList());
         model.addAttribute("sets", playerDatacronViewService.construire(playerId));
         return "datacrons";
+    }
+    
+    @GetMapping("/joueur/{playerId}/unite/{idUnit}/detail")
+    public String detailUnite(@PathVariable String playerId, @PathVariable String idUnit, Model model) {
+        model.addAttribute("detail", rosterUnitDetailService.construire(playerId, idUnit));
+        return "fragments/roster-detail-fragments :: unitDetail";
     }
 }

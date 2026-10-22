@@ -46,3 +46,9 @@ admin:
 app:
   import:
     directory: ./imports
+
+assets:
+  ae2-url: "http://localhost:3000"
+  comlink-url: "http://localhost:3200"
+  storage-dir: "./data/assets"
+  fallback-version: 1

@@ -8,6 +8,7 @@
     <!-- Tailwind CSS & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/roster-detail.css}">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -152,6 +153,10 @@
 	    <button type="button" onclick="afficherOnglet('activite')" id="btn-onglet-activite"
 	            class="px-4 py-2.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors text-slate-400 border-transparent hover:text-white">
 	        <i class="bi bi-activity"></i> Activité
+	    </button>
+	    <button type="button" onclick="afficherOnglet('roster')" id="btn-onglet-roster"
+	            class="px-4 py-2.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors text-slate-400 border-transparent hover:text-white">
+	        <i class="bi bi-activity"></i> Roster
 	    </button>
 	</div>
 
@@ -600,6 +605,175 @@
 			</div>
 	    </div>
 	</div>
+	
+	<!-- NOUVEL ONGLET ROSTER -->
+	
+	<div id="tab-roster" class="hidden">
+	    <main class="flex-grow container mx-auto px-4 lg:px-8 py-8 max-w-7xl">
+	        <div class="mb-6 space-y-3">
+			    <div class="flex flex-wrap items-center justify-between gap-4">
+			        <div>
+			            <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+			                <i class="bi bi-people-fill text-amber-400"></i> Roster du Joueur
+			            </h2>
+			            <p class="text-xs text-slate-400 mt-1">
+			                Liste complète des unités, équipements et reliques
+			                · <span id="rosterCompteur" class="text-amber-400 font-semibold"></span>
+			            </p>
+			        </div>
+			        <input type="text" id="filterRosterInput" placeholder="Filtrer une unité..." onkeyup="filtrerRoster()"
+			               class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors">
+			    </div>
+			
+			    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-3 flex flex-col gap-2.5">
+			        <div class="flex flex-wrap items-center gap-1.5">
+			            <span class="w-16 text-[10px] uppercase tracking-wider font-bold text-slate-500">Rôle</span>
+			            <button type="button" class="filtre-btn" data-groupe="leader" data-valeur="1">Leader</button>
+			            <button type="button" class="filtre-btn" data-groupe="role" data-valeur="ATK">Attaquant</button>
+			            <button type="button" class="filtre-btn" data-groupe="role" data-valeur="TNK">Tank</button>
+			            <button type="button" class="filtre-btn" data-groupe="role" data-valeur="SUP">Soutien</button>
+			            <button type="button" class="filtre-btn" data-groupe="role" data-valeur="HLR">Soigneur</button>
+			        </div>
+			        <div class="flex flex-wrap items-center gap-1.5">
+			            <span class="w-16 text-[10px] uppercase tracking-wider font-bold text-slate-500">Camp</span>
+			            <button type="button" class="filtre-btn" data-groupe="align" data-valeur="2">Côté Lumineux</button>
+			            <button type="button" class="filtre-btn" data-groupe="align" data-valeur="3">Côté Obscur</button>
+			            <button type="button" class="filtre-btn" data-groupe="align" data-valeur="1">Neutre</button>
+			        </div>
+			        <div class="flex flex-wrap items-center gap-1.5">
+			            <span class="w-16 text-[10px] uppercase tracking-wider font-bold text-slate-500">Faction</span>
+			            <select id="filterFactionSelect"
+			                    class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+			                <option value="">+ Ajouter une faction...</option>
+			            </select>
+			            <span id="factionsTags" class="flex flex-wrap gap-1.5"></span>
+			            <button type="button" onclick="reinitialiserFiltresRoster()"
+			                    class="ml-auto text-[11px] text-slate-400 hover:text-amber-400 transition-colors">
+			                <i class="bi bi-x-circle"></i> Réinitialiser
+			            </button>
+			        </div>
+			    </div>
+			</div>
+
+	        <!-- GRILLE DES UNITÉS DU ROSTER (Basée sur votre design exact) -->
+	        <style>
+	            :root {
+	                --s: 90px;          /* diamètre du portrait ajusté pour la grille */
+	                --arc-x: -.16;      /* décalage horizontal des arcs de gear */
+	                --arc-h: .9;        /* hauteur des arcs de gear */
+	            }
+	            .unit { position: relative; width: var(--s); height: var(--s); margin: 0 auto; }
+	            .unit img { display: block; }
+	            .portrait { position: absolute; inset: 7%; width: 86%; height: 86%; border-radius: 50%; object-fit: cover; background: #14233b; }
+	            .arc { position: absolute; top: 50%; height: calc(var(--s) * var(--arc-h)); width: auto; transform: translateY(-50%); pointer-events: none; }
+	            .arc.left  { left:  calc(var(--s) * var(--arc-x)); }
+	            .arc.right { right: calc(var(--s) * var(--arc-x)); transform: translateY(-50%) scaleX(-1); }
+	            .arc.big   { height: calc(var(--s) * 1.05); }
+	            .arc.pair  { left: 50%; transform: translate(-50%, -50%); }
+	            .stars { position: absolute; top: -7%; left: 50%; transform: translateX(-50%); display: flex; z-index: 5; }
+	            .stars img { width: calc(var(--s) * .125); height: auto; }
+	            .relic { position: absolute; left: 50%; transform: translateX(-50%); bottom: -6%; width: calc(var(--s) * .34); aspect-ratio: 1; z-index: 5; }
+	            .relic img { width: 100%; height: 100%; }
+	            .relic span {
+	                position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+	                font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000; font-size: calc(var(--s) * .15);
+	            }
+	            .sk { position: absolute; bottom: -4%; width: calc(var(--s) * .36); aspect-ratio: 1; z-index: 5; }
+	            .sk img { width: 100%; height: 100%; }
+	            .sk.zeta { left: -9%; }
+	            .sk.omi  { right: -9%; }
+	            .sk span {
+	                position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+	                font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000; font-size: calc(var(--s) * .16);
+	            }
+	            .filtre-btn { padding: 3px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;
+              				  background: #0f172a; color: #94a3b8; border: 1px solid #334155; transition: all .15s; }
+				.filtre-btn:hover { color: #fff; border-color: #64748b; }
+				.filtre-btn.actif { background: #f59e0b; color: #0b1329; border-color: #f59e0b; }
+	        </style>
+
+	        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 grid-flow-dense" id="rosterGrid" th:data-player-id="${vm.joueur.playerId}">
+	            <div th:each="u : ${roster}" 
+	                 class="roster-item bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex flex-col items-center justify-between hover:border-amber-500/50 transition-all"
+	                 th:data-libelle="${u.libelle}"
+	                 th:data-id-unit="${u.idUnit}"
+					 th:data-role="${u.role}"
+					 th:data-align="${u.forceAlignment}"
+					 th:data-leader="${u.leader != null and u.leader}"
+					 th:data-factions="${u.factions}">
+	                 
+	                <!-- Conteneur graphique de l'unité -->
+	                <div class="roster-left flex flex-col items-center w-full">
+		                <div class="unit mb-3" cursor-pointer title="Voir le détail">
+		                    <!-- Portrait (via votre GameAssetController) -->
+		                    <img class="portrait" 
+		                         th:src="${u.portrait != null ? '/assets/portrait/' + u.portrait : '/img/placeholder.png'}" 
+		                         th:alt="${u.libelle}" 
+		                         loading="lazy" />
+	
+							<!-- Arcs de Gear / Relique (Règles Gear 13 + Gear standard) -->
+		                    <th:block th:if="${u.gear != null and u.gear >= 13}">
+		                        <th:block th:with="k=${u.forceAlignment == 1 ? 'neutral' : (u.forceAlignment == 2 ? 'light' : (u.forceAlignment == 3 ? 'dark' : 'neutral'))}">
+		                            <img class="arc left big" th:src="@{'/img/game/gear/TierHighlight13_' + ${k} + '.png'}" alt="" />
+		                            <img class="arc right big" th:src="@{'/img/game/gear/TierHighlight13_' + ${k} + '.png'}" alt="" />
+		                        </th:block>
+		                    </th:block>
+	
+		                    <!-- Cas Gear standard (< 13) -->
+		                    <th:block th:if="${u.gear != null and u.gear < 13 and u.gear > 0}">
+		                        <th:block th:with="isPair=${u.gear == 5 or u.gear == 8 or u.gear == 10}">
+		                            <img th:if="${isPair}" class="arc pair" th:src="@{'/img/game/gear/TierHighlight' + ${u.gear} + '.png'}" alt="" />
+		                            <th:block th:unless="${isPair}">
+		                                <img class="arc left" th:src="@{'/img/game/gear/TierHighlight' + ${u.gear} + '.png'}" alt="" />
+		                                <img class="arc right" th:src="@{'/img/game/gear/TierHighlight' + ${u.gear} + '.png'}" alt="" />
+		                            </th:block>
+		                        </th:block>
+		                    </th:block>
+	
+		                    <!-- Étoiles (0 à 7) -->
+		                    <div class="absolute -top-[7%] inset-x-0 flex justify-center z-50">
+		                        <th:block th:each="i : ${#numbers.sequence(0, 6)}">
+		                            <img th:src="@{'/img/game/star/' + (${u.etoiles != null and i < u.etoiles ? 'rarity_star' : 'rarity_star_empty'}) + '.png'}" alt="" />
+		                        </th:block>
+		                    </div>
+	
+		                    <!-- Badge Relique (si Relique active > 0 ou niveau de relique) -->
+		                    <th:block th:if="${u.relic != null and u.relic > 0}">
+		                        <div class="relic">
+		                            <th:block th:with="badge=${(u.legend and u.ultimate != null and u.ultimate != '') ? 'icon_relic_badge_GL' : (u.forceAlignment == 2 ? 'icon_relic_badge_LS' : (u.forceAlignment == 3 ? 'icon_relic_badge_DS' : 'icon_relic_badge'))}">
+									    <img th:src="@{'/img/game/relic/' + ${badge} + '.png'}" alt="" />
+									</th:block>
+									<span th:text="${u.relic}">7</span>
+		                        </div>
+		                    </th:block>
+	
+		                    <!-- Zetas -->
+		                    <th:block th:if="${u.nbZetas != null and u.nbZetas > 0}">
+		                        <div class="sk zeta">
+		                            <img th:src="@{'/img/game/ui/zeta.png'}" alt="Zeta" />
+		                            <span th:text="${u.nbZetas}">1</span>
+		                        </div>
+		                    </th:block>
+	
+		                    <!-- Omicrons -->
+		                    <th:block th:if="${u.nbOmicrons != null and u.nbOmicrons > 0}">
+		                        <div class="sk omi">
+		                            <img th:src="@{'/img/game/ui/icon_omicron.png'}" alt="Omicron" />
+		                            <span th:text="${u.nbOmicrons}">1</span>
+		                        </div>
+		                    </th:block>
+		                </div>
+	
+		                <!-- Libellé de l'unité -->
+		                <div class="text-center w-full mt-2">
+		                    <h3 class="text-xs font-semibold text-slate-200 truncate w-full" th:text="${u.libelle}" th:title="${u.libelle}">Nom unité</h3>
+		                </div>
+	                </div>
+	                <div class="roster-detail hidden"></div>
+	            </div>
+	        </div>
+	    </main>
+	</div>
 
 <!-- INLINE SCRIPT CHART.JS -->
 <script th:inline="javascript">
@@ -730,30 +904,135 @@ function fermerDetailOmicron(event) {
 }
 
 function afficherOnglet(nom) {
-    var estSynthese = nom === 'synthese';
-    document.getElementById('tab-synthese').classList.toggle('hidden', !estSynthese);
-    document.getElementById('tab-activite').classList.toggle('hidden', estSynthese);
+    var onglets = ['synthese', 'roster', 'activite'];
 
-    var btnSynthese = document.getElementById('btn-onglet-synthese');
-    var btnActivite = document.getElementById('btn-onglet-activite');
+    // 1. Afficher/Cacher les conteneurs de contenu
+    onglets.forEach(function(tab) {
+        var el = document.getElementById('tab-' + tab);
+        if (el) {
+            el.classList.toggle('hidden', tab !== nom);
+        }
+    });
 
-    btnSynthese.classList.toggle('text-amber-400', estSynthese);
-    btnSynthese.classList.toggle('border-amber-400', estSynthese);
-    btnSynthese.classList.toggle('text-slate-400', !estSynthese);
-    btnSynthese.classList.toggle('border-transparent', !estSynthese);
+    // 2. Mettre à jour le style des boutons d'onglets
+    onglets.forEach(function(tab) {
+        var btn = document.getElementById('btn-onglet-' + tab);
+        if (btn) {
+            var actif = (tab === nom);
+            btn.classList.toggle('text-amber-400', actif);
+            btn.classList.toggle('border-amber-400', actif);
+            btn.classList.toggle('text-slate-400', !actif);
+            btn.classList.toggle('border-transparent', !actif);
+        }
+    });
+}
 
-    btnActivite.classList.toggle('text-amber-400', !estSynthese);
-    btnActivite.classList.toggle('border-amber-400', !estSynthese);
-    btnActivite.classList.toggle('text-slate-400', estSynthese);
-    btnActivite.classList.toggle('border-transparent', estSynthese);
+var rosterFiltres = { roles: new Set(), aligns: new Set(), leader: false, factions: new Set() };
+
+function initFiltresRoster() {
+    // Liste des factions réellement présentes dans le roster
+    var toutes = new Set();
+    document.querySelectorAll('.roster-item').forEach(function (item) {
+        (item.getAttribute('data-factions') || '').split(';').forEach(function (f) {
+            f = f.trim();
+            if (f) toutes.add(f);
+        });
+    });
+    var select = document.getElementById('filterFactionSelect');
+    Array.from(toutes).sort(function (a, b) { return a.localeCompare(b, 'fr'); }).forEach(function (f) {
+        var o = document.createElement('option');
+        o.value = f;
+        o.textContent = f;
+        select.appendChild(o);
+    });
+    select.addEventListener('change', function () {
+        if (this.value) {
+            rosterFiltres.factions.add(this.value);
+            this.value = '';
+            majTagsFactions();
+            filtrerRoster();
+        }
+    });
+
+    document.querySelectorAll('.filtre-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var groupe = btn.getAttribute('data-groupe');
+            var valeur = btn.getAttribute('data-valeur');
+            var actif = !btn.classList.contains('actif');
+            btn.classList.toggle('actif', actif);
+            if (groupe === 'leader') {
+                rosterFiltres.leader = actif;
+            } else {
+                var set = groupe === 'role' ? rosterFiltres.roles : rosterFiltres.aligns;
+                if (actif) set.add(valeur); else set.delete(valeur);
+            }
+            filtrerRoster();
+        });
+    });
+    filtrerRoster();
+}
+
+function majTagsFactions() {
+    var conteneur = document.getElementById('factionsTags');
+    conteneur.innerHTML = '';
+    rosterFiltres.factions.forEach(function (f) {
+        var tag = document.createElement('button');
+        tag.type = 'button';
+        tag.className = 'filtre-btn actif';
+        tag.textContent = f + ' ✕';
+        tag.addEventListener('click', function () {
+            rosterFiltres.factions.delete(f);
+            majTagsFactions();
+            filtrerRoster();
+        });
+        conteneur.appendChild(tag);
+    });
+}
+
+function reinitialiserFiltresRoster() {
+    rosterFiltres.roles.clear();
+    rosterFiltres.aligns.clear();
+    rosterFiltres.factions.clear();
+    rosterFiltres.leader = false;
+    document.querySelectorAll('.filtre-btn.actif').forEach(function (b) { b.classList.remove('actif'); });
+    document.getElementById('filterRosterInput').value = '';
+    majTagsFactions();
+    filtrerRoster();
+}
+
+function filtrerRoster() {
+    var texte = document.getElementById('filterRosterInput').value.toLowerCase();
+    var f = rosterFiltres;
+    var visibles = 0;
+
+    document.querySelectorAll('.roster-item').forEach(function (item) {
+        var ok = (item.getAttribute('data-libelle') || '').toLowerCase().includes(texte);
+
+        if (ok && f.roles.size > 0) ok = f.roles.has(item.getAttribute('data-role'));
+        if (ok && f.aligns.size > 0) ok = f.aligns.has(item.getAttribute('data-align'));
+        if (ok && f.leader) ok = item.getAttribute('data-leader') === 'true';
+        if (ok && f.factions.size > 0) {
+            var factionsUnite = (item.getAttribute('data-factions') || '').split(';');
+            f.factions.forEach(function (fa) {
+                if (factionsUnite.indexOf(fa) === -1) ok = false;
+            });
+        }
+
+        item.style.display = ok ? 'flex' : 'none';
+        if (ok) visibles++;
+    });
+
+    var compteur = document.getElementById('rosterCompteur');
+    if (compteur) compteur.textContent = visibles + ' unité(s)';
 }
 
 window.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const ongletActif = urlParams.get('tab') || 'synthese';
     afficherOnglet(ongletActif);
+    initFiltresRoster();
 });
 </script>
-
+<script th:src="@{/js/roster-detail.js}"></script>
 </body>
 </html>

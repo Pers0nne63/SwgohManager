@@ -12,6 +12,7 @@ public record UnitRaw(
         Integer combatType,
         Boolean legend,
         String statProgressionId,
+        String thumbnailName,
         List<String> categoryId,
         Integer primaryUnitStat,
         String obtainableTime,

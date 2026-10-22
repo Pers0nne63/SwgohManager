@@ -35,3 +35,6 @@ build/
 
 ### Environment ###
 .env
+
+### Assets du jeu (non versionnés) ###
+src/main/resources/static/img/game/

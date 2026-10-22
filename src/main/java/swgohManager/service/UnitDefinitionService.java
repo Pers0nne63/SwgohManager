@@ -3,6 +3,7 @@ package swgohManager.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -80,6 +81,7 @@ public class UnitDefinitionService {
             unite.setForceAlignment(u.forceAlignment());
             unite.setUnitClass(u.unitClass());
             unite.setCombatType(u.combatType());
+            unite.setThumbnailName(u.thumbnailName());
             unite.setLegend(u.legend());
             unite.setConquete(u.categoryId() != null && u.categoryId().contains("conquest_reward_unit"));
             unite.setStatProgressionId(u.statProgressionId());
@@ -96,11 +98,13 @@ public class UnitDefinitionService {
             unite.setLibelle(libelle);
 
             String role = extraireRole(u.categoryId());
+            unite.setFactions(extraireFactions(u.categoryId()));
             String primaryStat = convertirPrimaryStat(u.primaryUnitStat());
             String masteryClass = (role != null && primaryStat != null) ? primaryStat + "_" + role : null;
             unite.setRole(role);
             unite.setPrimaryStat(primaryStat);
             unite.setMasteryClass(masteryClass);
+            unite.setLeader(u.categoryId() != null && u.categoryId().contains("role_leader"));
 
             unite.setGameVersion(version);
             unitesASauver.add(unite);
@@ -181,6 +185,51 @@ public class UnitDefinitionService {
         return String.format("%d unité(s), %d ligne(s) de tier, %d ligne(s) de base stat, %d ligne(s) de relic (référence)",
                 unitesASauver.size(), tiersASauver.size(), baseStatsASauver.size(), relicsASauver.size());
     }
+    
+    private static final Map<String, String> LIBELLES_FORCES = Map.of(
+            "affiliation_republic", "République Galactique",
+            "species_ewok", "Ewok",
+            "species_wookiee", "Wookie",
+            "species_droid", "Droïde",
+            "species_tusken", "Tusken",
+            "species_jawa", "Jawa",
+            "unaligned_force_user", "Utilisateur de la Force non aligné"
+    );
+
+    private static final Map<String, String> CLES_EXCEPTIONS = Map.of(
+            "affiliation_501st_clone", "CATEGORY_501STCLONES_DESC"
+    );
+
+    private String traduireFaction(String categoryId) {
+        String force = LIBELLES_FORCES.get(categoryId);
+        if (force != null) return force;
+
+        String cle = CLES_EXCEPTIONS.get(categoryId);
+        if (cle == null) {
+            String nom = categoryId
+                    .replaceFirst("^(affiliation|profession|species)_", "")
+                    .replace("_", "");
+            cle = "CATEGORY_" + nom.toUpperCase() + "_DESC";
+        }
+        String libelle = localizationService.traduire(cle);
+        if (libelle == null || libelle.isBlank() || libelle.equals(cle)) {
+            log.debug("Faction sans traduction ignorée : {}", categoryId);
+            return null;
+        }
+        return libelle;
+    }
+
+    private String extraireFactions(List<String> categoryId) {
+        if (categoryId == null) return null;
+        String factions = categoryId.stream()
+                .filter(c -> c != null && (c.startsWith("profession") || c.startsWith("affiliation")|| c.startsWith("species")||c.startsWith("unaligned_force_user")))
+                .map(this::traduireFaction)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.joining(";"));
+        return factions.isEmpty() ? null : factions;
+    }
+
 
     private String traiterRelicTierDefinitions(List<RelicTierDefinitionRaw> relicsBrutes) {
         Map<String, RelicTierDefinition> existantes = relicTierDefinitionRepository.findAll().stream()

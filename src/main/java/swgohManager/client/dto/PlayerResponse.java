@@ -20,7 +20,6 @@ public record PlayerResponse(
         List<EraUnitStatusRaw> eraUnitStatus
 ) {
 
-    // --- MÉTHODES UTILITAIRES POUR RÉCUPÉRER TES 3 STATS ---
 
     public Long getGalacticPower() {
         return extractStatValue("STAT_GALACTIC_POWER_ACQUIRED_NAME");
@@ -67,6 +66,7 @@ public record PlayerResponse(
     public record RosterUnit(
             String id,
             String definitionId,
+            List<String> purchasedAbilityId,
             Integer currentRarity,
             Integer currentLevel,
             Integer currentTier,
@@ -86,6 +86,7 @@ public record PlayerResponse(
             String id,
             String definitionId,
             Integer level,
+            Integer tier,
             PrimaryStat primaryStat,
             List<SecondaryStat> secondaryStat
     ) {}
@@ -94,7 +95,9 @@ public record PlayerResponse(
     public record PrimaryStat(Stat stat) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record SecondaryStat(Stat stat) {}
+    public record SecondaryStat(
+    		Stat stat,
+    		List<Double> roll) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Stat(Integer unitStatId, String unscaledDecimalValue) {}

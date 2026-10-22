@@ -48,6 +48,10 @@ public class UnitDefinition {
     private String primaryStat;
     private String masteryClass;
     private String relicClass;
+    private String thumbnailName;
+    @Column(length = 1000)
+    private String factions;
+    private Boolean leader;
 
     private String gameVersion;
 

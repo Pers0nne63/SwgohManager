@@ -141,9 +141,15 @@ public class RosterUnitService {
         for (PlayerResponse.RosterUnit u : roster) {
             Integer relicValue = u.relic() != null && u.relic().currentTier() != null
                     ? u.relic().currentTier() - 2 : null;
+            
+            String ultimateValue = null;
+            if (u.purchasedAbilityId() != null && !u.purchasedAbilityId().isEmpty()) {
+                // Tu peux joindre les IDs par une virgule ou prendre le premier selon ton besoin
+                ultimateValue = String.join(",", u.purchasedAbilityId());
+            }
 
             unitesActuelles.add(RosterUnitActuel.builder()
-                    .playerId(playerId).idUnit(u.id()).definitionId(u.definitionId())
+                    .playerId(playerId).idUnit(u.id()).definitionId(u.definitionId()).ultimate(ultimateValue)
                     .etoiles(u.currentRarity()).niveau(u.currentLevel()).gear(u.currentTier()).relic(relicValue)
                     .idSync(idSync)
                     .build());
@@ -161,11 +167,13 @@ public class RosterUnitService {
                                 .rarity(dto.rarity())
                                 .position(dto.position())
                                 .niveau(dto.niveau())
+                                .tier(dto.tier())
                                 .idPrimaire(dto.idPrimaire())
                                 .valeurPrimaire(dto.valeurPrimaire())
                                 .idSecondaire(dto.idSecondaire())
                                 .valeurSecondaire(dto.valeurSecondaire())
                                 .ordreSecondaire(dto.ordreSecondaire())
+                                .rollSecondaire(dto.rollSecondaire())
                                 .idSync(idSync)
                                 .build());
                     }
@@ -270,9 +278,9 @@ public class RosterUnitService {
         String sql = """
             INSERT INTO roster_unit_mod_actuel (
                 id, player_id, id_unit, id_mod, definition_id, set, rarity, position,
-                niveau, id_primaire, primaire, valeur_primaire, id_secondaire,
-                secondaire, valeur_secondaire, ordre_secondaire, id_sync
-            ) VALUES (nextval('roster_unit_mod_actuel_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                niveau, tier, id_primaire, primaire, valeur_primaire, id_secondaire,
+                secondaire, valeur_secondaire, ordre_secondaire, roll_secondaire, id_sync
+            ) VALUES (nextval('roster_unit_mod_actuel_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         jdbcTemplate.batchUpdate(sql, mods, 1000, (ps, mod) -> {
@@ -284,14 +292,16 @@ public class RosterUnitService {
             ps.setString(6, mod.getRarity());
             ps.setString(7, mod.getPosition());
             ps.setObject(8, mod.getNiveau());
-            ps.setObject(9, mod.getIdPrimaire());
-            ps.setString(10, mod.getPrimaire());
-            ps.setObject(11, mod.getValeurPrimaire());
-            ps.setObject(12, mod.getIdSecondaire());
-            ps.setString(13, mod.getSecondaire());
-            ps.setObject(14, mod.getValeurSecondaire());
-            ps.setObject(15, mod.getOrdreSecondaire());
-            ps.setObject(16, mod.getIdSync());
+            ps.setObject(9, mod.getTier());
+            ps.setObject(10, mod.getIdPrimaire());
+            ps.setString(11, mod.getPrimaire());
+            ps.setObject(12, mod.getValeurPrimaire());
+            ps.setObject(13, mod.getIdSecondaire());
+            ps.setString(14, mod.getSecondaire());
+            ps.setObject(15, mod.getValeurSecondaire());
+            ps.setObject(16, mod.getOrdreSecondaire());
+            ps.setObject(17, mod.getRollSecondaire());
+            ps.setObject(18, mod.getIdSync());
         });
     }
 }

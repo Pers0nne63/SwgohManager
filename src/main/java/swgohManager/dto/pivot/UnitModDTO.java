@@ -15,9 +15,11 @@ public record UnitModDTO(
         String rarity,
         String position,
         Integer niveau,
+        Integer tier,
         Integer idPrimaire,
         Long valeurPrimaire,
         Integer idSecondaire,
         Long valeurSecondaire,
-        Integer ordreSecondaire
+        Integer ordreSecondaire,
+        Integer rollSecondaire
 ) {}

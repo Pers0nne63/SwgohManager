@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test icône d’unité</title>
+<style>
+  :root {
+    --s: 100px;          /* diamètre du portrait */
+    --arc-x: -.16;       /* décalage horizontal des arcs de gear (× --s) */
+    --arc-h: .9;         /* hauteur des arcs de gear (× --s) */
+    --bg: #0f172a; --text: #e2e8f0; --muted: #94a3b8; --accent: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .note { color: var(--muted); margin: 0 0 16px; max-width: 70ch; }
+  .ctrl { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .ctrl input { accent-color: var(--accent); }
+  .grid { display: flex; flex-wrap: wrap; gap: 48px 64px; padding: 40px 32px; }
+  figure { margin: 0; text-align: center; }
+  figcaption { margin-top: 18px; color: var(--muted); font-size: 12px; }
+
+  .unit { position: relative; width: var(--s); height: var(--s); }
+  .unit img { display: block; }
+  .portrait { position: absolute; inset: 7%; width: 86%; height: 86%; border-radius: 50%; object-fit: cover; background: #14233b; }
+
+  .arc { position: absolute; top: 50%; height: calc(var(--s) * var(--arc-h)); width: auto; transform: translateY(-50%); pointer-events: none; }
+  .arc.left  { left:  calc(var(--s) * var(--arc-x)); }
+  .arc.right { right: calc(var(--s) * var(--arc-x)); transform: translateY(-50%) scaleX(-1); }
+  .arc.big   { height: calc(var(--s) * 1.05); }
+  .arc.pair  { left: 50%; transform: translate(-50%, -50%); }
+
+  .stars { position: absolute; top: -7%; left: 50%; transform: translateX(-50%); display: flex; }
+  .stars img { width: calc(var(--s) * .125); height: auto; }
+
+  .relic { position: absolute; left: 50%; transform: translateX(-50%); bottom: -6%; width: calc(var(--s) * .34); aspect-ratio: 1; }
+  .relic img { width: 100%; height: 100%; }
+  .relic span, .sk span {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000;
+  }
+  .relic span { font-size: calc(var(--s) * .15); }
+
+  .sk { position: absolute; bottom: -4%; width: calc(var(--s) * .36); aspect-ratio: 1; }
+  .sk img { width: 100%; height: 100%; }
+  .sk.zeta { left: -9%; }
+  .sk.omi  { right: -9%; }
+  .sk span { font-size: calc(var(--s) * .16); }
+</style>
+</head>
+<body>
+<h1>Test de l’icône d’unité</h1>
+<p class="note">Portraits chargés depuis le conteneur ae2 (localhost:3000), sprites depuis /img/game. Les positions sont une première approximation : dis-moi ce qui est décalé.</p>
+<div class="ctrl"><label for="size">Taille du portrait</label><input id="size" type="range" min="64" max="160" value="100"><output id="sizeOut">100 px</output></div>
+<div class="grid" id="grid"></div>
+
+<script>
+const AE2 = 'http://localhost:3000', VERSION = 100054, SPRITES = '/img/game';
+const PAIR = [5, 8, 10];   // ces arcs contiennent déjà les deux côtés
+
+const units = [
+  { id: 'aaylasecura', thumb: 'tex.charui_aaylasecura',  gear: 13, relic: 7, align: 'ls', stars: 7, zeta: 3, omi: 1 },
+  { id: 'anakinknight', thumb: 'tex.charui_anakinknight', gear: 13, relic: 3, align: 'ds', stars: 7, zeta: 2, omi: 0 },
+  { id: 'ackbaradmiral', thumb: 'tex.charui_ackbaradmiral', gear: 12, relic: 0, align: 'ls', stars: 7, zeta: 1, omi: 0 },
+  { id: 'ahsoka', thumb: 'tex.charui_ahsoka',       gear: 8,  relic: 0, align: 'ls', stars: 6, zeta: 0, omi: 0 },
+  { id: '4lom', thumb: 'tex.charui_4lom',         gear: 5,  relic: 0, align: 'n',  stars: 5, zeta: 0, omi: 0 },
+  { id: 'appo', thumb: 'tex.charui_appo',         gear: 1,  relic: 0, align: 'n',  stars: 3, zeta: 0, omi: 0 },
+  { id: 'ahsoka', thumb: 'tex.charui_ahsoka',       gear: 13, relic: 9, align: 'gl', stars: 7, zeta: 0, omi: 2, label: 'ahsoka (test GL)' },
+];
+
+// thumbnailName en base (ex. « tex.charui_admiraltrench ») → nom du bundle ae2 (sans « tex. »)
+function assetName(thumb) { return thumb.replace(/^tex\./, ''); }
+
+function img(src, cls) { const i = new Image(); i.src = src; if (cls) i.className = cls; i.alt = ''; return i; }
+function div(cls, ...kids) { const d = document.createElement('div'); d.className = cls; d.append(...kids); return d; }
+function txt(v) { const s = document.createElement('span'); s.textContent = v; return s; }
+
+function arcs(u) {
+  if (u.gear < 1) return [];
+  if (u.gear === 13) {
+    const k = { ls: 'light', ds: 'dark' }[u.align] || 'neutral';
+    const src = `${SPRITES}/gear/TierHighlight13_${k}.png`;
+    return [img(src, 'arc left big'), img(src, 'arc right big')];
+  }
+  const src = `${SPRITES}/gear/TierHighlight${u.gear}.png`;
+  return PAIR.includes(u.gear) ? [img(src, 'arc pair')] : [img(src, 'arc left'), img(src, 'arc right')];
+}
+
+function buildUnit(u) {
+  const portrait = img(`${AE2}/Asset/single?assetName=${assetName(u.thumb)}&version=${VERSION}&forceReDownload=false&assetOS=0`, 'portrait');
+  const root = div('unit', portrait, ...arcs(u));
+
+  const stars = div('stars');
+  for (let i = 0; i < 7; i++) stars.append(img(`${SPRITES}/star/${i < u.stars ? 'rarity_star' : 'rarity_star_empty'}.png`));
+  root.append(stars);
+
+  if (u.relic > 0) {
+    const badge = { ls: 'icon_relic_badge_LS', ds: 'icon_relic_badge_DS', gl: 'icon_relic_badge_GL' }[u.align] || 'icon_relic_badge';
+    root.append(div('relic', img(`${SPRITES}/relic/${badge}.png`), txt(u.relic)));
+  }
+
+  if (u.zeta) root.append(div('sk zeta', img(`${SPRITES}/ui/zeta.png`), txt(u.zeta)));
+  if (u.omi)  root.append(div('sk omi', img(`${SPRITES}/ui/icon_omicron.png`), txt(u.omi)));
+
+  const fig = document.createElement('figure');
+  const cap = document.createElement('figcaption');
+  cap.textContent = u.label || `${u.id} · G${u.gear}`;
+  fig.append(root, cap);
+  return fig;
+}
+
+document.getElementById('grid').append(...units.map(buildUnit));
+document.getElementById('size').addEventListener('input', e => {
+  document.documentElement.style.setProperty('--s', e.target.value + 'px');
+  document.getElementById('sizeOut').textContent = e.target.value + ' px';
+});
+</script>
+</body>
+</html>

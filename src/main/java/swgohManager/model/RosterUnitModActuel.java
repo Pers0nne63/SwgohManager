@@ -41,6 +41,7 @@ public class RosterUnitModActuel implements ModLigne {
     private String rarity;
     private String position;
     private Integer niveau;
+    private Integer tier;
 
     private Integer idPrimaire;
     private String primaire;
@@ -50,6 +51,7 @@ public class RosterUnitModActuel implements ModLigne {
     private String secondaire;
     private Long valeurSecondaire;
     private Integer ordreSecondaire;
+    private Integer rollSecondaire;
 
     private Long idSync;
 }

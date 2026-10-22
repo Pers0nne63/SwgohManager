@@ -40,6 +40,7 @@ public class RosterUnitActuel {
     private Integer niveau;
     private Integer gear;
     private Integer relic;
+    private String ultimate;
 
     private Long idSync;
 }

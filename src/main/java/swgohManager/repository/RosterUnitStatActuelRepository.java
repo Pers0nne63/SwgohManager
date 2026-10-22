@@ -1,12 +1,14 @@
 package swgohManager.repository;
 
-import swgohManager.model.RosterUnitStatActuel;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
+import swgohManager.model.RosterUnitStatActuel;
 
 public interface RosterUnitStatActuelRepository extends JpaRepository<RosterUnitStatActuel, Long> {
     List<RosterUnitStatActuel> findByPlayerId(String playerId);
@@ -18,4 +20,6 @@ public interface RosterUnitStatActuelRepository extends JpaRepository<RosterUnit
     @Modifying
     @Query("DELETE FROM RosterUnitStatActuel r WHERE r.playerId NOT IN :activePlayerIds")
     void deleteByPlayerIdNotIn(@Param("activePlayerIds") List<String> activePlayerIds);
+    
+    Optional<RosterUnitStatActuel> findByPlayerIdAndIdUnit(String playerId, String idUnit);
 }

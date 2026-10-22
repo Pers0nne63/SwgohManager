@@ -191,11 +191,13 @@ public class PlayerSyncService {
                                     .rarity(dto.rarity())
                                     .position(dto.position())
                                     .niveau(dto.niveau())
+                                    .tier(dto.tier())
                                     .idPrimaire(dto.idPrimaire())
                                     .valeurPrimaire(dto.valeurPrimaire())
                                     .idSecondaire(dto.idSecondaire())
                                     .valeurSecondaire(dto.valeurSecondaire())
                                     .ordreSecondaire(dto.ordreSecondaire())
+                                    .rollSecondaire(dto.rollSecondaire())
                                     .build());
                         }
                     }

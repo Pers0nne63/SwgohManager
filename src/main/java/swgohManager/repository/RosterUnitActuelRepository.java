@@ -12,6 +12,7 @@ import swgohManager.controller.dto.RelicJoueurProjection;
 import swgohManager.controller.dto.RelicR8CountProjection;
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
 import swgohManager.controller.dto.RosterIdUnitProjection;
+import swgohManager.controller.dto.RosterUnitCardProjection;
 import swgohManager.model.RosterUnitActuel;
 
 public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActuel, Long> {
@@ -112,5 +113,49 @@ public interface RosterUnitActuelRepository extends JpaRepository<RosterUnitActu
             GROUP BY ru.player_id
             """, nativeQuery = true)
     List<RelicR8CountProjection> countUnitesR8PlusParJoueur();
+    
+    @Query(value = """
+            SELECT 
+                ud.base_id AS baseId,
+                ru.id_unit AS idUnit,
+                ud.libelle AS libelle,
+                REPLACE(ud.thumbnail_name, 'tex.', '') AS portrait,
+                ud.role AS role,
+                ud.role AS role,
+    			ud.leader AS leader,
+    			ud.factions AS factions,
+                ud.force_alignment AS forceAlignment,
+                ud.legend AS legend,
+                ud.conquete AS conquete,
+                ud.combat_type AS combatType,
+                ru.etoiles AS etoiles,
+                ru.gear AS gear,
+                ru.relic AS relic,
+                ru.ultimate AS ultimate,
+                COALESCE(z.nb_zetas, 0) AS nbZetas,
+                COALESCE(o.nb_omicrons, 0) AS nbOmicrons
+            FROM roster_unit_actuel ru
+            JOIN unit_definition ud ON ud.id_unit = ru.definition_id
+            LEFT JOIN (
+                SELECT rus.id_unit, COUNT(*) AS nb_zetas
+                FROM roster_unit_skill_actuel rus
+                JOIN skill_definition sd ON sd.id_skill = rus.id_skill
+                WHERE rus.player_id = :playerId AND (rus.zeta_applied = true OR sd.skill_zeta = true)
+                GROUP BY rus.id_unit
+            ) z ON z.id_unit = ru.id_unit
+            LEFT JOIN (
+                SELECT rus.id_unit, COUNT(*) AS nb_omicrons
+                FROM roster_unit_skill_actuel rus
+                WHERE rus.player_id = :playerId AND rus.omicron_applied = true
+                GROUP BY rus.id_unit
+            ) o ON o.id_unit = ru.id_unit
+            WHERE ru.player_id = :playerId AND ud.combat_type = 1
+            ORDER BY 
+                CASE WHEN ud.legend = true THEN 0 ELSE 1 END ASC,
+                COALESCE(ru.relic, -1) DESC,
+                COALESCE(ru.gear, 0) DESC,
+                ud.libelle ASC
+            """, nativeQuery = true)
+    List<RosterUnitCardProjection> findRosterCartesJoueur(@Param("playerId") String playerId);
 
 }

@@ -41,6 +41,8 @@ public class UnitModCalculationService {
             Integer idSecondaire = secondaryStat.stat() != null ? secondaryStat.stat().unitStatId() : null;
             Long valeurSecondaire = secondaryStat.stat() != null
                     ? parseLong(secondaryStat.stat().unscaledDecimalValue()) : null;
+            
+            Integer rollSecondaire = secondaryStat.roll() != null ? secondaryStat.roll().size() : 0;
 
             lignes.add(UnitModDTO.builder()
                     .idUnit(idUnit)
@@ -50,11 +52,13 @@ public class UnitModCalculationService {
                     .rarity(rarity)
                     .position(position)
                     .niveau(mod.level())
+                    .tier(mod.tier())
                     .idPrimaire(idPrimaire)
                     .valeurPrimaire(valeurPrimaire)
                     .idSecondaire(idSecondaire)
                     .valeurSecondaire(valeurSecondaire)
                     .ordreSecondaire(ordre)
+                    .rollSecondaire(rollSecondaire)
                     .build());
 
             ordre++;

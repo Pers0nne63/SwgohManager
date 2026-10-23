@@ -193,7 +193,8 @@ public class UnitDefinitionService {
             "species_droid", "Droïde",
             "species_tusken", "Tusken",
             "species_jawa", "Jawa",
-            "unaligned_force_user", "Utilisateur de la Force non aligné"
+            "unaligned_force_user", "Utilisateur de la Force non aligné",
+            "affiliation_501st", "501e"
     );
 
     private static final Map<String, String> CLES_EXCEPTIONS = Map.of(
@@ -213,7 +214,7 @@ public class UnitDefinitionService {
         }
         String libelle = localizationService.traduire(cle);
         if (libelle == null || libelle.isBlank() || libelle.equals(cle)) {
-            log.debug("Faction sans traduction ignorée : {}", categoryId);
+            //log.debug("Faction sans traduction ignorée : {}", categoryId);
             return null;
         }
         return libelle;

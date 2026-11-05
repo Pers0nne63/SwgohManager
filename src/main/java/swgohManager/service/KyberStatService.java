@@ -111,11 +111,17 @@ public class KyberStatService {
 
         final int nbBrackets = brackets;
         final int nbErreurs = erreurs.get();
+        
+        if (samples.isEmpty()) {
+            String resultat = String.format(
+                    "Snapshot Kyber non enregistré : aucune donnée collectée (%d brackets, %d erreurs)",
+                    nbBrackets, nbErreurs);
+            log.warn(resultat);
+            return resultat;
+        }
+        
         transactionTemplate.executeWithoutResult(status -> sauvegarder(samples, nbBrackets, nbErreurs));
 
-        log.info("Snapshot Kyber enregistré : {} joueurs, {} brackets, {} erreurs",
-                samples.size(), nbBrackets, nbErreurs);
-        
         String resultat = String.format("Snapshot Kyber enregistré : %d joueurs, %d brackets, %d erreurs",
                 samples.size(), nbBrackets, nbErreurs);
         log.info(resultat);

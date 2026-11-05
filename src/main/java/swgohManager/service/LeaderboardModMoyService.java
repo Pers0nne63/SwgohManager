@@ -41,6 +41,13 @@ public class LeaderboardModMoyService {
     @Transactional
     public String calculerMoyennes() {
         List<LeaderboardUnit> unites = leaderboardUnitRepository.findAll();   // ~85 000 lignes, OK
+        
+        //Si aucune unité (semaine sans GAAC) on sort
+        
+        if (unites.isEmpty()) {
+            return "Moyennes de mods non recalculées : aucune unité de leaderboard en base";
+        }
+        
         List<String> definitionIds = unites.stream().map(LeaderboardUnit::getDefinitionId).distinct().toList();
 
         Map<String, String> baseIdParDefinitionId = unitDefinitionRepository.findByIdUnitIn(definitionIds).stream()
@@ -70,6 +77,12 @@ public class LeaderboardModMoyService {
             }
 
             entityManager.clear();   // libère les entités du joueur avant le suivant
+        }
+        
+        if (accParBaseId.isEmpty()) {
+            String resultat = "Moyennes de mods non recalculées : aucune donnée exploitable, moyennes existantes conservées";
+            log.warn(resultat);
+            return resultat;
         }
 
         leaderboardModMoyRepository.deleteAll();

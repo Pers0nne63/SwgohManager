@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import swgohManager.service.PlayerSyncService;
 import swgohManager.service.RosterUnitService;
-import swgohManager.service.orchestrator.GacSyncOrchestratorService;
 import swgohManager.service.orchestrator.GameDataSyncOrchestratorService;
 import swgohManager.service.orchestrator.GuildSyncOrchestratorService;
 
@@ -17,7 +16,6 @@ import swgohManager.service.orchestrator.GuildSyncOrchestratorService;
 public class SyncScheduler {
 
     private final GameDataSyncOrchestratorService gameDataSyncOrchestrator;
-    private final GacSyncOrchestratorService gacSyncOrchestrator;
     private final GuildSyncOrchestratorService guildSyncOrchestrator;
     private final RosterUnitService rosterUnitService;
     private final PlayerSyncService playerSyncService;
@@ -30,17 +28,6 @@ public class SyncScheduler {
             log.info("[CRON] GameData terminé");
         } catch (Exception e) {
             log.error("[CRON] Erreur GameData : {}", e.getMessage(), e);
-        }
-    }
-
-    @Scheduled(cron = "0 0 2 ? * WED")
-    public void syncGacFull() {
-        log.info("--- [CRON] Début synchronisation GAC Full ---");
-        try {
-            var result = gacSyncOrchestrator.runFullSync(false);
-            log.info("[CRON] GAC Full terminé : {}", result.modMoyenResult());
-        } catch (Exception e) {
-            log.error("[CRON] Erreur GAC Full : {}", e.getMessage(), e);
         }
     }
 

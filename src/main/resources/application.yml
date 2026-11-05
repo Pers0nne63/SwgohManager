@@ -24,6 +24,10 @@ spring:
   web:
     locale: fr_FR
     locale-resolver: fixed
+  task:
+    scheduling:
+      pool:
+        size: 3
 
 logging:
   level:

@@ -10,5 +10,5 @@ public record EventsResponse(List<GameEvent> gameEvent) {
     public record GameEvent(String id, String nameKey, List<Instance> instance) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Instance(String id) {}
+    public record Instance(String id, String startTime, String endTime) {}
 }

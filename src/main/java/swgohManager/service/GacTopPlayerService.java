@@ -32,36 +32,31 @@ public class GacTopPlayerService {
     }
 
     public List<String> recupererTopPlayers() {
-        EventsResponse events = swgohApiClient.getEvents();
-
-        EventsResponse.GameEvent gac = events.gameEvent().stream()
-                .filter(e -> NOM_EVENT_GAC.equals(e.nameKey()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Aucune GAC en cours trouvée (" + NOM_EVENT_GAC + ")"));
-
-        if (gac.instance() == null || gac.instance().isEmpty()) {
-            throw new IllegalStateException("La GAC trouvée n'a pas d'instance active");
-        }
-
-        String eventInstanceId = gac.instance().get(0).id();
+        GacContext ctx = resolveGacContext();
         LinkedHashSet<String> topPlayers = new LinkedHashSet<>();
 
         int i = 0;
         while (topPlayers.size() < NB_JOUEURS_CIBLE && i < MAX_BRACKETS) {
-            String groupId = gac.id() + ":" + eventInstanceId + ":" + LIGUE + ":" + i;
-            LeaderboardResponse bracket = swgohApiClient.getLeaderboard(4, eventInstanceId, groupId);
+            LeaderboardResponse bracket = swgohApiClient.getLeaderboard(
+                    LEADERBOARD_TYPE, ctx.eventInstanceId(), ctx.groupId(i));
 
-            if (bracket.leaderboard() != null && !bracket.leaderboard().isEmpty()) {
-                LeaderboardResponse.Leaderboard premierBracket = bracket.leaderboard().get(0);
-                if (premierBracket.player() != null) {
-                    premierBracket.player().stream()
-                            .filter(p -> parseLong(p.power()) > PUISSANCE_MINIMUM)
-                            .map(LeaderboardResponse.PlayerEntry::id)
-                            .forEach(topPlayers::add);
-                }
+            if (bracket == null || bracket.leaderboard() == null || bracket.leaderboard().isEmpty()
+                    || bracket.leaderboard().get(0).player() == null
+                    || bracket.leaderboard().get(0).player().isEmpty()) {
+                break; // bracket vide : il n'y en a plus après
             }
 
+            bracket.leaderboard().get(0).player().stream()
+                    .filter(p -> parseLong(p.power()) > PUISSANCE_MINIMUM)
+                    .map(LeaderboardResponse.PlayerEntry::id)
+                    .forEach(topPlayers::add);
+
             i++;
+        }
+
+        if (topPlayers.isEmpty()) {
+            log.warn("Aucun joueur top GAC trouvé après {} bracket(s) parcouru(s)", i);
+            return List.of();
         }
 
         log.info("{} joueur(s) top GAC récupéré(s) après {} bracket(s) parcouru(s)", topPlayers.size(), i);

@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +21,9 @@ import swgohManager.service.orchestrator.GacSyncOrchestratorService;
  * Planifie les scans GAC à partir des dates réelles de l'event renvoyées par Comlink :
  *  - un scan juste après le début de la première semaine d'une session ;
  *  - un scan juste après la fin de chaque semaine (donc aussi de la dernière).
+ *
+ * Un scan dure plusieurs heures : chaque échéance n'est lancée qu'une fois, et un verrou
+ * empêche deux scans GAC de tourner en même temps.
  */
 @Component
 @RequiredArgsConstructor
@@ -43,7 +47,7 @@ public class GacScanPlanner {
     /** On planifie le scan de fin dans l'heure qui précède (le contrôle tourne toutes les heures). */
     private static final Duration FENETRE_PLANIFICATION = Duration.ofMinutes(70);
 
-    /** Si l'appli était arrêtée au moment prévu, on rattrape pendant 2 heures. */
+    /** Si l'appli était arrêtée au moment prévu, ou si le scan a échoué, on retente pendant 2 heures. */
     private static final Duration FENETRE_RATTRAPAGE = Duration.ofHours(2);
 
     private final SwgohApiClient apiClient;
@@ -51,7 +55,11 @@ public class GacScanPlanner {
     private final KyberStatSnapshotRepository snapshotRepository;
     private final TaskScheduler taskScheduler;
 
+    /** Échéances déjà lancées ou planifiées (clé = id d'instance + ":debut" ou ":fin"). */
     private final Set<String> dejaTraites = ConcurrentHashMap.newKeySet();
+
+    /** Verrou : un seul scan GAC à la fois. */
+    private final AtomicBoolean scanEnCours = new AtomicBoolean(false);
 
     @Scheduled(cron = "0 5 * * * *", zone = "Europe/Paris")
     public void planifier() {
@@ -71,7 +79,7 @@ public class GacScanPlanner {
                 Instant fin = Instant.ofEpochMilli(Long.parseLong(inst.endTime()));
 
                 planifierScanFin(inst.id(), fin, maintenant);
-                lancerScanDebutSiNecessaire(inst.id(), debut, fin, maintenant);
+                planifierScanDebutSiNecessaire(inst.id(), debut, fin, maintenant);
             }
         } catch (Exception e) {
             log.error("[GAC] Erreur planification : {}", e.getMessage(), e);
@@ -84,28 +92,28 @@ public class GacScanPlanner {
         String motif = "fin de semaine " + instanceId;
 
         if (scanFin.isAfter(maintenant)) {
+            // Échéance dans l'heure qui vient : on la planifie à l'instant exact
             if (scanFin.isBefore(maintenant.plus(FENETRE_PLANIFICATION)) && dejaTraites.add(cle)) {
                 log.info("[GAC] Scan de fin de semaine planifié à {}", scanFin);
-                taskScheduler.schedule(() -> scanner(motif), scanFin);
+                taskScheduler.schedule(() -> lancer(cle, motif), scanFin);
             }
         } else if (maintenant.isBefore(scanFin.plus(FENETRE_RATTRAPAGE)) && dejaTraites.add(cle)) {
+            // Échéance passée depuis peu et pas encore traitée : rattrapage
             log.info("[GAC] Rattrapage du scan de fin de semaine {}", instanceId);
-            scanner(motif);
+            taskScheduler.schedule(() -> lancer(cle, motif), Instant.now());
         }
     }
 
-    private void lancerScanDebutSiNecessaire(String instanceId, Instant debut, Instant fin, Instant maintenant) {
+    private void planifierScanDebutSiNecessaire(String instanceId, Instant debut, Instant fin, Instant maintenant) {
         String cle = instanceId + ":debut";
         Instant scanDebut = debut.plus(DECALAGE_DEBUT);
 
         boolean semaineEnCours = !maintenant.isBefore(scanDebut) && maintenant.isBefore(fin);
-        if (!semaineEnCours || dejaTraites.contains(cle) || !estDebutDeSession(debut)) {
+        if (!semaineEnCours || !estDebutDeSession(debut) || !dejaTraites.add(cle)) {
             return;
         }
-        // Marqué "traité" seulement en cas de succès : en cas d'échec, nouvel essai à l'heure suivante
-        if (scanner("début de session " + instanceId)) {
-            dejaTraites.add(cle);
-        }
+        log.info("[GAC] Scan de début de session lancé pour {}", instanceId);
+        taskScheduler.schedule(() -> lancer(cle, "début de session " + instanceId), Instant.now());
     }
 
     /** Vrai si le dernier snapshot Kyber date de plus de 3 jours avant le début de cette semaine. */
@@ -117,6 +125,25 @@ public class GacScanPlanner {
         // dateSnapshot est un LocalDateTime créé avec LocalDateTime.now() : fuseau du serveur
         Instant dateDernier = dernier.getDateSnapshot().atZone(ZoneId.systemDefault()).toInstant();
         return dateDernier.isBefore(debutSemaine.minus(SEUIL_NOUVELLE_SESSION));
+    }
+
+    /**
+     * Exécute le scan sous verrou. Si le scan ne peut pas démarrer ou échoue,
+     * l'échéance est libérée pour être retentée par le prochain contrôle horaire.
+     */
+    private void lancer(String cle, String motif) {
+        if (!scanEnCours.compareAndSet(false, true)) {
+            log.warn("[GAC] Scan '{}' reporté : un scan est déjà en cours", motif);
+            dejaTraites.remove(cle);
+            return;
+        }
+        try {
+            if (!scanner(motif)) {
+                dejaTraites.remove(cle);
+            }
+        } finally {
+            scanEnCours.set(false);
+        }
     }
 
     /** @return true si le scan s'est déroulé sans exception */

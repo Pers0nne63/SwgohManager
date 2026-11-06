@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.text.Collator;
+import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 
@@ -28,6 +30,13 @@ import swgohManager.repository.PlayerDatacronAffixActuelRepository;
 @Service
 @RequiredArgsConstructor
 public class DatacronProgressService {
+	
+	private static final Collator COLLATOR_FR = Collator.getInstance(Locale.FRENCH);
+	static { COLLATOR_FR.setStrength(Collator.PRIMARY); } // ignore accents et casse
+
+	private String nomAffiche(PlanFarmDatacron d) {
+	    return (d.getNom() != null && !d.getNom().isBlank()) ? d.getNom() : "Datacron #" + d.getId();
+	}
 
     private final PlanFarmDatacronRepository planFarmDatacronRepository;
     private final PlanFarmDatacronMecaniqueRepository mecaniqueRepository;
@@ -450,7 +459,11 @@ public class DatacronProgressService {
             Map<String, List<JoueurDatacronCible>> datacronsParJoueurPourCeSet = new HashMap<>();
             for (Joueur j : joueursActifs) datacronsParJoueurPourCeSet.put(j.getPlayerId(), new ArrayList<>());
 
-            for (PlanFarmDatacron datacron : entry.getValue()) {
+            List<PlanFarmDatacron> datacronsTries = entry.getValue().stream()
+                    .sorted(Comparator.comparing(this::nomAffiche, COLLATOR_FR))
+                    .toList();
+
+            for (PlanFarmDatacron datacron : datacronsTries) {
                 List<PlanFarmDatacronMecanique> mecaniques = mecaniqueRepository.findByPlanFarmDatacronId(datacron.getId());
                 List<PlanFarmDatacronStat> stats = statRepository.findByPlanFarmDatacronId(datacron.getId());
                 List<PlanFarmDatacronStat> statsAvecValeur = stats.stream().filter(s -> s.getStatValue() != null).toList();
@@ -520,8 +533,6 @@ public class DatacronProgressService {
 
             for (Joueur j : joueursActifs) {
                 List<JoueurDatacronCible> datacronsJoueur = datacronsParJoueurPourCeSet.get(j.getPlayerId());
-                // tri croissant : datacrons les moins conformes en premier
-                datacronsJoueur.sort(Comparator.comparingInt(JoueurDatacronCible::nbCiblesAtteintes));
 
                 int atteintsSet = (int) datacronsJoueur.stream().filter(JoueurDatacronCible::toutAtteint).count();
                 int totalSet = datacronsJoueur.size();

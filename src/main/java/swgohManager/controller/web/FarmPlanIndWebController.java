@@ -2,8 +2,6 @@ package swgohManager.controller.web;
 
 import java.time.Instant;
 import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 import java.util.stream.IntStream;
 
 import org.springframework.stereotype.Controller;
@@ -15,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import lombok.RequiredArgsConstructor;
-import swgohManager.model.Joueur;
 import swgohManager.model.PlanFarmInd;
 import swgohManager.model.UnitDefinition;
 import swgohManager.repository.JoueurRepository;
@@ -34,24 +31,6 @@ public class FarmPlanIndWebController {
     private final JoueurRepository joueurRepository;
     private final PlanFarmIndRepository planFarmIndRepository;
     private final UnitDefinitionRepository unitDefinitionRepository;
-
-    /**
-     * Vue d'ensemble : Liste des membres présents dans la guilde et de leur progression (plan-farm-ind.html)
-     */
-    @GetMapping
-    public String listePlansIndividuels(Model model) {
-        List<Joueur> joueurs = joueurRepository.findAllByPresentInGuildTrue();
-        List<String> playerIds = joueurs.stream()
-                .map(Joueur::getPlayerId)
-                .toList();
-
-        Map<String, Double> pourcentages = farmPlanIndProgressService.getPourcentagesPourJoueurs(playerIds);
-
-        model.addAttribute("joueurs", joueurs);
-        model.addAttribute("pourcentages", pourcentages);
-
-        return "plan-farm-ind";
-    }
 
     /**
      * Vue détaillée : Plan individuel d'un joueur spécifique (plan-farm-ind-detail.html)

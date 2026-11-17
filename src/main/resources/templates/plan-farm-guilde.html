@@ -32,7 +32,7 @@
 
         <!-- Table des joueurs -->
         <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+            <div class="px-5 py-4 border-b border-slate-700 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-white flex items-center gap-2">
                     <i class="bi bi-bar-chart-line text-amber-400"></i> Progression par membre
                 </h2>
@@ -40,22 +40,29 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table id="planFarmTable" class="w-full text-left text-sm text-slate-300">
+                <table id="planFarmTable" class="w-full min-w-[900px] table-fixed text-left text-sm text-slate-300">
+                    <colgroup>
+                        <col class="w-[22%]">
+                        <col class="w-[13%]">
+                        <col class="w-[24%]">
+                        <col class="w-[24%]">
+                        <col class="w-[17%]">
+                    </colgroup>
                     <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700 select-none">
                         <tr>
-                            <th onclick="sortTable(0, 'text')" class="px-6 py-4 cursor-pointer hover:text-amber-400 transition-colors">
+                            <th onclick="sortTable(0, 'text')" class="px-4 py-2.5 cursor-pointer hover:text-amber-400 transition-colors">
                                 Joueur <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
                             </th>
-                            <th onclick="sortTable(1, 'number')" class="px-4 py-4 cursor-pointer hover:text-amber-400 transition-colors">
+                            <th onclick="sortTable(1, 'number')" class="px-4 py-2.5 cursor-pointer hover:text-amber-400 transition-colors">
                                 Puissance Galactique <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
                             </th>
-                            <th onclick="sortTable(2, 'number')" class="px-6 py-4 cursor-pointer hover:text-amber-400 transition-colors">
+                            <th onclick="sortTable(2, 'number')" class="px-4 py-2.5 cursor-pointer hover:text-amber-400 transition-colors">
                                 Plan commun <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
                             </th>
-                            <th onclick="sortTable(3, 'number')" class="px-6 py-4 cursor-pointer hover:text-sky-400 transition-colors">
+                            <th onclick="sortTable(3, 'number')" class="px-4 py-2.5 cursor-pointer hover:text-sky-400 transition-colors">
                                 Plan individuel <i class="bi bi-arrow-down-up ms-1 text-xs opacity-60"></i>
                             </th>
-                            <th class="px-4 py-4 text-center w-56">Détails</th>
+                            <th class="px-4 py-2.5 text-center">Détails</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-700/60">
@@ -64,54 +71,54 @@
                                      pctI=${pourcentagesInd != null ? pourcentagesInd[j.playerId] : null}">
 
                             <!-- Joueur -->
-                            <td class="px-6 py-4 font-bold text-white" th:data-sort="${j.playerName}">
+                            <td class="px-4 py-1.5 font-bold text-white truncate" th:data-sort="${j.playerName}">
                                 <a th:href="@{/joueur/{id}(id=${j.playerId})}" class="hover:text-amber-400 transition-colors" th:text="${j.playerName}">Nom Joueur</a>
                             </td>
 
                             <!-- PG -->
-                            <td class="px-4 py-4 text-slate-400"
+                            <td class="px-4 py-1.5 text-slate-400 whitespace-nowrap"
                                 th:data-sort="${j.galacticPower != null ? j.galacticPower : 0}"
                                 th:text="${#numbers.formatInteger(j.galacticPower, 0, 'WHITESPACE')} + ' PG'">0 PG</td>
 
                             <!-- Progression plan commun -->
-                            <td class="px-6 py-4" th:data-sort="${pctC != null ? pctC : -1}">
+                            <td class="px-4 py-1.5" th:data-sort="${pctC != null ? pctC : -1}">
                                 <div th:if="${pctC != null}" class="flex items-center gap-3">
-                                    <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700/60 max-w-[10rem]">
+                                    <div class="flex-1 bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-700/60">
                                         <div class="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-300"
                                              th:style="'width: ' + ${pctC} + '%'"></div>
                                     </div>
-                                    <span class="font-bold text-amber-400 text-xs w-12" th:text="${#numbers.formatDecimal(pctC, 1, 1) + ' %'}">0 %</span>
+                                    <span class="font-bold text-amber-400 text-xs w-14 shrink-0 text-right whitespace-nowrap" th:text="${#numbers.formatDecimal(pctC, 1, 1) + ' %'}">0 %</span>
                                 </div>
-                                <span th:if="${pctC == null}" class="text-xs text-slate-500 italic flex items-center gap-1.5">
+                                <span th:if="${pctC == null}" class="text-xs text-slate-500 italic flex items-center gap-1.5 whitespace-nowrap">
                                     <i class="bi bi-dash-circle"></i> Aucune donnée
                                 </span>
                             </td>
 
                             <!-- Progression plan individuel -->
-                            <td class="px-6 py-4" th:data-sort="${pctI != null ? pctI : -1}">
+                            <td class="px-4 py-1.5" th:data-sort="${pctI != null ? pctI : -1}">
                                 <div th:if="${pctI != null}" class="flex items-center gap-3">
-                                    <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700/60 max-w-[10rem]">
+                                    <div class="flex-1 bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-700/60">
                                         <div class="bg-gradient-to-r from-sky-500 to-cyan-400 h-full rounded-full transition-all duration-300"
                                              th:style="'width: ' + ${pctI} + '%'"></div>
                                     </div>
-                                    <span class="font-bold text-sky-400 text-xs w-12" th:text="${#numbers.formatDecimal(pctI, 1, 1) + ' %'}">0 %</span>
+                                    <span class="font-bold text-sky-400 text-xs w-14 shrink-0 text-right whitespace-nowrap" th:text="${#numbers.formatDecimal(pctI, 1, 1) + ' %'}">0 %</span>
                                 </div>
-                                <span th:if="${pctI == null}" class="text-xs text-slate-500 italic flex items-center gap-1.5">
+                                <span th:if="${pctI == null}" class="text-xs text-slate-500 italic flex items-center gap-1.5 whitespace-nowrap">
                                     <i class="bi bi-dash-circle"></i> Aucun plan défini
                                 </span>
                             </td>
 
                             <!-- Actions -->
-                            <td class="px-4 py-4">
-                                <div class="flex items-center justify-center gap-2">
+                            <td class="px-4 py-1.5">
+                                <div class="flex items-center justify-center gap-1.5">
                                     <a th:href="@{/joueur/{id}/plan-farm(id=${j.playerId})}"
                                        title="Détails du plan de farm commun"
-                                       class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/30 rounded-lg text-xs font-bold transition-all">
+                                       class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/30 rounded-lg text-xs font-bold transition-all">
                                         <i class="bi bi-people-fill"></i> Commun
                                     </a>
                                     <a th:href="@{/web/plan-farm-ind/joueur/{id}(id=${j.playerId})}"
                                        title="Gérer le plan de farm individuel"
-                                       class="inline-flex items-center gap-1 px-3 py-1.5 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-slate-950 border border-sky-500/30 rounded-lg text-xs font-bold transition-all">
+                                       class="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500 text-sky-400 hover:text-slate-950 border border-sky-500/30 rounded-lg text-xs font-bold transition-all">
                                         <i class="bi bi-person-fill"></i> Individuel
                                     </a>
                                 </div>

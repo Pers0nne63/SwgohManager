@@ -21,7 +21,8 @@ public class FarmPlanCalculationService {
 
     private final UnitDefinitionRepository unitDefinitionRepository;
 
-    public record DetailRow(String baseId, String nomUnite, Integer etoilesCible, Integer relicCible, Integer relicActuel, boolean atteint) {}
+    public record DetailRow(String baseId, String nomUnite, Integer etoilesCible, Integer relicCible,
+            Integer relicActuel, boolean atteint, String tag) {}
     public record FarmProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
 
     public FarmProgress calculer(List<FarmPlan> plans, List<RosterBaseIdProgressProjection> rosterProgress) {
@@ -50,7 +51,8 @@ public class FarmPlanCalculationService {
             if (ok) atteint++;
 
             String nomUnite = unitMap.getOrDefault(plan.getBaseId(), plan.getBaseId());
-            details.add(new DetailRow(plan.getBaseId(), nomUnite, plan.getEtoilesCible(), plan.getRelicCible(), relicActuel, ok));
+            details.add(new DetailRow(plan.getBaseId(), nomUnite, plan.getEtoilesCible(), plan.getRelicCible(),
+                    relicActuel, ok, plan.getTag()));
         }
 
         double pourcentage = 100.0 * atteint / plans.size();

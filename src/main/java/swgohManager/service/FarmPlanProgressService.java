@@ -1,18 +1,28 @@
 package swgohManager.service;
 
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
 import swgohManager.controller.dto.RosterBaseIdProgressProjection;
 import swgohManager.model.FarmPlan;
 import swgohManager.model.PlayerPdfActuel;
 import swgohManager.model.PlayerPdfHistorique;
 import swgohManager.model.SyncExecution;
-import swgohManager.repository.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import swgohManager.repository.ExternalRosterUnitActuelRepository;
+import swgohManager.repository.FarmPlanRepository;
+import swgohManager.repository.PlayerPdfActuelRepository;
+import swgohManager.repository.PlayerPdfHistoriqueRepository;
+import swgohManager.repository.RosterUnitActuelRepository;
+import swgohManager.repository.SyncExecutionRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +36,8 @@ public class FarmPlanProgressService {
     private final PlayerPdfHistoriqueRepository playerPdfHistoriqueRepository;
     private final FarmPlanCalculationService farmPlanCalculationService;
 
-    public record DetailRow(String baseId, String nomUnite, Integer etoilesCible, Integer relicCible, Integer relicActuel, boolean atteint) {}
+    public record DetailRow(String baseId, String nomUnite, Integer etoilesCible, Integer relicCible,
+            Integer relicActuel, boolean atteint, String tag) {}
     public record PlayerFarmProgress(int atteint, int total, Double pourcentage, List<DetailRow> details) {}
     public record PointProgression(Instant date, Double pourcentage) {}
 
@@ -126,7 +137,8 @@ public class FarmPlanProgressService {
 
     private PlayerFarmProgress convertir(FarmPlanCalculationService.FarmProgress p) {
         List<DetailRow> details = p.details().stream()
-                .map(d -> new DetailRow(d.baseId(), d.nomUnite(), d.etoilesCible(), d.relicCible(), d.relicActuel(), d.atteint()))
+                .map(d -> new DetailRow(d.baseId(), d.nomUnite(), d.etoilesCible(), d.relicCible(),
+                        d.relicActuel(), d.atteint(), d.tag()))
                 .toList();
         return new PlayerFarmProgress(p.atteint(), p.total(), p.pourcentage(), details);
     }

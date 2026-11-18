@@ -19,92 +19,104 @@
 
     <div th:replace="~{fragments/fragments :: navbar}"></div>
 
-    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
-        <div class="flex items-center space-x-4 mb-6">
-            <a href="/plan-farm/suivi" class="text-slate-400 hover:text-amber-400 text-sm font-medium transition-colors">
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
+
+        <!-- Fil d'ariane -->
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4 text-xs">
+            <a href="/plan-farm/suivi" class="text-slate-400 hover:text-amber-400 font-medium transition-colors">
                 <i class="bi bi-arrow-left me-1"></i> Suivi plan de farm
             </a>
             <span class="text-slate-600">/</span>
-            <a th:href="@{/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}" class="text-slate-400 hover:text-amber-400 text-sm font-medium transition-colors">
+            <a th:href="@{/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}" class="text-slate-400 hover:text-amber-400 font-medium transition-colors">
                 <i class="bi bi-person-badge me-1"></i> Fiche Joueur
             </a>
             <span class="text-slate-600">/</span>
-            <a href="/plan-farm" class="text-slate-400 hover:text-amber-400 text-sm font-medium transition-colors">
-                <i class="bi bi-journal-check"></i> Definition plan de farm commun
+            <a href="/plan-farm" class="text-slate-400 hover:text-amber-400 font-medium transition-colors">
+                <i class="bi bi-journal-check"></i> Définition plan de farm commun
             </a>
             <span class="text-slate-600">/</span>
-            <a th:href="@{/web/plan-farm-ind/joueur/{id}(id=${joueur.playerId})}" class="text-slate-400 hover:text-amber-400 text-sm font-medium transition-colors">
+            <a th:href="@{/web/plan-farm-ind/joueur/{id}(id=${joueur != null ? joueur.playerId : ''})}" class="text-slate-400 hover:text-amber-400 font-medium transition-colors">
                 <i class="bi bi-journal-check"></i> Plan de farm individuel
             </a>
         </div>
 
-        <!-- Header Joueur -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl flex justify-between items-center">
-            <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
-                <span th:text="${joueur != null ? joueur.playerName : 'Joueur introuvable'}"></span>
-                <span th:if="${joueur != null}" class="bg-slate-700 text-amber-400 text-xs font-bold px-3 py-1 rounded-full border border-slate-600"
-                      th:text="'PG: ' + ${#numbers.formatInteger(joueur.galacticPower, 0, 'WHITESPACE')}"></span>
-            </h1>
-        </div>
-
-        <!-- Summary Progress Card -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl">
-            <h2 class="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
-                <i class="bi bi-pie-chart text-emerald-400"></i> Progression du Plan de Farm
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                <div class="md:col-span-4">
-                    <div class="text-4xl font-black text-emerald-400 mb-1" th:text="${#numbers.formatDecimal(progression.pourcentage, 1, 1)} + ' %'">0 %</div>
-                    <p class="text-sm text-slate-400">
-                        <span class="font-bold text-emerald-400" th:text="${progression.atteint}"></span> objectifs atteints sur <span class="font-bold text-slate-200" th:text="${progression.total}"></span>
+        <!-- Header joueur + progression globale (une seule card compacte) -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-5 shadow-lg">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <h1 class="text-2xl font-extrabold text-white flex items-center gap-3">
+                    <span th:text="${joueur != null ? joueur.playerName : 'Joueur introuvable'}"></span>
+                    <span th:if="${joueur != null}" class="bg-slate-700 text-amber-400 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-slate-600"
+                          th:text="'PG: ' + ${#numbers.formatInteger(joueur.galacticPower, 0, 'WHITESPACE')}"></span>
+                </h1>
+                <div class="text-right">
+                    <span class="text-2xl font-black text-emerald-400" th:text="${#numbers.formatDecimal(progression.pourcentage, 1, 1)} + ' %'">0 %</span>
+                    <p class="text-[11px] text-slate-400">
+                        <span class="font-bold text-emerald-400" th:text="${progression.atteint}"></span> objectifs atteints sur
+                        <span class="font-bold text-slate-200" th:text="${progression.total}"></span>
                     </p>
                 </div>
-                <div class="md:col-span-8">
-                    <div class="w-full bg-slate-900 h-6 rounded-full overflow-hidden border border-slate-700/60">
-                        <div class="bg-gradient-to-r from-emerald-600 to-teal-400 h-full text-xs font-bold text-slate-950 flex items-center justify-center transition-all duration-500"
-                             th:style="'width: ' + ${progression.pourcentage} + '%'" 
-                             th:text="${#numbers.formatDecimal(progression.pourcentage, 1, 0)} + '%'"></div>
+            </div>
+            <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700/60">
+                <div class="bg-gradient-to-r from-emerald-600 to-teal-400 h-full transition-all duration-500"
+                     th:style="'width: ' + ${progression.pourcentage} + '%'"></div>
+            </div>
+        </div>
+
+        <!-- Cards : 1 par tag, 2 par ligne -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <div th:each="entry : ${detailsParTag}"
+                 th:with="nbAtteints=${#lists.size(entry.value.?[atteint])}, nbTotal=${#lists.size(entry.value)}"
+                 class="bg-slate-800 border border-slate-700 rounded-xl shadow-lg overflow-hidden">
+
+                <!-- En-tête de la card : tag + progression du tag -->
+                <div class="px-4 py-2.5 border-b border-slate-700 bg-slate-850">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="bi bi-tag-fill text-amber-400 text-xs"></i>
+                            <span th:text="${entry.key}">GAC</span>
+                        </h2>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border"
+                              th:classappend="${nbAtteints == nbTotal} ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-700/50 text-slate-300 border-slate-600'"
+                              th:text="${nbAtteints} + ' / ' + ${nbTotal}">0 / 0</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-gradient-to-r from-emerald-600 to-teal-400 h-full"
+                             th:style="'width: ' + ${nbTotal > 0 ? (nbAtteints * 100.0 / nbTotal) : 0} + '%'"></div>
+                    </div>
+                </div>
+
+                <!-- Légende des colonnes -->
+                <div class="grid grid-cols-[1fr_2.5rem_3.5rem_3.5rem_1.5rem] gap-2 px-4 py-1.5 text-[9px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-700/60">
+                    <span>Unité</span>
+                    <span class="text-center" title="Étoiles cible">★</span>
+                    <span class="text-center" title="Relic cible">R cible</span>
+                    <span class="text-center" title="Relic actuel">R actuel</span>
+                    <span class="text-center">Statut</span>
+                </div>
+
+                <!-- Lignes -->
+                <div class="divide-y divide-slate-700/60">
+                    <div th:each="d : ${entry.value}"
+                         class="grid grid-cols-[1fr_2.5rem_3.5rem_3.5rem_1.5rem] gap-2 items-center px-4 py-1.5 text-xs hover:bg-slate-700/20 transition-colors"
+                         th:classappend="${d.atteint} ? '' : 'bg-rose-500/5'">
+                        <span class="font-bold text-white truncate" th:text="${d.nomUnite}" th:title="${d.nomUnite}"></span>
+                        <span class="text-center text-slate-300 font-mono" th:text="${d.etoilesCible}"></span>
+                        <span class="text-center text-slate-300 font-mono" th:text="${d.relicCible}"></span>
+                        <span class="text-center font-mono"
+                              th:classappend="${d.atteint} ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'"
+                              th:text="${d.relicActuel != null ? d.relicActuel : '-'}"></span>
+                        <span class="text-center">
+                            <i th:if="${d.atteint}" class="bi bi-check-circle-fill text-emerald-400" title="Atteint"></i>
+                            <i th:unless="${d.atteint}" class="bi bi-x-circle-fill text-rose-400" title="En cours"></i>
+                        </span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Detail Table -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700">
-                <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i class="bi bi-list-check text-amber-400"></i> Détail par unité
-                </h2>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-center text-sm text-slate-300">
-                    <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
-                        <tr>
-                            <th class="px-6 py-4 text-left">Unité</th>
-                            <th class="px-4 py-4">Étoiles cible</th>
-                            <th class="px-4 py-4">Relic cible</th>
-                            <th class="px-4 py-4">Relic actuel</th>
-                            <th class="px-4 py-4">Statut</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-700/60">
-                        <tr th:each="d : ${progression.details}" class="hover:bg-slate-750/50 transition-colors">
-                            <td class="px-6 py-4 text-left font-bold text-white" th:text="${d.nomUnite}"></td>
-                            <td class="px-4 py-4" th:text="${d.etoilesCible}"></td>
-                            <td class="px-4 py-4" th:text="${d.relicCible}"></td>
-                            <td class="px-4 py-4" th:text="${d.relicActuel != null ? d.relicActuel : '-'}"></td>
-                            <td class="px-4 py-4">
-                                <span th:if="${d.atteint}" class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full font-bold text-xs">
-                                    ✅ Atteint
-                                </span>
-                                <span th:unless="${d.atteint}" class="px-3 py-1 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-full font-bold text-xs">
-                                    ❌ En cours
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <!-- Aucun objectif -->
+        <div th:if="${#maps.isEmpty(detailsParTag)}" class="text-center text-slate-500 text-sm py-10">
+            Aucune unité dans le plan de farm.
         </div>
     </main>
 </body>

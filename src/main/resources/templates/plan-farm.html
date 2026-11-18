@@ -6,11 +6,11 @@
     <title>Plan de Farm</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
+
     <!-- Tom Select CDN -->
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-    
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -23,142 +23,152 @@
     <!-- Thème Sombre pour Tom Select -->
     <style>
         .ts-control {
-            background-color: #0f172a !important; /* slate-900 */
-            border-color: #334155 !important;     /* slate-700 */
-            color: #f1f5f9 !important;          /* slate-100 */
-            border-radius: 0.75rem !important;    /* rounded-xl */
-            padding: 0.625rem 1rem !important;
-            font-size: 0.875rem !important;
-        }
-        .ts-dropdown {
-            background-color: #1e293b !important; /* slate-800 */
+            background-color: #0f172a !important;
             border-color: #334155 !important;
             color: #f1f5f9 !important;
-            border-radius: 0.75rem !important;
+            border-radius: 0.5rem !important;
+            padding: 0.375rem 0.75rem !important;
+            font-size: 0.8125rem !important;
+        }
+        .ts-dropdown {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f1f5f9 !important;
+            border-radius: 0.5rem !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
         }
-        .ts-dropdown .option {
-            color: #cbd5e1 !important;          /* slate-300 */
-            padding: 8px 12px !important;
-        }
+        .ts-dropdown .option { color: #cbd5e1 !important; padding: 6px 10px !important; }
         .ts-dropdown .option.active, .ts-dropdown .option:hover {
-            background-color: #f59e0b !important; /* amber-500 */
-            color: #020617 !important;          /* slate-950 */
+            background-color: #f59e0b !important;
+            color: #020617 !important;
         }
-        .ts-control input {
-            color: #f1f5f9 !important;
-        }
+        .ts-control input { color: #f1f5f9 !important; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
 
     <div th:replace="~{fragments/fragments :: navbar}"></div>
 
-    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
-        <a href="/guilde" class="inline-flex items-center text-sm font-medium text-slate-400 hover:text-amber-400 mb-6 transition-colors">
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
+        <a href="/guilde" class="inline-flex items-center text-xs font-medium text-slate-400 hover:text-amber-400 mb-4 transition-colors">
             <i class="bi bi-arrow-left me-2"></i> Retour à la guilde
         </a>
 
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+        <div class="flex justify-between items-center mb-5">
+            <h1 class="text-2xl font-extrabold text-white flex items-center gap-2">
                 <i class="bi bi-journal-check text-emerald-400"></i> Plan de Farm Global
             </h1>
+            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-full font-bold">
+                <span th:text="${#lists.size(plans)}">0</span> unités · <span th:text="${#maps.size(plansParTag)}">0</span> tags
+            </span>
         </div>
 
-        <!-- Formulaire d'ajout -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8 shadow-xl">
-            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <!-- Formulaire d'ajout (compact, sur une ligne) -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-5 shadow-lg">
+            <h2 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
                 <i class="bi bi-plus-circle text-amber-400"></i> Ajouter une unité au plan
             </h2>
-            <form th:action="@{/plan-farm/ajouter}" method="post" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <div class="md:col-span-4">
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Unité</label>
+            <form th:action="@{/plan-farm/ajouter}" method="post" class="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
+                <div class="col-span-2 md:col-span-5">
+                    <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Unité</label>
                     <select id="unitSelect" name="selection" required placeholder="Rechercher une unité...">
                         <option value="">Rechercher une unité...</option>
-                        <option th:each="u : ${unites}" 
-                                th:value="${u.libelle}" 
-                                th:text="${u.libelle}"></option>
+                        <option th:each="u : ${unites}" th:value="${u.libelle}" th:text="${u.libelle}"></option>
                     </select>
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Étoiles</label>
-                    <select name="etoiles" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 text-sm">
+                <div class="md:col-span-1">
+                    <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Étoiles</label>
+                    <select name="etoiles" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 focus:outline-none focus:border-amber-500 text-xs">
                         <option th:each="e : ${etoilesOptions}" th:value="${e}" th:text="${e}" th:selected="${e == 7}"></option>
                     </select>
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Relic</label>
-                    <select name="relic" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 text-sm">
+                <div class="md:col-span-1">
+                    <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Relic</label>
+                    <select name="relic" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-100 focus:outline-none focus:border-amber-500 text-xs">
                         <option th:each="r : ${relicOptions}" th:value="${r}" th:text="${r}" th:selected="${r == 6}"></option>
                     </select>
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tag</label>
-                    <input type="text" name="tag" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 text-sm" placeholder="ex: GAC, TB..." />
+                <div class="col-span-1 md:col-span-3">
+                    <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Tag</label>
+                    <input type="text" name="tag" list="tagsExistants" autocomplete="off"
+                           class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-slate-100 focus:outline-none focus:border-amber-500 text-xs"
+                           placeholder="ex: GAC, TB..." />
+                    <datalist id="tagsExistants">
+                        <option th:each="t : ${tags}" th:value="${t}"></option>
+                    </datalist>
                 </div>
-                <div class="md:col-span-2">
-                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 px-4 rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2 text-sm">
+                <div class="col-span-1 md:col-span-2">
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-1.5 px-3 rounded-lg transition-colors shadow flex items-center justify-center gap-1.5 text-xs">
                         <i class="bi bi-plus-lg"></i> Ajouter
                     </button>
                 </div>
             </form>
         </div>
 
-        <!-- Card Table -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
-                <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i class="bi bi-list-check text-amber-400"></i> Unités définies
-                </h2>
-                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs px-3 py-1 rounded-full font-bold" th:text="${#lists.size(plans)}">0</span>
-            </div>
+        <!-- Cards : 1 par tag, 2 par ligne -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <div th:each="entry : ${plansParTag}"
+                 class="bg-slate-800 border border-slate-700 rounded-xl shadow-lg overflow-hidden">
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-300">
-                    <thead class="bg-slate-850 text-slate-400 uppercase text-xs font-semibold border-b border-slate-700">
-                        <tr>
-                            <th class="px-6 py-4">Unité</th>
-                            <th class="px-4 py-4 w-32">Étoiles</th>
-                            <th class="px-4 py-4 w-32">Relic</th>
-                            <th class="px-4 py-4">Tag</th>
-                            <th class="px-4 py-4 text-center w-28">Action</th>
-                            <th class="px-4 py-4 text-center w-20">Suppr.</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-700/60">
-                        <tr th:each="p : ${plans}" class="hover:bg-slate-750/50 transition-colors">
-                            <td class="px-6 py-4 font-bold text-white" th:text="${p.nomUnite}"></td>
-                            <form th:action="@{/plan-farm/modifier/{id}(id=${p.id})}" method="post">
-                                <td class="px-4 py-4">
-                                    <select name="etoiles" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200">
-                                        <option th:each="e : ${etoilesOptions}" th:value="${e}" th:text="${e}" th:selected="${e == p.etoilesCible}"></option>
-                                    </select>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <select name="relic" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200">
-                                        <option th:each="r : ${relicOptions}" th:value="${r}" th:text="${r}" th:selected="${r == p.relicCible}"></option>
-                                    </select>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <input type="text" name="tag" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 w-full" th:value="${p.tag}" />
-                                </td>
-                                <td class="px-4 py-4 text-center">
-                                    <button type="submit" class="p-2 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-lg transition-colors border border-indigo-500/30">
-                                        <i class="bi bi-check-lg"></i>
-                                    </button>
-                                </td>
-                            </form>
-                            <td class="px-4 py-4 text-center">
-                                <form th:action="@{/plan-farm/supprimer/{id}(id=${p.id})}" method="post" class="inline">
-                                    <button type="submit" class="p-2 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-colors border border-red-500/30" onclick="return confirm('Supprimer cette unité du plan ?');">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <!-- En-tête de la card -->
+                <div class="px-4 py-2.5 border-b border-slate-700 bg-slate-850 flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="bi bi-tag-fill text-amber-400 text-xs"></i>
+                        <span th:text="${entry.key}">GAC</span>
+                    </h2>
+                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold"
+                          th:text="${#lists.size(entry.value)}">0</span>
+                </div>
+
+                <!-- Légende des colonnes -->
+                <div class="grid grid-cols-[1fr_3.5rem_3.5rem_5.5rem_4.25rem] gap-2 px-4 py-1.5 text-[9px] uppercase tracking-wider font-semibold text-slate-500 border-b border-slate-700/60">
+                    <span>Unité</span>
+                    <span>Étoiles</span>
+                    <span>Relic</span>
+                    <span>Tag</span>
+                    <span class="text-center">Actions</span>
+                </div>
+
+                <!-- Lignes : un formulaire par unité (le bouton supprimer utilise formaction) -->
+                <div class="divide-y divide-slate-700/60">
+                    <form th:each="p : ${entry.value}"
+                          th:action="@{/plan-farm/modifier/{id}(id=${p.id})}" method="post"
+                          class="grid grid-cols-[1fr_3.5rem_3.5rem_5.5rem_4.25rem] gap-2 items-center px-4 py-1.5 hover:bg-slate-700/20 transition-colors">
+
+                        <span class="text-xs font-bold text-white truncate" th:text="${p.nomUnite}" th:title="${p.nomUnite}"></span>
+
+                        <select name="etoiles" class="bg-slate-900 border border-slate-700 rounded-md px-1 py-0.5 text-[11px] text-slate-200 w-full">
+                            <option th:each="e : ${etoilesOptions}" th:value="${e}" th:text="${e}" th:selected="${e == p.etoilesCible}"></option>
+                        </select>
+
+                        <select name="relic" class="bg-slate-900 border border-slate-700 rounded-md px-1 py-0.5 text-[11px] text-slate-200 w-full">
+                            <option th:each="r : ${relicOptions}" th:value="${r}" th:text="${r}" th:selected="${r == p.relicCible}"></option>
+                        </select>
+
+                        <input type="text" name="tag" list="tagsExistants" autocomplete="off"
+                               class="bg-slate-900 border border-slate-700 rounded-md px-2 py-0.5 text-[11px] text-slate-200 w-full"
+                               th:value="${p.tag}" />
+
+                        <div class="flex items-center justify-center gap-1">
+                            <button type="submit" title="Enregistrer"
+                                    class="w-7 h-7 flex items-center justify-center bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-md transition-colors border border-indigo-500/30 text-xs">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                            <button type="submit" title="Supprimer"
+                                    th:formaction="@{/plan-farm/supprimer/{id}(id=${p.id})}" formmethod="post"
+                                    onclick="return confirm('Supprimer cette unité du plan ?');"
+                                    class="w-7 h-7 flex items-center justify-center bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded-md transition-colors border border-red-500/30 text-xs">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
+        </div>
+
+        <!-- Aucun plan -->
+        <div th:if="${#maps.isEmpty(plansParTag)}" class="text-center text-slate-500 text-sm py-10">
+            Aucune unité dans le plan pour le moment.
         </div>
     </main>
 

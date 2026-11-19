@@ -49,5 +49,27 @@ public class FarmPlanWebController {
         return "plan-farm";
     }
 
-    // ajouter / modifier / supprimer : inchangés
+    @PostMapping("/ajouter")
+    public String ajouter(@RequestParam String selection,
+                          @RequestParam Integer etoiles,
+                          @RequestParam Integer relic,
+                          @RequestParam(required = false) String tag) {
+        farmPlanService.ajouter(selection, etoiles, relic, tag);
+        return "redirect:/plan-farm";
+    }
+
+    @PostMapping("/modifier/{id}")
+    public String modifier(@PathVariable Long id,
+                           @RequestParam Integer etoiles,
+                           @RequestParam Integer relic,
+                           @RequestParam(required = false) String tag) {
+        farmPlanService.modifier(id, etoiles, relic, tag);
+        return "redirect:/plan-farm";
+    }
+
+    @PostMapping("/supprimer/{id}")
+    public String supprimer(@PathVariable Long id) {
+        farmPlanService.supprimer(id);
+        return "redirect:/plan-farm";
+    }
 }

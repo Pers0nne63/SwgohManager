@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
@@ -29,6 +32,7 @@ public class TbAutoImportService {
     private static final String TB_EVENT_TYPE = "TERRITORYBATTLEEVENT";
     private static final int MAX_ROUNDS = 6;
     private static final long ANTICIPATION_FIN_ROUND_SEC = 120L;
+    private static final LocalDate DATE_REFERENCE_TB = LocalDate.of(2026, 11, 23);
 
     private final GuionbotClient guionbotClient;
     private final TerritoryBattleRepository territoryBattleRepository;
@@ -42,6 +46,26 @@ public class TbAutoImportService {
 
     @Value("${swgoh.guild.id}")
     private String guildId;
+    
+    private boolean estDansFenetreActive(Instant debutTbOuNull) {
+        Instant maintenant = Instant.now();
+
+        // 1) Si on connaît le début exact de la BT en cours : elle dure 6 jours (144h)
+        if (debutTbOuNull != null) {
+            long heuresEcoulees = Duration.between(debutTbOuNull, maintenant).toHours();
+            return heuresEcoulees >= 0 && heuresEcoulees < (6 * 24);
+        }
+
+        // 2) Sinon (avant création / sans startTime) : vérifier si on est dans les 6 premiers jours
+        //    d'une semaine "BT" (cycle de 14 jours depuis le 23/11/2026 en UTC)
+        LocalDate aujourdHuiUtc = maintenant.atZone(ZoneOffset.UTC).toLocalDate();
+        long joursDepuisRef = ChronoUnit.DAYS.between(DATE_REFERENCE_TB, aujourdHuiUtc);
+        long jourDansCycle14j = Math.floorMod(joursDepuisRef, 14);
+
+        // Jours 0 à 5 du cycle = lundi à samedi (6 jours de la semaine active) ;
+        // jours 6 à 13 = dimanche + toute la semaine "off" (1 semaine sur 2)
+        return jourDansCycle14j >= 0 && jourDansCycle14j < 6;
+    }
 
     /**
      * Appelé tous les soirs à 18h02 UTC :
@@ -50,7 +74,13 @@ public class TbAutoImportService {
      * - si currentRoundEndTime est présent, planifie l'appel tb-mapstats à (endTime - 2 min).
      */
     public String synchroniserGuildEtPlanifierFinRound() {
-        JsonNode guild = guionbotClient.fetchGuild();
+    	
+    	if (!estDansFenetreActive(null)) {
+            annulerTachePlanifiee();
+            return "Hors fenêtre active de TB (cycle 14j / 6j) : scan guild ignoré";
+        }
+    	
+    	JsonNode guild = guionbotClient.fetchGuild();
         JsonNode tbStatus = guild.path("territoryBattleStatus").path(0);
 
         String instanceId = tbStatus.path("instanceId").asText("");
@@ -99,7 +129,13 @@ public class TbAutoImportService {
      * a un plan associé et n'a pas déjà été importée pour ce round.
      */
     public String synchroniserMapStatsSiActif() {
-        JsonNode guild = guionbotClient.fetchGuild();
+    	//On vérifie si on est dans une TB sans se connecter.
+    	if (!estDansFenetreActive(null)) {
+            annulerTachePlanifiee();
+            return "Hors fenêtre active de TB (cycle 14j / 6j) : scan guild ignoré";
+        }
+    	
+    	JsonNode guild = guionbotClient.fetchGuild();
         JsonNode tbStatus = guild.path("territoryBattleStatus").path(0);
 
         String instanceId = tbStatus.path("instanceId").asText("");
@@ -120,6 +156,10 @@ public class TbAutoImportService {
 
         TerritoryBattle tb = territoryBattleRepository.findByInstanceId(instanceId)
                 .orElseGet(() -> creerTerritoryBattle(guild, tbStatus, instanceId));
+        
+        if (!estDansFenetreActive(tb.getStartTime())) {
+            return "TB " + instanceId + " : fenêtre de 6 jours dépassée, import ignoré";
+        }
 
         if (tb.getPlanId() == null) {
             return "TB " + instanceId + " (round " + roundNum + ") : aucun plan associé, import ignoré";
@@ -169,8 +209,8 @@ public class TbAutoImportService {
         }
         try {
             TerritoryBattle tb = territoryBattleRepository.findByInstanceId(instanceId).orElse(null);
-            if (tb == null || tb.getPlanId() == null) {
-                log.warn("Import planifié annulé : TB {} introuvable ou sans plan", instanceId);
+            if (tb == null || tb.getPlanId() == null || !estDansFenetreActive(tb.getStartTime())) {
+                log.warn("Import planifié ignoré pour TB {} (absence, sans plan ou hors fenêtre 6j)", instanceId);
                 return;
             }
             String res = importerMapStatsPourTb(tb, roundNum);

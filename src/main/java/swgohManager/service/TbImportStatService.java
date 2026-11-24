@@ -40,7 +40,7 @@ public class TbImportStatService {
 	// Injection explicite pour éviter le conflit avec Lombok
 	@org.springframework.beans.factory.annotation.Value("${app.import.directory:./imports}")
 	private String importDirectory;
-	
+
     private final ObjectMapper objectMapper;
     private final TbPlanRoundRepository planRoundRepository;
     private final TbPlaneteReferenceRepository planeteReferenceRepository;
@@ -48,78 +48,85 @@ public class TbImportStatService {
     private final TbImportActiviteRepository tbImportActiviteRepository;
     private final TbImportScoreJoueurRepository tbImportScoreJoueurRepository;
 
+    /**
+     * Chemin "fichier" (inchangé) : lit le JSON dans le dossier d'imports puis délègue.
+     */
     @Transactional
     public void importerStatsRound(String nomFichier, Long planId, Long territoryBattleId) throws IOException {
-    	
-        // 1. Récupérer la bataille de territoire (TB) en cours
+
         TerritoryBattle territoryBattle = territoryBattleRepository.findById(territoryBattleId)
                 .orElseThrow(() -> new IllegalArgumentException("TerritoryBattle non trouvée pour l'ID : " + territoryBattleId));
 
-        // 2. Déduire le numéro du round depuis le nom du fichier
         int roundNum = extraireRoundDuFichier(nomFichier);
 
-        // 3. Récupérer la configuration du round pour le plan sélectionné
-        TbPlanRound planRound = planRoundRepository.findByPlanIdAndRoundNum(planId, roundNum)
-                .orElseThrow(() -> new IllegalArgumentException("Aucun round " + roundNum + " trouvé pour le plan " + planId));
-
-        // 4. Récupérer les planètes actives pour ce round
-        List<TbPlaneteReference> planetesActives = getPlanetesActives(planRound);
-
-
-        // 6. Lecture du fichier JSON — le fichier est un tableau JSON à la racine
         File file = new File(importDirectory, nomFichier);
         List<TbImportMapStat> currentStat = objectMapper.readValue(
                 file, new TypeReference<List<TbImportMapStat>>() {});
 
-        if (currentStat != null) {
+        importerStats(territoryBattle, planId, roundNum, currentStat);
+    }
 
-            // 7. Filtrer et enregistrer dans les tables d'import
-            for (TbImportMapStat stat : currentStat) {
-            	boolean isBonus = estBonus(stat.getMapStatId());
+    /**
+     * Cœur de l'import : utilisé par le chemin fichier ET par l'import automatique via l'API.
+     */
+    @Transactional
+    public void importerStats(TerritoryBattle territoryBattle, Long planId, int roundNum,
+                              List<TbImportMapStat> currentStat) {
 
-            	Optional<TbPlaneteReference> optRef = planetesActives.stream()
-            	        .filter(ref -> stat.getMapStatId() != null
-            	                && stat.getMapStatId().contains(construireSuffixeBase(ref))
-            	                && Boolean.TRUE.equals(ref.getBonus()) == isBonus)
-            	        .findFirst();
+        // Récupérer la configuration du round pour le plan sélectionné
+        TbPlanRound planRound = planRoundRepository.findByPlanIdAndRoundNum(planId, roundNum)
+                .orElseThrow(() -> new IllegalArgumentException("Aucun round " + roundNum + " trouvé pour le plan " + planId));
 
-                if (optRef.isPresent()) {
-                    TbPlaneteReference planeteRef = optRef.get();
+        // Récupérer les planètes actives pour ce round
+        List<TbPlaneteReference> planetesActives = getPlanetesActives(planRound);
 
-                    // Création ou récupération de l'activité
-                    TbImportActivite activite = tbImportActiviteRepository
-                            .findByTerritoryBattleAndMapStatIdAndRoundNum(territoryBattle, stat.getMapStatId(), roundNum)
-                            .orElseGet(() -> TbImportActivite.builder()
-                                    .territoryBattle(territoryBattle)
-                                    .mapStatId(stat.getMapStatId())
-                                    .roundNum(roundNum)
-                                    .build());
+        if (currentStat == null) return;
 
-                    activite.setPhase(planeteRef.getPhase());
-                    activite.setConflict(planeteRef.getConflict());
-                    activite.setBonus(isBonus);
-                    activite.setRoundNum(roundNum);
-                    activite.setStatType(extraireStatType(stat.getMapStatId()));
-                    activite.setCovertNum(extraireCovertNum(stat.getMapStatId()));
+        // Filtrer et enregistrer dans les tables d'import
+        for (TbImportMapStat stat : currentStat) {
+            boolean isBonus = estBonus(stat.getMapStatId());
 
-                    // On enregistre dans une NOUVELLE variable finale utilisable dans les lambdas
-                    TbImportActivite activiteEnregistree = tbImportActiviteRepository.save(activite);
+            Optional<TbPlaneteReference> optRef = planetesActives.stream()
+                    .filter(ref -> stat.getMapStatId() != null
+                            && stat.getMapStatId().contains(construireSuffixeBase(ref))
+                            && Boolean.TRUE.equals(ref.getBonus()) == isBonus)
+                    .findFirst();
 
-                    // Enregistrement des scores des joueurs dans TbImportScoreJoueur
-                    if (stat.getPlayerStat() != null) {
-                        for (TbImportPlayerStat pStat : stat.getPlayerStat()) {
-                            Long scoreValue = parseLongSafe(pStat.getScore());
+            if (optRef.isPresent()) {
+                TbPlaneteReference planeteRef = optRef.get();
 
-                            TbImportScoreJoueur scoreJoueur = tbImportScoreJoueurRepository
-                                    .findByTbImportActiviteAndPlayerId(activiteEnregistree, pStat.getMemberId())
-                                    .orElseGet(() -> TbImportScoreJoueur.builder()
-                                            .tbImportActivite(activiteEnregistree)
-                                            .playerId(pStat.getMemberId())
-                                            .build());
+                // Création ou récupération de l'activité
+                TbImportActivite activite = tbImportActiviteRepository
+                        .findByTerritoryBattleAndMapStatIdAndRoundNum(territoryBattle, stat.getMapStatId(), roundNum)
+                        .orElseGet(() -> TbImportActivite.builder()
+                                .territoryBattle(territoryBattle)
+                                .mapStatId(stat.getMapStatId())
+                                .roundNum(roundNum)
+                                .build());
 
-                            scoreJoueur.setScore(scoreValue);
-                            tbImportScoreJoueurRepository.save(scoreJoueur);
-                        }
+                activite.setPhase(planeteRef.getPhase());
+                activite.setConflict(planeteRef.getConflict());
+                activite.setBonus(isBonus);
+                activite.setRoundNum(roundNum);
+                activite.setStatType(extraireStatType(stat.getMapStatId()));
+                activite.setCovertNum(extraireCovertNum(stat.getMapStatId()));
+
+                TbImportActivite activiteEnregistree = tbImportActiviteRepository.save(activite);
+
+                // Enregistrement des scores des joueurs dans TbImportScoreJoueur
+                if (stat.getPlayerStat() != null) {
+                    for (TbImportPlayerStat pStat : stat.getPlayerStat()) {
+                        Long scoreValue = parseLongSafe(pStat.getScore());
+
+                        TbImportScoreJoueur scoreJoueur = tbImportScoreJoueurRepository
+                                .findByTbImportActiviteAndPlayerId(activiteEnregistree, pStat.getMemberId())
+                                .orElseGet(() -> TbImportScoreJoueur.builder()
+                                        .tbImportActivite(activiteEnregistree)
+                                        .playerId(pStat.getMemberId())
+                                        .build());
+
+                        scoreJoueur.setScore(scoreValue);
+                        tbImportScoreJoueurRepository.save(scoreJoueur);
                     }
                 }
             }
@@ -175,7 +182,7 @@ public class TbImportStatService {
             return 0L;
         }
     }
-    
+
     @PostConstruct
     public void initImportDirectory() {
         try {
@@ -188,7 +195,7 @@ public class TbImportStatService {
             System.err.println("Erreur lors de la création du dossier d'import : " + e.getMessage());
         }
     }
-    
+
     private String construireSuffixeBase(TbPlaneteReference ref) {
         return String.format("_phase%02d_conflict%02d", ref.getPhase(), ref.getConflict());
     }

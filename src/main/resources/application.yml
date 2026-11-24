@@ -48,9 +48,14 @@ admin:
   password: ${ADMIN_PASSWORD:BaguettesEnflamées!}
 
 app:
-  import:
-    directory: ./imports
-
+   import:
+     directory: ./imports
+   guionbot:
+      base-url: https://guionbot.fr/api/v1
+      api-key: ${GUIONBOT_API_KEY:}
+      timeout-seconds: 180
+      poll-enabled: true      # à passer à true quand les tests manuels sont OK
+      poll-ms: 1800000         # 30 min
 assets:
   ae2-url: "http://localhost:3000"
   comlink-url: "http://localhost:3200"

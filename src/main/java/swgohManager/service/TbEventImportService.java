@@ -1,10 +1,13 @@
 package swgohManager.service;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,7 +41,13 @@ public class TbEventImportService {
     private final GuionbotClient guionbotClient;
     private final TbEventRepository repository;
 
-    public record Resultat(int lus, int nouveaux, int dejaPresents, int ignores) {}
+    private static final DateTimeFormatter FORMAT_LOG =
+            DateTimeFormatter.ofPattern("dd/MM HH:mm").withZone(ZoneId.of("Europe/Paris"));
+
+    /** Points de zone perdus entre deux événements connus (debut = dernier connu avant le trou, fin = premier connu après). */
+    public record Trou(String zoneId, Instant debut, Instant fin, long pointsManquants) {}
+
+    public record Resultat(int lus, int nouveaux, int dejaPresents, int ignores, List<Trou> trous) {}
 
     /** Appelle guionbot (1 appel) puis importe. */
     public Resultat importerDepuisApi() {
@@ -75,9 +84,37 @@ public class TbEventImportService {
         }
 
         repository.saveAll(nouveaux);
-        log.info("tb-events : {} lus, {} nouveaux, {} déjà en base, {} ignorés",
-                lus, nouveaux.size(), dejaPresents, ignores);
-        return new Resultat(lus, nouveaux.size(), dejaPresents, ignores);
+        repository.flush();
+        List<Trou> trous = detecterTrous(nouveaux);
+        log.info("tb-events : {} lus, {} nouveaux, {} déjà en base, {} ignorés, {} trou(s)",
+                lus, nouveaux.size(), dejaPresents, ignores, trous.size());
+        return new Resultat(lus, nouveaux.size(), dejaPresents, ignores, trous);
+    }
+
+    /**
+     * Trous entre ce lot et ce qui était déjà en base : on ne garde que les trous dont l'événement
+     * suivant vient d'être inséré, pour ne pas re-signaler à chaque appel les trous des appels précédents.
+     */
+    private List<Trou> detecterTrous(List<TbEvent> nouveaux) {
+        List<Trou> trous = new ArrayList<>();
+        if (nouveaux.isEmpty()) {
+            return trous;
+        }
+        Set<String> idsNouveaux = nouveaux.stream().map(TbEvent::getEventId).collect(Collectors.toSet());
+        for (String instanceId : nouveaux.stream().map(TbEvent::getInstanceId).distinct().toList()) {
+            for (TbEventRepository.TrouProjection t : repository.findTrousByInstanceId(instanceId)) {
+                if (!idsNouveaux.contains(t.getEventId())) {
+                    continue;
+                }
+                Trou trou = new Trou(t.getZoneId(), Instant.ofEpochMilli(t.getDebutMs()),
+                        Instant.ofEpochMilli(t.getFinMs()), t.getPointsManquants());
+                trous.add(trou);
+                log.warn("tb-events : trou zone {} entre {} et {} ({} points manquants)",
+                        trou.zoneId(), FORMAT_LOG.format(trou.debut()), FORMAT_LOG.format(trou.fin()),
+                        trou.pointsManquants());
+            }
+        }
+        return trous;
     }
 
     private TbEvent parse(String instanceId, String eventId, JsonNode ev) {

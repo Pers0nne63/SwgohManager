@@ -28,6 +28,20 @@ public interface TbEventRepository extends JpaRepository<TbEvent, Long> {
         Long getNb();
     }
 
+    /** Nombre d'événements par tranche de 30 min et par zone (sert à simuler la fréquence d'appel). */
+    interface RepartitionZoneProjection {
+        Integer getSlot();
+        String getZoneId();
+        Long getNb();
+    }
+
+    /** Premier événement avec points connu d'une zone : si pointsAvant > 0, le début de la zone n'a jamais été reçu. */
+    interface DebutZoneProjection {
+        String getZoneId();
+        Long getDebutMs();
+        Long getPointsAvant();
+    }
+
     /** Ids d'événements déjà en base pour une TB : sert à n'insérer que les nouveaux. */
     @Query("SELECT e.eventId FROM TbEvent e WHERE e.instanceId = :instanceId")
     Set<String> findEventIdsByInstanceId(@Param("instanceId") String instanceId);
@@ -74,4 +88,32 @@ public interface TbEventRepository extends JpaRepository<TbEvent, Long> {
     List<RepartitionProjection> repartitionParTrancheEtType(@Param("instanceId") String instanceId,
                                                            @Param("debut") Instant debut,
                                                            @Param("fin") Instant fin);
+
+    /** Répartition des événements d'une TB par tranche de 30 min depuis :debut et par zone (:fin exclue). */
+    @Query(value = """
+            SELECT CAST(FLOOR(EXTRACT(EPOCH FROM (e.event_time - CAST(:debut AS timestamp with time zone))) / 1800) AS integer) AS "slot",
+                   e.zone_id AS "zoneId",
+                   COUNT(*) AS "nb"
+            FROM tb_event e
+            WHERE e.instance_id = :instanceId
+              AND e.event_time >= CAST(:debut AS timestamp with time zone)
+              AND e.event_time < CAST(:fin AS timestamp with time zone)
+            GROUP BY 1, 2
+            ORDER BY 1, 2
+            """, nativeQuery = true)
+    List<RepartitionZoneProjection> repartitionParTrancheEtZone(@Param("instanceId") String instanceId,
+                                                               @Param("debut") Instant debut,
+                                                               @Param("fin") Instant fin);
+
+    /** Pour chaque zone, son premier événement portant des points et les points déjà acquis avant lui. */
+    @Query(value = """
+            SELECT DISTINCT ON (e.zone_id)
+                   e.zone_id AS "zoneId",
+                   CAST(EXTRACT(EPOCH FROM e.event_time) * 1000 AS bigint) AS "debutMs",
+                   e.score_total - e.score_delta AS "pointsAvant"
+            FROM tb_event e
+            WHERE e.instance_id = :instanceId AND e.score_total > 0
+            ORDER BY e.zone_id, e.event_time, e.id
+            """, nativeQuery = true)
+    List<DebutZoneProjection> findDebutsConnusByInstanceId(@Param("instanceId") String instanceId);
 }

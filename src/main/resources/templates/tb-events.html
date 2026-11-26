@@ -54,32 +54,71 @@
             <p class="text-slate-400 font-medium">Aucun événement importé pour cette Territory Battle.</p>
         </div>
 
-        <!-- Graphique -->
-        <div th:if="${analyse != null and nbEvenements > 0}" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-            <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
-                <i class="bi bi-bar-chart-line text-amber-400"></i> Événements par type et par tranche de 30 min
-            </h2>
-            <p class="text-slate-400 text-xs mb-4">
-                <span th:text="${#numbers.formatInteger(nbEvenements, 0, 'DEFAULT')}">0</span> événements importés pour cette BT.
-                Choisis une phase pour la voir de son début à sa fin (24 h).
-            </p>
+        <th:block th:if="${analyse != null and nbEvenements > 0}">
 
-            <div class="mb-4">
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Phase</label>
-                <div id="filtrePhase" class="flex flex-wrap gap-2"></div>
+            <!-- CARTE A : fréquence d'appel -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-6 shadow-xl">
+                <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                    <i class="bi bi-speedometer2 text-amber-400"></i> Fréquence d'appel à l'API
+                </h2>
+                <p class="text-slate-400 text-xs mb-4">
+                    <span th:text="${#numbers.formatInteger(nbEvenements, 0, 'DEFAULT')}">0</span> événements importés pour cette BT.
+                    Le jeu ne garde que les 50 derniers événements de <b>chaque zone</b> : si une zone en produit plus de 50 entre deux appels, les plus anciens sont perdus.
+                </p>
+
+                <div class="flex flex-wrap items-start gap-x-8 gap-y-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Phase</label>
+                        <div id="filtrePhase" class="flex flex-wrap gap-2"></div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Intervalle d'appel testé</label>
+                        <div id="filtreIntervalle" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+
+                <div style="height: 320px;">
+                    <canvas id="chart-simulation"></canvas>
+                </div>
+                <p class="text-slate-500 text-[11px] mt-3 leading-relaxed">
+                    Chaque barre = nombre d'événements de la <b>zone la plus chargée</b> sur une fenêtre égale à l'intervalle testé, terminée à cette tranche.
+                    <span class="text-blue-400">Bleu</span> : sous 40 (marge) ·
+                    <span class="text-orange-400">orange</span> : 40 à 49 ·
+                    <span class="text-rose-400">rouge</span> : 50 ou plus, des événements seraient perdus avec cet intervalle.
+                    Les fenêtres calées différemment peuvent voir un peu plus, d'où la marge.
+                    Les zones grisées sont des périodes où des événements manquent déjà (trou de collecte, début de zone perdu, ou pas encore de données) : la barre est alors un minimum.
+                </p>
+
+                <h3 class="text-sm font-bold text-white mt-6 mb-1 flex items-center gap-2">
+                    <i class="bi bi-clock-history text-amber-400"></i> Intervalle conseillé par heure (UTC, comme tes crons)
+                </h3>
+                <p class="text-slate-500 text-[11px] mb-3 leading-relaxed">
+                    Pour chaque heure, temps qu'il faut à la zone la plus chargée pour atteindre 40 événements, au rythme du pic mesuré sur cette heure (toutes les phases de cette BT), arrondi aux 15 min inférieures et plafonné à 4 h.
+                    « ? » : aucune mesure fiable pour cette heure. Bordure en pointillés : une seule phase mesurée.
+                </p>
+                <div id="conseilsHeures" class="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-12 gap-2"></div>
             </div>
 
-            <div id="totauxTypes" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5"></div>
+            <!-- CARTE B : événements par type -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                    <i class="bi bi-bar-chart-line text-amber-400"></i> Événements par type et par tranche de 30 min
+                </h2>
+                <p class="text-slate-400 text-xs mb-4">Même phase que ci-dessus (sélection partagée).</p>
 
-            <div style="height: 380px;">
-                <canvas id="chart-events"></canvas>
+                <div id="totauxTypes" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5"></div>
+
+                <div style="height: 380px;">
+                    <canvas id="chart-events"></canvas>
+                </div>
+
+                <p class="text-slate-500 text-[10px] mt-4 italic flex items-start gap-1.5">
+                    <i class="bi bi-info-circle text-amber-400"></i>
+                    <span>Une tranche creuse peut venir d'un trou de collecte entre deux imports (signalé dans les logs « tb-events : trou zone … ») et pas forcément d'une absence d'activité.</span>
+                </p>
             </div>
 
-            <p class="text-slate-500 text-[10px] mt-4 italic flex items-start gap-1.5">
-                <i class="bi bi-info-circle text-amber-400"></i>
-                <span>Le jeu ne conserve que les 50 derniers événements de chaque zone : une tranche creuse peut venir d'un trou de collecte entre deux imports (signalé dans les logs « tb-events : trou zone … ») et pas forcément d'une absence d'activité.</span>
-            </p>
-        </div>
+        </th:block>
 
     </main>
 
@@ -98,7 +137,16 @@
         { key: 'AUTRE',           label: 'Autres',             color: '#94a3b8' }
     ];
 
-    // Heure de Paris, 24 h
+    const PLAFOND_JEU = 50;        // événements conservés par zone
+    const MARGE = 40;              // seuil de prudence
+    const INTERVALLE_MAX = 240;    // minutes
+    const PAS_MIN = 15;            // arrondi des intervalles conseillés
+    const INTERVALLES_TESTES = [
+        { min: 30, label: '30 min' }, { min: 60, label: '1 h' }, { min: 90, label: '1 h 30' },
+        { min: 120, label: '2 h' }, { min: 180, label: '3 h' }
+    ];
+
+    // Heure de Paris, 24 h (affichage des libellés de tranche)
     const fmtParis = new Intl.DateTimeFormat('fr-FR', {
         timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit',
         hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
@@ -111,8 +159,15 @@
         return p.day + '/' + p.month + ' ' + p.hour + ':' + p.minute;
     }
 
-    let grille = {};              // type -> tableau de nbSlots compteurs
-    let phaseSelectionnee = 0;    // 0 = toute la TB, 1..6 = une phase
+    function phaseDeSlot(s) {
+        return Math.floor(s / analyse.slotsParPhase) + 1;
+    }
+
+    let phaseSelectionnee = 0;          // 0 = toute la BT, 1..6 = une phase
+    let intervalleTesteMin = 60;
+
+    // ---------- Données par type (graphique du bas) ----------
+    let grille = {};
     let plageDebut = 0;
     let chartEvents = null;
 
@@ -124,6 +179,146 @@
         });
     }
 
+    // ---------- Données par zone (simulation de fréquence) ----------
+    let zoneIds = [];
+    let grilleZone = {};      // zoneId -> compteurs par tranche
+    let lacune = {};          // zoneId -> booléens par tranche (événements déjà manquants)
+    let phaseZone = {};
+    let labelZone = {};
+    let dernierSlot = 0;      // dernière tranche contenant un événement
+    let simCourante = null;
+    let chartSim = null;
+
+    function marquerLacune(zoneId, deMs, aMs) {
+        if (!lacune[zoneId]) return;
+        for (let s = 0; s < analyse.nbSlots; s++) {
+            const a = analyse.debutMs + s * analyse.slotMs;
+            const b = a + analyse.slotMs;
+            if (a < aMs && b > deMs) lacune[zoneId][s] = true;
+        }
+    }
+
+    function construireZones() {
+        analyse.cellulesZone.forEach(c => {
+            if (!grilleZone[c.zoneId]) {
+                grilleZone[c.zoneId] = new Array(analyse.nbSlots).fill(0);
+                lacune[c.zoneId] = new Array(analyse.nbSlots).fill(false);
+            }
+            if (c.slot >= 0 && c.slot < analyse.nbSlots) {
+                grilleZone[c.zoneId][c.slot] += c.nb;
+                if (c.slot > dernierSlot) dernierSlot = c.slot;
+            }
+        });
+        zoneIds = Object.keys(grilleZone).sort();
+        zoneIds.forEach(z => {
+            const m = /phase(\d+)_conflict(\d+)(_bonus)?$/.exec(z);
+            phaseZone[z] = m ? parseInt(m[1], 10) : 0;
+            labelZone[z] = m ? ('P' + m[1] + ' · C' + m[2] + (m[3] ? ' bonus' : '')) : z;
+        });
+        // trous de collecte détectés entre deux événements connus
+        analyse.trous.forEach(t => marquerLacune(t.zoneId, t.debutMs, t.finMs));
+        // début de zone perdu : des points existaient déjà avant le premier événement connu
+        analyse.debutsZones.forEach(d => {
+            const ph = phaseZone[d.zoneId];
+            if (d.pointsAvant > 0 && ph) {
+                const debutPhaseMs = analyse.debutMs + (ph - 1) * analyse.slotsParPhase * analyse.slotMs;
+                marquerLacune(d.zoneId, debutPhaseMs, d.debutMs);
+            }
+        });
+    }
+
+    // Pour chaque tranche s : zone la plus chargée sur la fenêtre des k dernières tranches
+    function calculerSimulation(k) {
+        const n = analyse.nbSlots;
+        const valeurs = new Array(n).fill(0);
+        const zones = new Array(n).fill(null);
+        const partiel = new Array(n).fill(false);
+        for (let s = 0; s < n; s++) {
+            if (s > dernierSlot) { partiel[s] = true; continue; }   // pas encore de données
+            zoneIds.forEach(z => {
+                let somme = 0;
+                let trou = false;
+                for (let i = 0; i < k; i++) {
+                    const idx = s - i;
+                    if (idx < 0) break;
+                    somme += grilleZone[z][idx];
+                    if (lacune[z][idx]) trou = true;
+                }
+                if (somme > valeurs[s]) { valeurs[s] = somme; zones[s] = z; }
+                if (trou && phaseZone[z] === phaseDeSlot(s)) partiel[s] = true;
+            });
+        }
+        return { valeurs: valeurs, zones: zones, partiel: partiel };
+    }
+
+    // ---------- Intervalle conseillé par heure UTC ----------
+    function formatDuree(m) {
+        if (m <= 0) return '< 15 min';
+        if (m < 60) return m + ' min';
+        const h = Math.floor(m / 60);
+        const r = m % 60;
+        return h + ' h' + (r ? ' ' + r : '');
+    }
+
+    function intervalleConseille(pic) {
+        if (pic <= 0) return INTERVALLE_MAX;
+        const brut = 30 * MARGE / pic;
+        return Math.min(INTERVALLE_MAX, Math.floor(brut / PAS_MIN) * PAS_MIN);
+    }
+
+    function classeIntervalle(m) {
+        if (m <= 15) return 'bg-rose-500/20 border-rose-500/40 text-rose-300';
+        if (m <= 30) return 'bg-orange-500/20 border-orange-500/40 text-orange-300';
+        if (m <= 60) return 'bg-amber-500/20 border-amber-500/40 text-amber-300';
+        if (m <= 120) return 'bg-sky-500/20 border-sky-500/40 text-sky-300';
+        return 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300';
+    }
+
+    function afficherConseils() {
+        const mesures = calculerSimulation(1);
+        const heures = [];
+        for (let h = 0; h < 24; h++) heures.push({ fiable: null, borne: 0, phases: {} });
+        for (let s = 0; s <= dernierSlot; s++) {
+            const h = new Date(analyse.debutMs + s * analyse.slotMs).getUTCHours();
+            const e = heures[h];
+            e.borne = Math.max(e.borne, mesures.valeurs[s]);
+            if (!mesures.partiel[s]) {
+                e.fiable = Math.max(e.fiable === null ? 0 : e.fiable, mesures.valeurs[s]);
+                e.phases[phaseDeSlot(s)] = true;
+            }
+        }
+        const div = document.getElementById('conseilsHeures');
+        div.innerHTML = '';
+        for (let h = 0; h < 24; h++) {
+            const e = heures[h];
+            const hh = ('0' + h).slice(-2) + 'h';
+            let classe;
+            let texte;
+            let titre;
+            if (e.fiable === null) {
+                classe = 'bg-slate-800 border-slate-700 text-slate-500';
+                texte = '?';
+                titre = hh + ' UTC : aucune mesure fiable' + (e.borne > 0 ? ' (au moins ' + e.borne + ' événements / 30 min vus sur des données incomplètes)' : '');
+            } else {
+                const pic = Math.max(e.fiable, 0);
+                const m = intervalleConseille(pic);
+                classe = classeIntervalle(m);
+                texte = (m >= INTERVALLE_MAX ? '≥ ' : '') + formatDuree(m);
+                const nbPh = Object.keys(e.phases).length;
+                titre = hh + ' UTC : pic de ' + pic + ' événements / 30 min sur la zone la plus chargée, mesuré sur '
+                    + nbPh + ' phase' + (nbPh > 1 ? 's' : '');
+                if (nbPh < 2) classe += ' border-dashed';
+            }
+            const card = document.createElement('div');
+            card.className = 'rounded-lg border p-2 text-center ' + classe;
+            card.title = titre;
+            card.innerHTML = '<div class="text-[10px] font-bold text-slate-400">' + hh + '</div>'
+                + '<div class="text-xs font-bold">' + texte + '</div>';
+            div.appendChild(card);
+        }
+    }
+
+    // ---------- Sélections (communes aux deux graphiques) ----------
     function plageSlots() {
         if (phaseSelectionnee === 0) return [0, analyse.nbSlots];
         const debut = (phaseSelectionnee - 1) * analyse.slotsParPhase;
@@ -143,21 +338,147 @@
     }
 
     function rafraichirPastilles() {
-        const div = document.getElementById('filtrePhase');
-        div.innerHTML = '';
-        creerPastille(div, 'Toute la BT', phaseSelectionnee === 0, () => choisirPhase(0));
+        const divPhase = document.getElementById('filtrePhase');
+        divPhase.innerHTML = '';
+        creerPastille(divPhase, 'Toute la BT', phaseSelectionnee === 0, () => choisirPhase(0));
         const nbPhases = analyse.nbSlots / analyse.slotsParPhase;
         for (let p = 1; p <= nbPhases; p++) {
-            creerPastille(div, 'Phase ' + p, phaseSelectionnee === p, () => choisirPhase(p));
+            creerPastille(divPhase, 'Phase ' + p, phaseSelectionnee === p, () => choisirPhase(p));
         }
+        const divInt = document.getElementById('filtreIntervalle');
+        divInt.innerHTML = '';
+        INTERVALLES_TESTES.forEach(i => {
+            creerPastille(divInt, i.label, intervalleTesteMin === i.min, () => choisirIntervalle(i.min));
+        });
     }
 
     function choisirPhase(p) {
         phaseSelectionnee = p;
         rafraichirPastilles();
+        mettreAJourSimulation();
         mettreAJourGraphique();
     }
 
+    function choisirIntervalle(min) {
+        intervalleTesteMin = min;
+        rafraichirPastilles();
+        mettreAJourSimulation();
+    }
+
+    // ---------- Graphique de simulation ----------
+    const pluginLacunes = {
+        id: 'lacunes',
+        beforeDatasetsDraw: function(chart) {
+            if (!simCourante) return;
+            const n = chart.data.labels.length;
+            if (!n) return;
+            const ctx = chart.ctx;
+            const zone = chart.chartArea;
+            const w = zone.width / n;
+            ctx.save();
+            ctx.fillStyle = 'rgba(148,163,184,0.18)';
+            simCourante.partiel.forEach(function(p, i) {
+                if (p) ctx.fillRect(chart.scales.x.getPixelForValue(i) - w / 2, zone.top, w, zone.height);
+            });
+            ctx.restore();
+        }
+    };
+
+    function couleurBarre(v) {
+        if (v >= PLAFOND_JEU) return '#f43f5e';
+        if (v >= MARGE) return '#fb923c';
+        return '#60a5fa';
+    }
+
+    function mettreAJourSimulation() {
+        const k = intervalleTesteMin / 30;
+        const sim = calculerSimulation(k);
+        const plage = plageSlots();
+        const debut = plage[0];
+        const fin = plage[1];
+
+        const labels = [];
+        for (let s = debut; s < fin; s++) labels.push(libelleSlot(s));
+        const valeurs = sim.valeurs.slice(debut, fin);
+        const n = valeurs.length;
+
+        simCourante = {
+            debut: debut, k: k,
+            zones: sim.zones.slice(debut, fin),
+            partiel: sim.partiel.slice(debut, fin)
+        };
+
+        const datasets = [
+            { type: 'bar', label: 'Zone la plus chargée', data: valeurs,
+              backgroundColor: function(c) { return couleurBarre(c.raw); }, borderWidth: 0 },
+            { type: 'line', label: 'Plafond du jeu (' + PLAFOND_JEU + ')', data: new Array(n).fill(PLAFOND_JEU),
+              borderColor: '#f43f5e', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false },
+            { type: 'line', label: 'Marge (' + MARGE + ')', data: new Array(n).fill(MARGE),
+              borderColor: '#fb923c', borderDash: [2, 4], borderWidth: 1.5, pointRadius: 0, fill: false }
+        ];
+
+        if (chartSim) {
+            chartSim.data.labels = labels;
+            chartSim.data.datasets = datasets;
+            chartSim.update();
+            return;
+        }
+
+        chartSim = new Chart(document.getElementById('chart-simulation'), {
+            type: 'bar',
+            data: { labels: labels, datasets: datasets },
+            plugins: [pluginLacunes],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: {
+                        ticks: { color: '#94a3b8', maxRotation: 60, autoSkip: true, maxTicksLimit: 24 },
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        suggestedMax: 60,
+                        title: { display: true, text: 'Événements sur la fenêtre', color: '#94a3b8' },
+                        ticks: { color: '#94a3b8', precision: 0 },
+                        grid: { color: 'rgba(148,163,184,0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#cbd5e1', filter: function(item) { return item.datasetIndex > 0; } } },
+                    tooltip: {
+                        backgroundColor: '#152032',
+                        borderColor: '#fbbf24',
+                        borderWidth: 1,
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        footerColor: '#fbbf24',
+                        filter: function(item) { return item.datasetIndex === 0; },
+                        callbacks: {
+                            title: function(items) {
+                                const s = simCourante.debut + items[0].dataIndex;
+                                return 'Phase ' + phaseDeSlot(s) + ' — de ' + libelleSlot(s - simCourante.k + 1) + ' à ' + libelleSlot(s + 1);
+                            },
+                            label: function(ctx) {
+                                const z = simCourante.zones[ctx.dataIndex];
+                                return ctx.raw + ' événements' + (z ? ' (' + labelZone[z] + ')' : '');
+                            },
+                            footer: function(items) {
+                                const i = items[0].dataIndex;
+                                const lignes = [];
+                                if (items[0].raw >= PLAFOND_JEU) lignes.push('Perte probable avec cet intervalle');
+                                if (simCourante.partiel[i]) lignes.push('Données incomplètes : valeur minimale');
+                                return lignes;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---------- Graphique par type ----------
     function afficherTotaux(debut, fin) {
         const div = document.getElementById('totauxTypes');
         div.innerHTML = '';
@@ -230,8 +551,7 @@
                         callbacks: {
                             title: function(items) {
                                 const s = plageDebut + items[0].dataIndex;
-                                return 'Phase ' + (Math.floor(s / analyse.slotsParPhase) + 1)
-                                    + ' — ' + libelleSlot(s) + ' → ' + libelleSlot(s + 1);
+                                return 'Phase ' + phaseDeSlot(s) + ' — ' + libelleSlot(s) + ' → ' + libelleSlot(s + 1);
                             },
                             footer: function(items) {
                                 return 'Total : ' + items.reduce(function(a, i) { return a + i.parsed.y; }, 0);
@@ -247,7 +567,10 @@
         document.getElementById('infoTb').textContent =
             'Début de la BT : ' + libelleSlot(0) + ' (heure de Paris) · 6 phases de 24 h · tranches de 30 min alignées sur le début de la BT';
         construireGrille();
+        construireZones();
         rafraichirPastilles();
+        afficherConseils();
+        mettreAJourSimulation();
         mettreAJourGraphique();
     }
 

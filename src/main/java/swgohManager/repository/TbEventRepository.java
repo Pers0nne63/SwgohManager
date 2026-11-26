@@ -1,5 +1,6 @@
 package swgohManager.repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -18,6 +19,13 @@ public interface TbEventRepository extends JpaRepository<TbEvent, Long> {
         Long getDebutMs();            // timestamp (ms) de l'événement précédent connu
         Long getFinMs();              // timestamp (ms) de l'événement suivant connu
         Long getPointsManquants();
+    }
+
+    /** Nombre d'événements par tranche de 30 min (depuis :debut) et par type, pour l'analyse. */
+    interface RepartitionProjection {
+        Integer getSlot();   // numéro de la tranche de 30 min depuis le début (0 = première tranche)
+        String getType();
+        Long getNb();
     }
 
     /** Ids d'événements déjà en base pour une TB : sert à n'insérer que les nouveaux. */
@@ -47,4 +55,23 @@ public interface TbEventRepository extends JpaRepository<TbEvent, Long> {
             ORDER BY t."zoneId", t."finMs"
             """, nativeQuery = true)
     List<TrouProjection> findTrousByInstanceId(@Param("instanceId") String instanceId);
+
+    /**
+     * Répartition des événements d'une TB par tranche de 30 min depuis :debut et par type (:fin exclue).
+     * Les tranches sans événement ne sont pas renvoyées (à compléter par des 0 côté affichage).
+     */
+    @Query(value = """
+            SELECT CAST(FLOOR(EXTRACT(EPOCH FROM (e.event_time - CAST(:debut AS timestamp with time zone))) / 1800) AS integer) AS "slot",
+                   e.type AS "type",
+                   COUNT(*) AS "nb"
+            FROM tb_event e
+            WHERE e.instance_id = :instanceId
+              AND e.event_time >= CAST(:debut AS timestamp with time zone)
+              AND e.event_time < CAST(:fin AS timestamp with time zone)
+            GROUP BY 1, 2
+            ORDER BY 1, 2
+            """, nativeQuery = true)
+    List<RepartitionProjection> repartitionParTrancheEtType(@Param("instanceId") String instanceId,
+                                                           @Param("debut") Instant debut,
+                                                           @Param("fin") Instant fin);
 }

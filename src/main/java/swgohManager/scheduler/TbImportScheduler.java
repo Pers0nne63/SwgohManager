@@ -45,4 +45,26 @@ public class TbImportScheduler {
             log.warn("Sync mapstats guionbot échouée : {}", e.getMessage());
         }
     }
+
+    /**
+     * Import tb-events (fenêtre glissante des 50 derniers événements par zone, d'où la fréquence).
+     * Cadence (heures UTC), un même tick n'appartient qu'à une seule des 4 expressions :
+     *  - 00h-10h et 14h-17h : toutes les heures
+     *  - 11h-14h            : toutes les 30 min (11h00 ... 13h30, le tick de 14h00 vient de la ligne horaire)
+     *  - 18h-20h            : toutes les 15 min (18h00 ... 19h45)
+     *  - 20h-00h            : toutes les 30 min (20h00 ... 23h30)
+     * Le service ne contacte guionbot que si la dernière TB connue est dans sa fenêtre de 6 jours.
+     */
+    @Scheduled(cron = "${app.guionbot.events-cron-journee:0 0 0-10,14-17 * * *}", zone = "UTC")
+    @Scheduled(cron = "${app.guionbot.events-cron-midi:0 0,30 11-13 * * *}", zone = "UTC")
+    @Scheduled(cron = "${app.guionbot.events-cron-debut-soiree:0 0,15,30,45 18-19 * * *}", zone = "UTC")
+    @Scheduled(cron = "${app.guionbot.events-cron-soiree:0 0,30 20-23 * * *}", zone = "UTC")
+    public void syncEvents() {
+        try {
+            String res = tbAutoImportService.synchroniserEventsSiActif();
+            log.info("[CRON TB Events] {}", res);
+        } catch (Exception e) {
+            log.warn("Sync tb-events guionbot échouée : {}", e.getMessage());
+        }
+    }
 }

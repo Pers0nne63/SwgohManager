@@ -39,6 +39,7 @@ public class TbAutoImportService {
     private final TbImportStatService tbImportStatService;
     private final ObjectMapper objectMapper;
     private final TaskScheduler taskScheduler;
+    private final TbEventImportService tbEventImportService;
 
     private final AtomicReference<ScheduledFuture<?>> tacheFinRoundPlanifiee = new AtomicReference<>();
     private volatile String dernierRoundPlanifieCle = "";
@@ -201,6 +202,20 @@ public class TbAutoImportService {
         }
 
         return importerMapStatsPourTb(tb, roundNum);
+    }
+    
+    /** Import tb-events : ne contacte guionbot que si la dernière TB connue est dans sa fenêtre de 6 jours. */
+    public String synchroniserEventsSiActif() {
+        TerritoryBattle tb = territoryBattleRepository.findAllByOrderByStartTimeDesc().stream()
+                .filter(t -> t.getStartTime() != null)
+                .findFirst()
+                .orElse(null);
+        if (tb == null || !estDansFenetreActive(tb.getStartTime())) {
+            return "Aucune TB en cours (events ignorés)";
+        }
+        TbEventImportService.Resultat r = tbEventImportService.importerDepuisApi();
+        return "TB " + tb.getInstanceId() + " : events " + r.lus() + " lus, " + r.nouveaux()
+                + " nouveaux, " + r.dejaPresents() + " déjà en base, " + r.ignores() + " ignorés";
     }
 
     private void executerImportFinRoundPlanifie(String instanceId, int roundNum, String cleRound) {

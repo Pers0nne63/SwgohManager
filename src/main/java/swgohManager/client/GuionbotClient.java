@@ -43,6 +43,11 @@ public class GuionbotClient {
     public JsonNode fetchGuild() {
         return post("/guild.php");
     }
+    
+    /** Événements de zone de la TB (apparemment plafonné aux 50 derniers par zone). */
+    public JsonNode fetchTbEvents() {
+        return post("/tb-events.php");
+    }
 
     private JsonNode post(String path) {
         if (!apiKeyConfigured) {

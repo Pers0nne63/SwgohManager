@@ -81,12 +81,11 @@
                     <canvas id="chart-simulation"></canvas>
                 </div>
                 <p class="text-slate-500 text-[11px] mt-3 leading-relaxed">
-                    Chaque barre = nombre d'événements de la <b>zone la plus chargée</b> sur une fenêtre égale à l'intervalle testé, terminée à cette tranche.
-                    <span class="text-blue-400">Bleu</span> : sous 40 (marge) ·
-                    <span class="text-orange-400">orange</span> : 40 à 49 ·
-                    <span class="text-rose-400">rouge</span> : 50 ou plus, des événements seraient perdus avec cet intervalle.
-                    Les fenêtres calées différemment peuvent voir un peu plus, d'où la marge.
-                    Les zones grisées sont des périodes où des événements manquent déjà (trou de collecte, début de zone perdu, ou pas encore de données) : la barre est alors un minimum.
+                    Pour chaque zone : nombre d'événements sur une fenêtre égale à l'intervalle testé, terminée à cette tranche.
+                    Couleurs : <span class="text-blue-400">C1</span> · <span class="text-emerald-400">C2</span> · <span class="text-pink-400">C3</span> · <span class="text-purple-400">bonus</span>.
+                    Une barre au <span class="text-rose-400">contour rouge</span> atteint 50 ou plus : des événements seraient perdus avec cet intervalle (la ligne orange à 40 sert de marge, car des fenêtres calées différemment peuvent voir un peu plus).
+                    Avec « Toute la BT », chaque zone est tracée en ligne.
+                    Les zones grisées sont des périodes où des événements manquent déjà (trou de collecte, début de zone perdu, ou pas encore de données) : les valeurs y sont des minimums.
                 </p>
 
                 <h3 class="text-sm font-bold text-white mt-6 mb-1 flex items-center gap-2">
@@ -213,7 +212,7 @@
         zoneIds.forEach(z => {
             const m = /phase(\d+)_conflict(\d+)(_bonus)?$/.exec(z);
             phaseZone[z] = m ? parseInt(m[1], 10) : 0;
-            labelZone[z] = m ? ('P' + m[1] + ' · C' + m[2] + (m[3] ? ' bonus' : '')) : z;
+            labelZone[z] = m ? ('P' + parseInt(m[1], 10) + ' · C' + parseInt(m[2], 10) + (m[3] ? ' bonus' : '')) : z;
         });
         // trous de collecte détectés entre deux événements connus
         analyse.trous.forEach(t => marquerLacune(t.zoneId, t.debutMs, t.finMs));
@@ -227,12 +226,19 @@
         });
     }
 
-    // Pour chaque tranche s : zone la plus chargée sur la fenêtre des k dernières tranches
+    // Pour chaque tranche s : somme des événements de chaque zone sur la fenêtre des k dernières tranches,
+    // et zone la plus chargée (valeurs / zones). partiel[s] = des événements manquent déjà dans la tranche.
     function calculerSimulation(k) {
         const n = analyse.nbSlots;
         const valeurs = new Array(n).fill(0);
         const zones = new Array(n).fill(null);
         const partiel = new Array(n).fill(false);
+        const parZone = {};
+        const partielZone = {};
+        zoneIds.forEach(z => {
+            parZone[z] = new Array(n).fill(0);
+            partielZone[z] = new Array(n).fill(false);
+        });
         for (let s = 0; s < n; s++) {
             if (s > dernierSlot) { partiel[s] = true; continue; }   // pas encore de données
             zoneIds.forEach(z => {
@@ -244,11 +250,13 @@
                     somme += grilleZone[z][idx];
                     if (lacune[z][idx]) trou = true;
                 }
+                parZone[z][s] = somme;
+                partielZone[z][s] = trou;
                 if (somme > valeurs[s]) { valeurs[s] = somme; zones[s] = z; }
                 if (trou && phaseZone[z] === phaseDeSlot(s)) partiel[s] = true;
             });
         }
-        return { valeurs: valeurs, zones: zones, partiel: partiel };
+        return { valeurs: valeurs, zones: zones, partiel: partiel, parZone: parZone, partielZone: partielZone };
     }
 
     // ---------- Intervalle conseillé par heure UTC ----------
@@ -384,10 +392,24 @@
         }
     };
 
-    function couleurBarre(v) {
-        if (v >= PLAFOND_JEU) return '#f43f5e';
-        if (v >= MARGE) return '#fb923c';
-        return '#60a5fa';
+    // Couleur d'une zone selon son conflit (C1, C2, C3, bonus)
+    function couleurZone(z) {
+        const m = /conflict(\d+)(_bonus)?$/.exec(z);
+        if (!m) return '#94a3b8';
+        if (m[2]) return '#c084fc';
+        const c = parseInt(m[1], 10);
+        if (c === 1) return '#60a5fa';
+        if (c === 2) return '#34d399';
+        if (c === 3) return '#f472b6';
+        return '#94a3b8';
+    }
+
+    // Zones à afficher : celles de la phase choisie (+ zones plus anciennes encore actives) ; toute la BT : zones avec événements
+    function zonesAffichees(sim, debut, fin) {
+        return zoneIds.filter(z => {
+            if (phaseSelectionnee !== 0 && phaseZone[z] === phaseSelectionnee) return true;
+            return sim.parZone[z].slice(debut, fin).some(v => v > 0);
+        });
     }
 
     function mettreAJourSimulation() {
@@ -399,23 +421,42 @@
 
         const labels = [];
         for (let s = debut; s < fin; s++) labels.push(libelleSlot(s));
-        const valeurs = sim.valeurs.slice(debut, fin);
-        const n = valeurs.length;
+        const n = fin - debut;
 
         simCourante = {
             debut: debut, k: k,
-            zones: sim.zones.slice(debut, fin),
-            partiel: sim.partiel.slice(debut, fin)
+            partiel: sim.partiel.slice(debut, fin),
+            partielZone: sim.partielZone
         };
 
-        const datasets = [
-            { type: 'bar', label: 'Zone la plus chargée', data: valeurs,
-              backgroundColor: function(c) { return couleurBarre(c.raw); }, borderWidth: 0 },
+        // Une phase : barres groupées par zone. Toute la BT : une ligne par zone (trop de barres sinon).
+        const enLignes = phaseSelectionnee === 0;
+        const datasets = zonesAffichees(sim, debut, fin).map(z => {
+            const serie = sim.parZone[z].slice(debut, fin);
+            if (enLignes) {
+                return {
+                    type: 'line', label: labelZone[z], zoneId: z,
+                    data: serie.map(function(v, i) {
+                        return (v === 0 && phaseDeSlot(debut + i) !== phaseZone[z]) ? null : v;
+                    }),
+                    borderColor: couleurZone(z), backgroundColor: couleurZone(z),
+                    borderWidth: 1.5, pointRadius: 0, spanGaps: false, fill: false
+                };
+            }
+            return {
+                type: 'bar', label: labelZone[z], zoneId: z, data: serie,
+                backgroundColor: couleurZone(z),
+                borderColor: '#f43f5e',
+                borderWidth: function(c) { return c.raw >= PLAFOND_JEU ? 2 : 0; },
+                maxBarThickness: 10, barPercentage: 0.9, categoryPercentage: 0.8
+            };
+        });
+        datasets.push(
             { type: 'line', label: 'Plafond du jeu (' + PLAFOND_JEU + ')', data: new Array(n).fill(PLAFOND_JEU),
               borderColor: '#f43f5e', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false },
             { type: 'line', label: 'Marge (' + MARGE + ')', data: new Array(n).fill(MARGE),
               borderColor: '#fb923c', borderDash: [2, 4], borderWidth: 1.5, pointRadius: 0, fill: false }
-        ];
+        );
 
         if (chartSim) {
             chartSim.data.labels = labels;
@@ -446,7 +487,7 @@
                     }
                 },
                 plugins: {
-                    legend: { labels: { color: '#cbd5e1', filter: function(item) { return item.datasetIndex > 0; } } },
+                    legend: { labels: { color: '#cbd5e1' } },
                     tooltip: {
                         backgroundColor: '#152032',
                         borderColor: '#fbbf24',
@@ -454,21 +495,21 @@
                         titleColor: '#fff',
                         bodyColor: '#cbd5e1',
                         footerColor: '#fbbf24',
-                        filter: function(item) { return item.datasetIndex === 0; },
+                        filter: function(item) { return item.dataset.zoneId !== undefined; },
                         callbacks: {
                             title: function(items) {
                                 const s = simCourante.debut + items[0].dataIndex;
                                 return 'Phase ' + phaseDeSlot(s) + ' — de ' + libelleSlot(s - simCourante.k + 1) + ' à ' + libelleSlot(s + 1);
                             },
                             label: function(ctx) {
-                                const z = simCourante.zones[ctx.dataIndex];
-                                return ctx.raw + ' événements' + (z ? ' (' + labelZone[z] + ')' : '');
+                                const z = ctx.dataset.zoneId;
+                                const s = simCourante.debut + ctx.dataIndex;
+                                const min = simCourante.partielZone[z] && simCourante.partielZone[z][s];
+                                return ctx.dataset.label + ' : ' + ctx.raw + (min ? '  (minimum, données incomplètes)' : '');
                             },
                             footer: function(items) {
-                                const i = items[0].dataIndex;
                                 const lignes = [];
-                                if (items[0].raw >= PLAFOND_JEU) lignes.push('Perte probable avec cet intervalle');
-                                if (simCourante.partiel[i]) lignes.push('Données incomplètes : valeur minimale');
+                                if (items.some(function(i) { return i.raw >= PLAFOND_JEU; })) lignes.push('Perte probable avec cet intervalle');
                                 return lignes;
                             }
                         }

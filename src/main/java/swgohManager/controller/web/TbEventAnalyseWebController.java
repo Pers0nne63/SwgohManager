@@ -2,8 +2,12 @@ package swgohManager.controller.web;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,8 +15,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import lombok.RequiredArgsConstructor;
+import swgohManager.model.TbPlaneteReference;
 import swgohManager.model.TerritoryBattle;
 import swgohManager.repository.TbEventRepository;
+import swgohManager.repository.TbPlaneteReferenceRepository;
 import swgohManager.repository.TerritoryBattleRepository;
 
 /** Page d'analyse des événements de zone (tb-events) d'une Territory Battle. */
@@ -24,9 +30,12 @@ public class TbEventAnalyseWebController {
     private static final int SLOTS_PAR_PHASE = 48;                  // 24 h / 30 min
     private static final int NB_SLOTS = NB_PHASES * SLOTS_PAR_PHASE;
     private static final long SLOT_MS = 30L * 60 * 1000;
+    // Zones de la TB Rise of the Empire : seules celles-ci correspondent au référentiel des planètes
+    private static final Pattern ZONE_ROTE = Pattern.compile("^tb3_mixed_phase(\\d+)_conflict(\\d+)(_bonus)?$");
 
     private final TerritoryBattleRepository territoryBattleRepository;
     private final TbEventRepository tbEventRepository;
+    private final TbPlaneteReferenceRepository tbPlaneteReferenceRepository;
 
     /** Nombre d'événements d'un type dans une tranche de 30 min. */
     public record Cellule(int slot, String type, long nb) {}
@@ -43,7 +52,8 @@ public class TbEventAnalyseWebController {
     /** Données JSON passées au JavaScript de la page. */
     public record Analyse(long debutMs, long slotMs, int nbSlots, int slotsParPhase,
                           List<Cellule> cellules, List<CelluleZone> cellulesZone,
-                          List<TrouZone> trous, List<DebutZone> debutsZones) {}
+                          List<TrouZone> trous, List<DebutZone> debutsZones,
+                          Map<String, String> nomsZones) {}
 
     @GetMapping("/tb-events")
     public String analyse(@RequestParam(required = false) Long tbId, Model model) {
@@ -77,9 +87,43 @@ public class TbEventAnalyseWebController {
                     .toList();
 
             model.addAttribute("analyse", new Analyse(debut.toEpochMilli(), SLOT_MS, NB_SLOTS, SLOTS_PAR_PHASE,
-                    cellules, cellulesZone, trous, debutsZones));
+                    cellules, cellulesZone, trous, debutsZones, nomsPlanetes(cellulesZone)));
             model.addAttribute("nbEvenements", cellules.stream().mapToLong(Cellule::nb).sum());
         }
         return "tb-events";
+    }
+
+    /** zoneId (ex. tb3_mixed_phase03_conflict01_bonus) -> nom court de la planète (ex. Zeffo), d'après le référentiel. */
+    private Map<String, String> nomsPlanetes(List<CelluleZone> cellulesZone) {
+        Map<String, String> parEmplacement = new HashMap<>();
+        for (TbPlaneteReference r : tbPlaneteReferenceRepository.findAll()) {
+            parEmplacement.put(cle(r.getPhase(), r.getConflict(), Boolean.TRUE.equals(r.getBonus())),
+                    nomCourt(r.getPlaneteName()));
+        }
+        Map<String, String> noms = new HashMap<>();
+        for (String zoneId : cellulesZone.stream().map(CelluleZone::zoneId).distinct().toList()) {
+            Matcher m = ZONE_ROTE.matcher(zoneId);
+            if (!m.matches()) {
+                continue;
+            }
+            String nom = parEmplacement.get(cle(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), m.group(3) != null));
+            if (nom != null) {
+                noms.put(zoneId, nom);
+            }
+        }
+        return noms;
+    }
+
+    private static String cle(Integer phase, Integer conflict, boolean bonus) {
+        return phase + "-" + conflict + "-" + bonus;
+    }
+
+    /** "R7 - Kashyyyk" -> "Kashyyyk" ; "Zeffo" (sans préfixe) reste "Zeffo". */
+    private static String nomCourt(String nom) {
+        if (nom == null) {
+            return null;
+        }
+        int i = nom.indexOf(" - ");
+        return (i >= 0 ? nom.substring(i + 3) : nom).trim();
     }
 }

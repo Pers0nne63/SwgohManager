@@ -84,6 +84,7 @@
                     Pour chaque zone : nombre d'événements sur une fenêtre égale à l'intervalle testé, terminée à cette tranche.
                     Couleurs : <span class="text-blue-400">C1</span> · <span class="text-emerald-400">C2</span> · <span class="text-pink-400">C3</span> · <span class="text-purple-400">bonus</span>.
                     Une barre au <span class="text-rose-400">contour rouge</span> atteint 50 ou plus : des événements seraient perdus avec cet intervalle (la ligne orange à 40 sert de marge, car des fenêtres calées différemment peuvent voir un peu plus).
+                    Chaque zone porte le nom de sa planète (à défaut « P3 · C3 » = phase03_conflict03). Une planète peut rester ouverte plusieurs jours : elle est remplacée quand la planète du même emplacement de la phase suivante s'ouvre.
                     Avec « Toute la BT », chaque zone est tracée en ligne.
                     Les zones grisées sont des périodes où des événements manquent déjà (trou de collecte, début de zone perdu, ou pas encore de données) : les valeurs y sont des minimums.
                 </p>
@@ -185,8 +186,21 @@
     let phaseZone = {};
     let labelZone = {};
     let dernierSlot = 0;      // dernière tranche contenant un événement
+    let ouverture = {};       // zoneId -> première tranche où la zone est ouverte (début de sa phase)
+    let fermeture = {};       // zoneId -> tranche où elle est remplacée par la zone suivante du même emplacement
     let simCourante = null;
     let chartSim = null;
+
+    // Emplacement d'une zone : conflit + bonus. phase03_conflict03 et phase04_conflict03 ne peuvent pas coexister.
+    function cleEmplacement(z) {
+        const m = /conflict(\d+)(_bonus)?$/.exec(z);
+        return m ? (m[1] + (m[2] ? 'b' : '')) : z;
+    }
+
+    // Une zone est ouverte de sa phase jusqu'à l'ouverture d'une zone plus récente du même emplacement
+    function zoneOuverte(z, s) {
+        return s >= ouverture[z] && s < fermeture[z];
+    }
 
     function marquerLacune(zoneId, deMs, aMs) {
         if (!lacune[zoneId]) return;
@@ -212,7 +226,20 @@
         zoneIds.forEach(z => {
             const m = /phase(\d+)_conflict(\d+)(_bonus)?$/.exec(z);
             phaseZone[z] = m ? parseInt(m[1], 10) : 0;
-            labelZone[z] = m ? ('P' + parseInt(m[1], 10) + ' · C' + parseInt(m[2], 10) + (m[3] ? ' bonus' : '')) : z;
+            // Nom de la planète d'après le référentiel ; à défaut « P3 · C3 »
+            labelZone[z] = (analyse.nomsZones && analyse.nomsZones[z])
+                || (m ? ('P' + parseInt(m[1], 10) + ' · C' + parseInt(m[2], 10) + (m[3] ? ' bonus' : '')) : z);
+        });
+        zoneIds.forEach(z => {
+            ouverture[z] = phaseZone[z] ? (phaseZone[z] - 1) * analyse.slotsParPhase : 0;
+            fermeture[z] = analyse.nbSlots;
+        });
+        zoneIds.forEach(z => {
+            zoneIds.forEach(z2 => {
+                if (z2 !== z && cleEmplacement(z2) === cleEmplacement(z) && phaseZone[z2] > phaseZone[z]) {
+                    fermeture[z] = Math.min(fermeture[z], (phaseZone[z2] - 1) * analyse.slotsParPhase);
+                }
+            });
         });
         // trous de collecte détectés entre deux événements connus
         analyse.trous.forEach(t => marquerLacune(t.zoneId, t.debutMs, t.finMs));
@@ -253,7 +280,7 @@
                 parZone[z][s] = somme;
                 partielZone[z][s] = trou;
                 if (somme > valeurs[s]) { valeurs[s] = somme; zones[s] = z; }
-                if (trou && phaseZone[z] === phaseDeSlot(s)) partiel[s] = true;
+                if (trou && zoneOuverte(z, s)) partiel[s] = true;
             });
         }
         return { valeurs: valeurs, zones: zones, partiel: partiel, parZone: parZone, partielZone: partielZone };
@@ -404,11 +431,12 @@
         return '#94a3b8';
     }
 
-    // Zones à afficher : celles de la phase choisie (+ zones plus anciennes encore actives) ; toute la BT : zones avec événements
+    // Zones à afficher : celles qui ont des événements sur la période (une zone peut rester active plusieurs jours),
+    // plus, quand un jour est choisi, les zones dont la phase porte ce numéro (même si elles sont calmes)
     function zonesAffichees(sim, debut, fin) {
         return zoneIds.filter(z => {
-            if (phaseSelectionnee !== 0 && phaseZone[z] === phaseSelectionnee) return true;
-            return sim.parZone[z].slice(debut, fin).some(v => v > 0);
+            const actif = sim.parZone[z].slice(debut, fin).some(v => v > 0);
+            return actif || (phaseSelectionnee !== 0 && phaseZone[z] === phaseSelectionnee);
         });
     }
 
@@ -437,7 +465,7 @@
                 return {
                     type: 'line', label: labelZone[z], zoneId: z,
                     data: serie.map(function(v, i) {
-                        return (v === 0 && phaseDeSlot(debut + i) !== phaseZone[z]) ? null : v;
+                        return (v === 0 && !zoneOuverte(z, debut + i)) ? null : v;
                     }),
                     borderColor: couleurZone(z), backgroundColor: couleurZone(z),
                     borderWidth: 1.5, pointRadius: 0, spanGaps: false, fill: false
